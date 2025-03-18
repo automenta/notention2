@@ -104,6 +104,15 @@ async function loadTools(path) {
     }
 }
 
+async function removeReferences(noteId) {
+    for (const [id, note] of notes.entries()) {
+        if (note.references.includes(noteId)) {
+            note.references = note.references.filter(ref => ref !== noteId);
+            await writeFile(join(NOTES_DIR, `${id}.json`), JSON.stringify(note));
+        }
+    }
+}
+
 // Core loop with anticipation
 async function runNote(noteId) {
     const note = notes.get(noteId);
@@ -134,32 +143,10 @@ async function runNote(noteId) {
 
         // Dependency-based execution
         const stepsById = new Map(note.logic.map(step => [step.id, step]));
-        const dependencyCount = new Map(note.logic.map(step => [step.id, step.dependencies.length]));
-        const dependents = new Map();
-        for (const step of note.logic) {
-            for (const depId of step.dependencies) {
-                if (!dependents.has(depId)) dependents.set(depId, []);
-                dependents.get(depId).push(step.id);
-            }
-        }
-        const readyQueue = note.logic.filter(step => step.status === 'pending' && step.dependencies.every(depId => !stepsById.has(depId) || stepsById.get(depId).status === 'completed')).map(step => step.id);
-
-        function replacePlaceholders(obj, memoryMap) {
-            if (typeof obj === 'string') {
-                return obj.replace(/\$\{([^}]+)\}/g, (match, stepId) => memoryMap.get(stepId) || match);
-            } else if (Array.isArray(obj)) {
-                return obj.map(item => replacePlaceholders(item, memoryMap));
-            } else if (typeof obj === 'object' && obj !== null) {
-                const newObj = {};
-                for (const key in obj) {
-                    newObj[key] = replacePlaceholders(obj[key], memoryMap);
-                }
-                return newObj;
-            }
-            return obj;
-        }
-
+        const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
+        const readyQueue = note.logic.filter(step => step.dependencies.length === 0).map(step => step.id);
         let changesMade = false;
+
         while (readyQueue.length > 0) {
             const stepId = readyQueue.shift();
             const step = stepsById.get(stepId);
@@ -186,14 +173,10 @@ async function runNote(noteId) {
                 note.memory.push({ type: 'error', stepId: step.id, content: `Tool ${step.tool} not found`, timestamp: Date.now() });
             }
 
-            const dependentIds = dependents.get(stepId) || [];
-            for (const depId of dependentIds) {
-                const count = dependencyCount.get(depId);
-                if (count > 0) {
-                    dependencyCount.set(depId, count - 1);
-                    if (count - 1 === 0 && stepsById.get(depId).status === 'pending') {
-                        readyQueue.push(depId);
-                    }
+            for (const [id, deps] of dependencies.entries()) {
+                deps.delete(stepId);
+                if (deps.size === 0 && stepsById.get(id).status === 'pending') {
+                    readyQueue.push(id);
                 }
             }
         }
@@ -263,6 +246,7 @@ async function startServer() {
             }
 
             if (type === 'deleteNote') {
+                await removeReferences(data.id); // Add this line before deletion
                 notes.delete(data.id);
                 await unlink(join(NOTES_DIR, `${data.id}.json`)).catch(() => {});
             }

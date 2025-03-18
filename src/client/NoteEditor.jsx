@@ -70,16 +70,46 @@ export default function NoteEditor({note, onUpdate, onRun}) {
                 style={{margin: '10px 5px 0 0'}}
             />
             <button onClick={addRef} disabled={!refId}>Add Ref</button>
-            <h3>Plan</h3>
-            {note.logic?.map(step => (
+
+            <h3>Plan Steps</h3>
+            {note.logic?.map((step, index) => (
                 <div key={step.id} style={{ margin: '5px 0', color: step.status === 'failed' ? 'red' : 'black' }}>
-                    {step.tool}: <input
+                    <input
+                        value={step.tool}
+                        onChange={e => {
+                            const newLogic = [...note.logic];
+                            newLogic[index].tool = e.target.value;
+                            onUpdate({ id: note.id, logic: newLogic });
+                        }}
+                        style={{ marginRight: '5px' }}
+                    />
+                    <input
                         value={typeof step.input === 'object' ? JSON.stringify(step.input) : step.input}
-                        onChange={e => updateStep(step.id, e.target.value)}
-                        style={{ width: '50%' }}
-                    /> Status: {step.status} Depends on: {step.dependencies.join(', ')}
+                        onChange={e => {
+                            const newLogic = [...note.logic];
+                            newLogic[index].input = JSON.parse(e.target.value);
+                            onUpdate({ id: note.id, logic: newLogic });
+                        }}
+                        style={{ width: '50%', marginRight: '5px' }}
+                    />
+                    <input
+                        value={step.dependencies.join(',')}
+                        onChange={e => {
+                            const newLogic = [...note.logic];
+                            newLogic[index].dependencies = e.target.value.split(',');
+                            onUpdate({ id: note.id, logic: newLogic });
+                        }}
+                        style={{ marginRight: '5px' }}
+                    />
+                    <span>Status: {step.status}</span>
                 </div>
             ))}
+            <button onClick={() => {
+                const newStep = { id: crypto.randomUUID(), tool: '', input: {}, dependencies: [], status: 'pending' };
+                onUpdate({ id: note.id, logic: [...(note.logic || []), newStep] });
+            }}>Add Step</button>
+
+
             <h3>Memory</h3>
             <ul>
                 {note.memory.map((mem, index) => (

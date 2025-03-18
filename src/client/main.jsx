@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import NoteList from './NoteList.jsx';
 import NoteEditor from './NoteEditor.jsx';
+import cytoscape from 'cytoscape';
 
 function App() {
     const [notes, setNotes] = useState([]);
@@ -26,6 +27,20 @@ function App() {
         connect();
         return () => websocket?.close();
     }, []);
+
+    useEffect(() => {
+        const cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements: notes.map(note => ({ data: { id: note.id, label: note.title } }))
+                .concat(notes.flatMap(note => note.references.map(ref => ({ data: { source: note.id, target: ref } })))),
+            style: [
+                { selector: 'node', style: { 'label': 'data(label)', 'background-color': '#666', 'color': '#fff' } },
+                { selector: 'edge', style: { 'width': 2, 'line-color': '#ccc', 'curve-style': 'bezier' } }
+            ],
+            layout: { name: 'grid' }
+        });
+    }, [notes]);
+
 
     const send = (msg) => ws?.readyState === 1 && ws.send(JSON.stringify(msg));
 

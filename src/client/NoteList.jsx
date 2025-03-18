@@ -9,9 +9,7 @@ export default function NoteList({notes, onSelect, onDelete}) {
                         onClick={() => onSelect(note.id)}
                         style={{cursor: 'pointer', flex: 1}}
                     >
-                        {note.title} <span style={{color: note.status === 'completed' ? 'green' : 'gray'}}>
-                            ({note.status})
-                        </span>
+                        {note.title} ({note.status}) {note.references.length > 0 && `(${note.references.length} refs)`}
                     </span>
                     <button onClick={() => onDelete(note.id)} style={{marginLeft: '5px'}}>Delete</button>
                 </li>
