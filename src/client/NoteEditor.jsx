@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 
-export default function NoteEditor({ note, onUpdate, onRun }) {
+export default function NoteEditor({note, onUpdate, onRun}) {
     const [title, setTitle] = useState(note.title);
     const [content, setContent] = useState(note.content);
     const [tool, setTool] = useState('');
@@ -15,7 +15,7 @@ export default function NoteEditor({ note, onUpdate, onRun }) {
 
     const save = () => {
         try {
-            onUpdate({ id: note.id, title, content });
+            onUpdate({id: note.id, title, content});
         } catch (err) {
             setError('Failed to save note');
         }
@@ -25,7 +25,7 @@ export default function NoteEditor({ note, onUpdate, onRun }) {
         try {
             onUpdate({
                 id: note.id,
-                logic: [...(note.logic || []), { id: crypto.randomUUID(), tool, input: content }]
+                logic: [...(note.logic || []), {id: crypto.randomUUID(), tool, input: content}]
             });
             setTool('');
         } catch (err) {
@@ -38,25 +38,25 @@ export default function NoteEditor({ note, onUpdate, onRun }) {
     });
     const updateStep = (stepId, input) => onUpdate({
         id: note.id,
-        logic: note.logic.map(s => s.id === stepId ? { ...s, input } : s)
+        logic: note.logic.map(s => s.id === stepId ? {...s, input} : s)
     });
 
     return (
-        <div style={{ padding: '10px', border: '1px solid #ccc' }}>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+        <div style={{padding: '10px', border: '1px solid #ccc'}}>
+            {error && <p style={{color: 'red'}}>{error}</p>}
             <input
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                style={{ width: '100%', marginBottom: '10px' }}
+                style={{width: '100%', marginBottom: '10px'}}
             />
             <textarea
                 value={content}
                 onChange={e => setContent(e.target.value)}
-                style={{ width: '100%', height: '100px', marginBottom: '10px' }}
+                style={{width: '100%', height: '100px', marginBottom: '10px'}}
             />
-            <button onClick={save} style={{ marginRight: '5px' }}>Save</button>
-            <button onClick={run} style={{ marginRight: '5px' }}>Run</button>
-            <select value={tool} onChange={e => setTool(e.target.value)} style={{ marginRight: '5px' }}>
+            <button onClick={save} style={{marginRight: '5px'}}>Save</button>
+            <button onClick={run} style={{marginRight: '5px'}}>Run</button>
+            <select value={tool} onChange={e => setTool(e.target.value)} style={{marginRight: '5px'}}>
                 <option value="">Add Tool</option>
                 <option value="summarize">Summarize</option>
                 <option value="webSearch">Web Search</option>
@@ -67,17 +67,17 @@ export default function NoteEditor({ note, onUpdate, onRun }) {
                 value={refId}
                 onChange={e => setRefId(e.target.value)}
                 placeholder="Ref ID"
-                style={{ margin: '10px 5px 0 0' }}
+                style={{margin: '10px 5px 0 0'}}
             />
             <button onClick={addRef} disabled={!refId}>Add Ref</button>
             <h3>Plan</h3>
             {note.logic?.map(step => (
-                <div key={step.id} style={{ margin: '5px 0' }}>
+                <div key={step.id} style={{margin: '5px 0'}}>
                     {step.tool}: <input
-                        value={step.input}
-                        onChange={e => updateStep(step.id, e.target.value)}
-                        style={{ width: '70%' }}
-                    />
+                    value={step.input}
+                    onChange={e => updateStep(step.id, e.target.value)}
+                    style={{width: '70%'}}
+                />
                 </div>
             ))}
             <h3>Memory</h3>

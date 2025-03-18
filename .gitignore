@@ -16,5 +16,5 @@ package-lock.json
 .idea/
 .aider*
 
-notes/
-tools/
+/notes
+/tools
