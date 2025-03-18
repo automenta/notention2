@@ -73,7 +73,6 @@ const seedNote = {
 };
 
 // Server state
-//const llm = new ChatOpenAI({openAIApiKey: process.env.OPENAI_API_KEY, temperature: 0.7});
 const llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1, maxRetries: 2});
 const notes = new Map();
 const tools = new Map();
@@ -164,7 +163,7 @@ async function runNote(noteId) {
         while (readyQueue.length > 0) {
             const stepId = readyQueue.shift();
             const step = stepsById.get(stepId);
-            if (step.status !== 'pending') continue; // Skip already processed steps
+            if (step.status !== 'pending') continue;
 
             step.status = 'running';
             changesMade = true;
@@ -199,7 +198,6 @@ async function runNote(noteId) {
             }
         }
 
-        // Update note status based on step outcomes
         const allCompleted = note.logic.every(step => step.status === 'completed');
         const hasFailed = note.logic.some(step => step.status === 'failed');
         note.status = allCompleted ? 'completed' : (hasFailed && !changesMade) ? 'failed' : 'pending';
@@ -220,60 +218,87 @@ async function runNote(noteId) {
     return note;
 }
 
-// WebSocket server
-const wss = new WebSocketServer({ port: 8080 });
+// Combined HTTP and WebSocket server
+let wss; // Define wss in outer scope so runNote can access it
 
-wss.on('connection', ws => {
-    console.log('Client connected');
-    ws.send(JSON.stringify({ type: 'notes', data: [...notes.values()] }));
-
-    ws.on('message', async (msg) => {
-        const { type, ...data } = JSON.parse(msg);
-
-        if (type === 'createNote') {
-            const id = crypto.randomUUID();
-            const note = Note.parse({ id, title: data.title, content: '', createdAt: new Date().toISOString() });
-            notes.set(id, note);
-            await writeFile(join(NOTES_DIR, `${id}.json`), JSON.stringify(note));
-        }
-
-        if (type === 'updateNote') {
-            const note = notes.get(data.id);
-            if (note) {
-                const updated = Note.parse({ ...note, ...data, updatedAt: new Date().toISOString() });
-                notes.set(data.id, updated);
-                await writeFile(join(NOTES_DIR, `${data.id}.json`), JSON.stringify(updated));
-            }
-        }
-
-        if (type === 'deleteNote') {
-            notes.delete(data.id);
-            await unlink(join(NOTES_DIR, `${data.id}.json`)).catch(() => {});
-        }
-
-        if (type === 'runNote') {
-            const updated = await runNote(data.id);
-            if (updated) notes.set(data.id, updated);
-        }
-
-        // Send full notes list for most actions, but allow individual updates from runNote
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] }));
-            }
-        });
+async function startServer() {
+    // Create Vite dev server in middleware mode
+    const vite = await createViteServer({
+        root: "client",
+        plugins: [react()],
+        server: {
+            middlewareMode: true,
+        },
     });
 
-    ws.on('close', () => console.log('Client disconnected'));
-});
-
-console.log('WebSocket server started on port 8080');
-
-// Load notes and tools
-loadNotes().then(() => {
-    loadTools(TOOLS_BUILTIN_DIR).then(() => {
-        loadTools(TOOLS_DIR).then(() => {
-            console.log('Notes and tools loaded');
-        });
+    // Create HTTP server
+    const httpServer = http.createServer((req, res) => {
+        vite.middlewares.handle(req, res);
     });
-});
+
+    // Attach WebSocket server to the HTTP server
+    wss = new WebSocketServer({ server: httpServer });
+
+    wss.on('connection', ws => {
+        console.log('Client connected');
+        ws.send(JSON.stringify({ type: 'notes', data: [...notes.values()] }));
+
+        ws.on('message', async (msg) => {
+            const { type, ...data } = JSON.parse(msg);
+
+            if (type === 'createNote') {
+                const id = crypto.randomUUID();
+                const note = Note.parse({ id, title: data.title, content: '', createdAt: new Date().toISOString() });
+                notes.set(id, note);
+                await writeFile(join(NOTES_DIR, `${id}.json`), JSON.stringify(note));
+            }
+
+            if (type === 'updateNote') {
+                const note = notes.get(data.id);
+                if (note) {
+                    const updated = Note.parse({ ...note, ...data, updatedAt: new Date().toISOString() });
+                    notes.set(data.id, updated);
+                    await writeFile(join(NOTES_DIR, `${data.id}.json`), JSON.stringify(updated));
+                }
+            }
+
+            if (type === 'deleteNote') {
+                notes.delete(data.id);
+                await unlink(join(NOTES_DIR, `${data.id}.json`)).catch(() => {});
+            }
+
+            if (type === 'runNote') {
+                const updated = await runNote(data.id);
+                if (updated) notes.set(data.id, updated);
+            }
+
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] }));
+                }
+            });
+        });
+
+        ws.on('close', () => console.log('Client disconnected'));
+    });
+
+    // Start the combined server
+    const PORT = 8080;
+    httpServer.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT} (HTTP + WebSocket)`);
+    });
+
+    return { vite, httpServer, wss };
+}
+
+// Start everything
+async function initialize() {
+    await loadNotes();
+    await loadTools(TOOLS_BUILTIN_DIR);
+    fs.mkdirSync(TOOLS_DIR, { recursive: true });
+    await loadTools(TOOLS_DIR);
+    console.log('Notes and tools loaded');
+    await startServer();
+}
+
+initialize().catch(console.error);
