@@ -72,16 +72,23 @@ export default function NoteEditor({note, onUpdate, onRun}) {
             <button onClick={addRef} disabled={!refId}>Add Ref</button>
             <h3>Plan</h3>
             {note.logic?.map(step => (
-                <div key={step.id} style={{margin: '5px 0'}}>
+                <div key={step.id} style={{ margin: '5px 0', color: step.status === 'failed' ? 'red' : 'black' }}>
                     {step.tool}: <input
-                    value={step.input}
-                    onChange={e => updateStep(step.id, e.target.value)}
-                    style={{width: '70%'}}
-                />
+                        value={typeof step.input === 'object' ? JSON.stringify(step.input) : step.input}
+                        onChange={e => updateStep(step.id, e.target.value)}
+                        style={{ width: '50%' }}
+                    /> Status: {step.status} Depends on: {step.dependencies.join(', ')}
                 </div>
             ))}
             <h3>Memory</h3>
-            <pre>{JSON.stringify(note.memory, null, 2)}</pre>
+            <ul>
+                {note.memory.map((mem, index) => (
+                    <li key={index}>
+                        {mem.type}: {typeof mem.content === 'object' ? JSON.stringify(mem.content) : mem.content} at {new Date(mem.timestamp).toLocaleString()}
+                        {mem.stepId && ` (Step ${mem.stepId})`}
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 }
