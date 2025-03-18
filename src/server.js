@@ -131,12 +131,15 @@ async function runNote(noteId) {
             const previousMessages = await memory.getMessages();
             const systemPrompt = {
                 role: 'system',
-                content: `Generate a JSON plan with steps: { id, tool, input, dependencies }. Each step's id is unique, dependencies are step ids that must complete first. Use placeholders like "\${stepId}" in input to reference prior step outputs. Example: [{"id": "1", "tool": "webSearch", "input": {"query": "weather"}, "dependencies": []}, {"id": "2", "tool": "summarize", "input": {"text": "\${1}"}, "dependencies": ["1"]}]. Anticipate using refs: ${JSON.stringify(refs.map(r => ({ id: r.id, title: r.title, content: r.content })))}`
+                content: `Generate a JSON plan with steps: { id, tool, input, dependencies }. Default to a single step using "summarize" on the note's content if no specific plan is needed. Example: [{"id": "1", "tool": "summarize", "input": {"text": "Note content"}, "dependencies": []}]`
             };
-            const messages = [...previousMessages, systemPrompt];
+            const messages = [...previousMessages, systemPrompt, { role: 'user', content: note.content }];
             const plan = await llm.invoke(messages);
             note.logic = JSON.parse(plan.content);
-            note.memory.push({ type: 'system', content: 'Plan generated', timestamp: Date.now() });
+            if (!note.logic.length) {
+                note.logic = [{ id: crypto.randomUUID(), tool: 'summarize', input: { text: note.content }, dependencies: [], status: 'pending' }];
+            }
+            note.memory.push({ type: 'system', content: 'Default plan generated', timestamp: Date.now() });
             note.updatedAt = new Date().toISOString();
             await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
         }
@@ -200,6 +203,26 @@ async function runNote(noteId) {
 
     return note;
 }
+
+function replacePlaceholders(input, memoryMap) {
+    if (typeof input === 'string') {
+        let replacedInput = input;
+        for (const [stepId, output] of memoryMap.entries()) {
+            replacedInput = replacedInput.replace(new RegExp(`\\\$\{\s*${stepId}\s*\}`, 'g'), output);
+        }
+        return replacedInput;
+    } else if (typeof input === 'object' && input !== null) {
+        const replacedObject = {};
+        for (const key in input) {
+            if (Object.hasOwnProperty.call(input, key)) {
+                replacedObject[key] = replacePlaceholders(input[key], memoryMap);
+            }
+        }
+        return replacedObject;
+    }
+    return input;
+}
+
 
 // Combined HTTP and WebSocket server
 let wss; // Define wss in outer scope so runNote can access it

@@ -14,8 +14,8 @@ export default {
     schema,
     async invoke(input) {
         const { text, length = 'medium', style = 'paragraph' } = schema.parse(input);
-        const prompt = `Summarize the following text in a ${length} ${style}: ${text}`;
+        const prompt = `Summarize this text in a ${length} ${style}: ${text}`;
         const summary = await llm.invoke(prompt);
-        return summary.content;
+        return summary.content || 'No summary generated';
     },
 };
