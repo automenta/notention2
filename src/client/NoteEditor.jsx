@@ -31,7 +31,7 @@ export default function NoteEditor({note, onUpdate, onRun}) {
                     }}
                     style={{ padding: '5px 10px', marginRight: '10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
                 >
-                    Save & Process
+                    Save and Summarize
                 </button>
                 <button
                     onClick={() => onRun(note.id)}
