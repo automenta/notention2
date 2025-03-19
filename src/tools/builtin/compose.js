@@ -11,7 +11,7 @@ export default {
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    async invoke(input) {
+    async invoke(input, context) {
         const {tools: toolNames, inputs} = schema.parse(input);
         const tools = await import('../../server.js').then(m => m.tools);
         let result = inputs;

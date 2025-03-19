@@ -1,4 +1,4 @@
-import {WebSocketServer} from 'ws';
+import { WebSocketServer} from 'ws';
 import {InMemoryChatMessageHistory} from '@langchain/core/chat_history';
 import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
 import {z} from 'zod';
@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react';
 import { level } from 'level';
 import {createViteServer} from "vitest/node";
 import * as http from "node:http";
+import { Graph } from './graph.js';
 
 // === Configuration ===
 const CONFIG = {
@@ -107,7 +108,7 @@ const INITIAL_NOTES = [
 class ServerState {
     constructor() {
         this.llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1});
-        this.notes = new Map();
+        this.graph = new Graph();
         this.tools = new Map();
         this.memory = new InMemoryChatMessageHistory();
         this.wss = null;
@@ -152,14 +153,20 @@ class NetentionServer {
     async loadNotesFromDB() {
         for await (const [key, value] of this.state.db.sublevel('notes').iterator()) {
             const note = NoteSchema.parse(value);
-            this.state.notes.set(note.id, note);
+            this.state.graph.addNote(note);
+            for (const ref of note.references) {
+                this.state.graph.addEdge(note.id, ref, 'reference');
+            }
             this.queueExecution(note);
         }
-        if (!this.state.notes.size) {
+        if (!this.state.graph.getSize()) {
             for (const n of INITIAL_NOTES) {
                 const note = NoteSchema.parse({...n, createdAt: new Date().toISOString()});
                 await this.writeNoteToDB(note);
-                this.state.notes.set(note.id, note);
+                this.state.graph.addNote(note);
+                for (const ref of note.references) {
+                    this.state.graph.addEdge(note.id, ref, 'reference');
+                }
                 this.queueExecution(note);
             }
         }
@@ -176,7 +183,7 @@ class NetentionServer {
     }
 
     async removeReferences(noteId) {
-        for (const [id, note] of this.state.notes) {
+        for (const [id, note] of this.state.graph.graph) {
             if (note.references.includes(noteId)) {
                 note.references = note.references.filter(ref => ref !== noteId);
             }
@@ -201,7 +208,7 @@ class NetentionServer {
     }
 
     async runNote(noteId) {
-        const note = this.state.notes.get(noteId);
+        const note = this.state.graph.getNote(noteId);
         if (!note) return null;
 
         try {
@@ -247,7 +254,7 @@ class NetentionServer {
                     try {
                         const memoryMap = new Map(note.memory.filter(m => m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
                         const input = this.replacePlaceholders(step.input, memoryMap);
-                        const result = await this.state.timeoutPromise(tool.invoke(input), CONFIG.TOOL_TIMEOUT);
+                        const result = await this.state.timeoutPromise(tool.invoke(input, {graph: this.state.graph}), CONFIG.TOOL_TIMEOUT);
                         note.memory.push({type: 'tool', stepId: step.id, content: result, timestamp: Date.now()});
                         await this.state.memory.addMessage({role: 'assistant', content: JSON.stringify(result)});
 
@@ -331,7 +338,7 @@ class NetentionServer {
 
     // === Scheduling ===
     scheduleNote({noteId, time}) {
-        const note = this.state.notes.get(noteId);
+        const note = this.state.graph.getNote(noteId);
         if (note) {
             note.deadline = time;
             setTimeout(() => this.queueExecution(note), new Date(time) - Date.now());
@@ -340,11 +347,11 @@ class NetentionServer {
 
     // === Graph Operations ===
     async updateGraph(noteId) {
-        const note = this.state.notes.get(noteId);
+        const note = this.state.graph.getNote(noteId);
         if (!note) return;
         const graphTool = this.state.tools.get('graph_traverse');
         if (graphTool) {
-            const result = await graphTool.invoke({startId: noteId, mode: 'bfs', callback: 'update'});
+            const result = await graphTool.invoke({startId: noteId, mode: 'bfs', callback: 'update'}, {graph: this.state.graph});
             note.memory.push({type: 'graph', content: result, timestamp: Date.now()});
             await this.writeNoteToDB(note);
         }
@@ -370,7 +377,7 @@ class NetentionServer {
         if (!this.state.batchTimeout) {
             this.state.batchTimeout = setTimeout(() => {
                 if (this.state.updateBatch.size) {
-                    this.broadcast({type: 'notes', data: [...this.state.notes.values()]});
+                    this.broadcast({type: 'notes', data: this.state.graph.getNotes()});
                     this.state.updateBatch.clear();
                 }
                 this.state.batchTimeout = null;
@@ -390,7 +397,7 @@ class NetentionServer {
 
         this.state.wss.on('connection', ws => {
             this.state.log('Client connected');
-            ws.send(JSON.stringify({type: 'notes', data: [...this.state.notes.values()]}));
+            ws.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
 
             while (this.state.messageQueue.length) {
                 const {client, message} = this.state.messageQueue.shift();
@@ -412,36 +419,46 @@ class NetentionServer {
                                 content: '',
                                 createdAt: new Date().toISOString(),
                                 priority: data.priority || 50,
-                                deadline: data.deadline
+                                deadline: data.deadline,
+                                references: data.references || []
                             });
-                            this.state.notes.set(id, note);
+                            this.state.graph.addNote(note);
+                            for (const ref of note.references) {
+                                this.state.graph.addEdge(id, ref, 'reference');
+                            }
                             await this.writeNoteToDB(note);
                             this.queueExecution(note);
                             break;
                         }
                         case 'updateNote': {
-                            const note = this.state.notes.get(data.id);
+                            const note = this.state.graph.getNote(data.id);
                             if (note) {
                                 const updated = NoteSchema.parse({
                                     ...note, ...data,
                                     updatedAt: new Date().toISOString()
                                 });
-                                this.state.notes.set(data.id, updated);
+                                this.state.graph.addNote(updated);
+                                this.state.graph.edges.set(data.id, []);
+                                for (const ref of updated.references) {
+                                    this.state.graph.addEdge(data.id, ref, 'reference');
+                                }
                                 await this.writeNoteToDB(updated);
                                 this.queueExecution(updated);
                             }
                             break;
                         }
                         case 'deleteNote': {
-                            await this.removeReferences(data.id);
-                            this.state.notes.delete(data.id);
+                            const updatedNotes = this.state.graph.removeNote(data.id);
+                            for (const note of updatedNotes) {
+                                await this.writeNoteToDB(note);
+                            }
                             await this.deleteNoteFromDB(data.id).catch((e) => {
                                 this.state.log(`Delete note from DB error: ${e}`, 'error');
                             });
                             break;
                         }
                         case 'runNote': {
-                            this.queueExecution(this.state.notes.get(data.id));
+                            this.queueExecution(this.state.graph.getNote(data.id));
                             break;
                         }
                         case 'graphUpdate': {
@@ -479,7 +496,7 @@ class NetentionServer {
                     const {default: tool} = await import(`./tools/builtin/${toolName}.js`);
                     this.state.tools.set(tool.name, tool);
                 } catch (e) {
-                    this.state.log(`Failed to load ${toolName}: ${e}`, 'warn');
+                    this.state.log(`Error loading tool ${file} from ${path}: ${e}`);
                 }
             }
             this.state.log('Notes and tools loaded');
