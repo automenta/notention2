@@ -2,8 +2,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { readdir, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { z } from 'zod';
-import { LLaMA } from 'llama.js'; // Hypothetical LLM module
 import express from 'express';
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+
 
 // Directory constants
 const NOTES_DIR = './data/notes';
@@ -47,8 +48,8 @@ const Note = z.object({
 // In-memory note storage
 const notes = new Map();
 
-// LLM instance (hypothetical)
-const llm = new LLaMA({ model: 'llama-3b' });
+// LLM instance
+const llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 0.7, maxRetries: 3});
 const memory = { getMessages: async () => [] }; // Placeholder for memory context
 
 // Load tools dynamically from a directory
