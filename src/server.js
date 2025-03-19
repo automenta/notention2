@@ -47,10 +47,39 @@ const NoteSchema = z.object({
 
 // === Initial Data ===
 const INITIAL_NOTES = [
-    {id: 'dev-1', title: 'Core Loop', content: 'Full cycle: CRUD, plan, tools', status: 'pending', tests: ['test-core-loop.js'], priority: 80},
-    {id: 'dev-2', title: 'Graph UI', content: 'Add D3.js graph later', status: 'pending', references: ['dev-1'], priority: 60},
-    {id: 'dev-3', title: 'Self-Unpacking', content: 'Seed generates system', status: 'pending', logic: [{id: 's1', tool: 'generateCode', input: {description: 'Note CRUD API'}}], tests: ['test-self-unpacking.js'], priority: 90},
-    {id: 'dev-4', title: 'Tool Chaining', content: 'Multi-step plans with refs', status: 'pending', references: ['dev-1'], priority: 70},
+    {
+        id: 'dev-1',
+        title: 'Core Loop',
+        content: 'Full cycle: CRUD, plan, tools',
+        status: 'pending',
+        tests: ['test-core-loop.js'],
+        priority: 80
+    },
+    {
+        id: 'dev-2',
+        title: 'Graph UI',
+        content: 'Add D3.js graph later',
+        status: 'pending',
+        references: ['dev-1'],
+        priority: 60
+    },
+    {
+        id: 'dev-3',
+        title: 'Self-Unpacking',
+        content: 'Seed generates system',
+        status: 'pending',
+        logic: [{id: 's1', tool: 'generateCode', input: {description: 'Note CRUD API'}}],
+        tests: ['test-self-unpacking.js'],
+        priority: 90
+    },
+    {
+        id: 'dev-4',
+        title: 'Tool Chaining',
+        content: 'Multi-step plans with refs',
+        status: 'pending',
+        references: ['dev-1'],
+        priority: 70
+    },
     {
         id: 'seed-0',
         title: 'Netention Seed',
@@ -58,8 +87,20 @@ const INITIAL_NOTES = [
         status: 'pending',
         priority: 100,
         logic: [
-            {id: '1', tool: 'summarize', input: {text: 'This is a demo of Netention, a system for active notes.'}, dependencies: [], status: 'pending'},
-            {id: '2', tool: 'generateCode', input: {description: 'Function to display summary: ${1}'}, dependencies: ['1'], status: 'pending'}
+            {
+                id: '1',
+                tool: 'summarize',
+                input: {text: 'This is a demo of Netention, a system for active notes.'},
+                dependencies: [],
+                status: 'pending'
+            },
+            {
+                id: '2',
+                tool: 'generateCode',
+                input: {description: 'Function to display summary: ${1}'},
+                dependencies: ['1'],
+                status: 'pending'
+            }
         ]
     }
 ];
@@ -235,7 +276,12 @@ class NetentionServer {
                                 this.queueExecution({id: result, priority: note.priority - 10});
                                 break;
                             case 'test_gen':
-                                const testNoteId = await this.state.tools.get('spawn')?.invoke({content: {type: 'test', code: result}});
+                                const testNoteId = await this.state.tools.get('spawn')?.invoke({
+                                    content: {
+                                        type: 'test',
+                                        code: result
+                                    }
+                                });
                                 if (testNoteId) note.tests = (note.tests || []).concat(testNoteId);
                                 break;
                             case 'schedule':
@@ -250,7 +296,12 @@ class NetentionServer {
                     }
                 } else {
                     step.status = 'failed';
-                    note.memory.push({type: 'error', stepId: step.id, content: `Tool ${step.tool} not found`, timestamp: Date.now()});
+                    note.memory.push({
+                        type: 'error',
+                        stepId: step.id,
+                        content: `Tool ${step.tool} not found`,
+                        timestamp: Date.now()
+                    });
                 }
 
                 for (const [id, deps] of dependencies) {
@@ -351,7 +402,7 @@ class NetentionServer {
         const vite = await createViteServer({
             root: "client",
             plugins: [react()],
-            server: { middlewareMode: true },
+            server: {middlewareMode: true},
         });
 
         const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
@@ -375,7 +426,14 @@ class NetentionServer {
                     switch (type) {
                         case 'createNote': {
                             const id = crypto.randomUUID();
-                            const note = NoteSchema.parse({id, title: data.title, content: '', createdAt: new Date().toISOString(), priority: data.priority || 50, deadline: data.deadline});
+                            const note = NoteSchema.parse({
+                                id,
+                                title: data.title,
+                                content: '',
+                                createdAt: new Date().toISOString(),
+                                priority: data.priority || 50,
+                                deadline: data.deadline
+                            });
                             this.state.notes.set(id, note);
                             await this.writeNote(note);
                             this.queueExecution(note);
@@ -384,7 +442,10 @@ class NetentionServer {
                         case 'updateNote': {
                             const note = this.state.notes.get(data.id);
                             if (note) {
-                                const updated = NoteSchema.parse({...note, ...data, updatedAt: new Date().toISOString()});
+                                const updated = NoteSchema.parse({
+                                    ...note, ...data,
+                                    updatedAt: new Date().toISOString()
+                                });
                                 this.state.notes.set(data.id, updated);
                                 await this.writeNote(updated);
                                 this.queueExecution(updated);
@@ -394,7 +455,8 @@ class NetentionServer {
                         case 'deleteNote': {
                             await this.removeReferences(data.id);
                             this.state.notes.delete(data.id);
-                            await unlink(join(CONFIG.NOTES_DIR, `${data.id}.json`)).catch(() => {});
+                            await unlink(join(CONFIG.NOTES_DIR, `${data.id}.json`)).catch(() => {
+                            });
                             break;
                         }
                         case 'runNote': {

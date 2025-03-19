@@ -9,6 +9,8 @@ export default {
     name: 'compose',
     description: 'Combine tools',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(input) {
         const {tools: toolNames, inputs} = schema.parse(input);
         const tools = await import('../../server.js').then(m => m.tools);

@@ -9,6 +9,8 @@ export default {
     name: 'schedule',
     description: 'Schedule tasks',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(input) {
         const {noteId, time} = schema.parse(input);
         const notes = await import('../../server.js').then(m => m.notes);

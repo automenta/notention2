@@ -8,6 +8,8 @@ export default {
     name: 'debug',
     description: 'Debug state',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(input) {
         const {noteId} = schema.parse(input);
         const notes = await import('../../server.js').then(m => m.notes);

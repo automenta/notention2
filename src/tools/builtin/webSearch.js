@@ -9,6 +9,8 @@ export default {
     name: 'webSearch',
     description: 'Search the web',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(input) {
         const {query, apiKey} = schema.parse(input);
         // Placeholder for actual API call (e.g., SerpAPI)
