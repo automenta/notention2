@@ -10,7 +10,7 @@ export default {
     description: 'Search the web',
     schema,
     async invoke(input) {
-        const { query, apiKey } = schema.parse(input);
+        const {query, apiKey} = schema.parse(input);
         // Placeholder for actual API call (e.g., SerpAPI)
         const response = await fetch(`//api.example.com/search?q=${encodeURIComponent(query)}${apiKey ? `&key=${apiKey}` : ''}`);
         const data = await response.json();

@@ -10,8 +10,8 @@ export default {
     description: 'Search graph by query',
     schema,
     async invoke(input) {
-        const { startId, query } = schema.parse(input);
-        const notes = await import('../../src/server.js').then(m => m.notes);
+        const {startId, query} = schema.parse(input);
+        const notes = await import('../../server.js').then(m => m.notes);
         const visited = new Set();
         const queue = [startId];
         const results = [];
@@ -21,7 +21,7 @@ export default {
             visited.add(id);
             const note = notes.get(id);
             if (note && (note.title.includes(query) || note.content.includes(query))) {
-                results.push({ id, title: note.title });
+                results.push({id, title: note.title});
             }
             queue.push(...(note.references || []));
         }

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     expr: z.string(),
@@ -10,7 +10,7 @@ export default {
     description: 'Evaluate math/string expressions',
     schema,
     async invoke(input) {
-        const { expr, context } = schema.parse(input);
+        const {expr, context} = schema.parse(input);
         try {
             const fn = new Function('context', `return ${expr}`);
             const result = fn(context || {});

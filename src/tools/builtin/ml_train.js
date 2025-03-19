@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 import crypto from 'crypto';
 
 const schema = z.object({
@@ -12,15 +12,15 @@ export default {
     description: 'Train ML model',
     schema,
     async invoke(input) {
-        const { modelType, data, targetId } = schema.parse(input);
+        const {modelType, data, targetId} = schema.parse(input);
         const modelId = crypto.randomUUID();
-        const notes = await import('../../src/server.js').then(m => m.notes);
+        const notes = await import('../../server.js').then(m => m.notes);
         notes.set(modelId, {
             id: modelId,
             title: `${modelType} Model`,
-            content: { type: modelType, dataLength: data.length },
+            content: {type: modelType, dataLength: data.length},
             status: 'completed',
-            memory: [{ type: 'system', content: `Trained on ${data.length} points`, timestamp: Date.now() }],
+            memory: [{type: 'system', content: `Trained on ${data.length} points`, timestamp: Date.now()}],
         });
         return modelId;
     },

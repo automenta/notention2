@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     tools: z.array(z.string()),
@@ -10,8 +10,8 @@ export default {
     description: 'Combine tools',
     schema,
     async invoke(input) {
-        const { tools: toolNames, inputs } = schema.parse(input);
-        const tools = await import('../../src/server.js').then(m => m.tools);
+        const {tools: toolNames, inputs} = schema.parse(input);
+        const tools = await import('../../server.js').then(m => m.tools);
         let result = inputs;
         for (const toolName of toolNames) {
             const tool = tools.get(toolName);

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     modelId: z.string(),
@@ -10,8 +10,8 @@ export default {
     description: 'Predict with ML model',
     schema,
     async invoke(input) {
-        const { modelId, input } = schema.parse(input);
-        const notes = await import('../../src/server.js').then(m => m.notes);
+        const {modelId, input} = schema.parse(input);
+        const notes = await import('../../server.js').then(m => m.notes);
         const model = notes.get(modelId);
         if (!model) return `Model ${modelId} not found`;
         return `Predicted: ${JSON.stringify(input)} using ${model.content.type}`;

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     startId: z.string(),
@@ -11,8 +11,8 @@ export default {
     description: 'Traverse graph (DFS/BFS)',
     schema,
     async invoke(input) {
-        const { startId, mode, callback } = schema.parse(input);
-        const notes = await import('../../src/server.js').then(m => m.notes);
+        const {startId, mode, callback} = schema.parse(input);
+        const notes = await import('../../server.js').then(m => m.notes);
         const visited = new Set();
         const stackOrQueue = [startId];
         const results = [];
@@ -22,7 +22,7 @@ export default {
             visited.add(id);
             const note = notes.get(id);
             if (note) {
-                results.push({ id, title: note.title });
+                results.push({id, title: note.title});
                 stackOrQueue.push(...(note.references || []));
             }
         }
