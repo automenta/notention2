@@ -8,13 +8,25 @@ import * as fs from "node:fs";
 import react from '@vitejs/plugin-react';
 import { createViteServer } from "vitest/node";
 import * as http from "node:http";
+import { fileURLToPath } from 'url';
+import path from 'path';
 
-// Note schema
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Directory constants
+const NOTES_DIR = './data/notes';
+const TOOLS_BUILTIN_DIR = './tools/builtin';
+const TOOLS_DIR = './tools/user';
+const TESTS_DIR = 'tests';
+const GEN_DIR = 'generated';
+
+// Note schema with enhanced fields
 const Note = z.object({
     id: z.string(),
     title: z.string(),
     content: z.string(),
-    status: z.enum(['pending', 'running', 'completed']).default('pending'),
+    status: z.enum(['pending', 'running', 'completed', 'failed']).default('pending'),
     logic: z.array(z.object({
         id: z.string(),
         tool: z.string(),
@@ -22,55 +34,18 @@ const Note = z.object({
         dependencies: z.array(z.string()).default([]),
         status: z.enum(['pending', 'running', 'completed', 'failed']).default('pending'),
     })).optional(),
-    memory: z.array(z.any()).default([]),
+    memory: z.array(z.object({
+        type: z.string(),
+        content: z.any(),
+        timestamp: z.number(),
+    })).default([]),
     references: z.array(z.string()).default([]),
+    domains: z.array(z.string()).default([]), // Domain tagging
+    deadline: z.string().datetime().nullable().default(null), // Deadlines
+    priority: z.number().int().default(0), // Priority
     createdAt: z.string().datetime().default(() => new Date().toISOString()),
     updatedAt: z.string().datetime().nullable().default(null),
 });
-
-// Filesystem indices
-const NOTES_DIR = './data/notes';
-const TOOLS_BUILTIN_DIR = './tools/builtin';
-const TOOLS_DIR = './tools/user';
-const TESTS_DIR = 'tests';
-const GEN_DIR = 'generated';
-
-// Development & seed notes
-const devNotes = [
-    {
-        id: 'dev-1',
-        title: 'Core Loop',
-        content: 'Full cycle: CRUD, plan, tools',
-        status: 'pending',
-        tests: ['test-core-loop.js']
-    },
-    { id: 'dev-2', title: 'Graph UI', content: 'Add D3.js graph later', status: 'pending', references: ['dev-1'] },
-    {
-        id: 'dev-3',
-        title: 'Self-Unpacking',
-        content: 'Seed generates system',
-        status: 'pending',
-        logic: [{ id: 's1', tool: 'generateCode', input: { description: 'Note CRUD API' } }],
-        tests: ['test-self-unpacking.js']
-    },
-    {
-        id: 'dev-4',
-        title: 'Tool Chaining',
-        content: 'Multi-step plans with refs',
-        status: 'pending',
-        references: ['dev-1']
-    },
-];
-const seedNote = {
-    id: 'seed-0',
-    title: 'Netention Seed',
-    content: 'Demonstrate planning: summarize content and generate code from it',
-    status: 'pending',
-    logic: [
-        { id: '1', tool: 'summarize', input: { text: 'This is a demo of Netention, a system for active notes.' }, dependencies: [], status: 'pending' },
-        { id: '2', tool: 'generateCode', input: { description: 'Function to display summary: ${1}' }, dependencies: ['1'], status: 'pending' }
-    ]
-};
 
 // Server state
 const llm = new ChatGoogleGenerativeAI({ model: "gemini-2.0-flash", temperature: 1, maxRetries: 2 });
@@ -83,8 +58,13 @@ async function loadNotes() {
     fs.mkdirSync(NOTES_DIR, { recursive: true });
     const files = await readdir(NOTES_DIR);
     for (const file of files) {
-        const data = JSON.parse(await readFile(join(NOTES_DIR, file), 'utf8'));
-        notes.set(data.id, Note.parse(data));
+        try {
+            const data = JSON.parse(await readFile(join(NOTES_DIR, file), 'utf8'));
+            const note = Note.parse(data);
+            notes.set(data.id, note);
+        } catch (e) {
+            console.error(`Error loading note ${file}: ${e}`);
+        }
     }
     if (!notes.size) {
         devNotes.concat(seedNote).forEach(n => {
@@ -98,9 +78,14 @@ async function loadNotes() {
 async function loadTools(path) {
     const files = await readdir(path);
     for (const file of files) {
-        let i = join(path, file);
-        const { default: tool } = await import(i);
-        tools.set(file.replace('.js', ''), tool);
+        try {
+            let i = join(path, file);
+            const { default: tool } = await import(`file://${i}`);
+            tools.set(tool.name, tool);
+            console.log(`Loaded tool ${tool.name} from ${path}`);
+        } catch (e) {
+            console.error(`Error loading tool ${file} from ${path}: ${e}`);
+        }
     }
 }
 
@@ -121,17 +106,31 @@ async function runNote(noteId) {
     note.updatedAt = new Date().toISOString();
     await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
     // Send initial update
-    wss.clients.forEach(client => client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] })));
+    broadcastNotes();
 
     try {
         await memory.addMessage({ role: 'user', content: `${note.title}: ${note.content}` });
         const refs = note.references.map(id => notes.get(id)).filter(Boolean);
+        const memorySummary = note.memory.map(m => `${m.type}: ${m.content}`).join('\n');
 
         if (!note.logic?.length) {
             const previousMessages = await memory.getMessages();
             const systemPrompt = {
                 role: 'system',
-                content: `Generate a JSON plan with steps: { id, tool, input, dependencies }. Default to a single step using "summarize" on the note's content if no specific plan is needed. Example: [{"id": "1", "tool": "summarize", "input": {"text": "Note content"}, "dependencies": []}]`
+                content: `You are an AI assistant generating a plan for an active note in the Netention system. Note details:
+    - Title: ${note.title}
+    - Content: ${note.content}
+    - References: ${note.references.map(ref => notes.get(ref)?.title || 'Unknown').join(', ')}
+    - Memory: ${memorySummary}
+
+    Generate a JSON plan with steps: { id, tool, input, dependencies }. Available tools: ${Array.from(tools.keys()).join(', ')}.
+    Consider:
+    1. The main goal based on content and memory.
+    2. Appropriate tools to achieve the goal.
+    3. Dependencies between steps.
+    4. Anticipate failures and suggest contingencies (e.g., alternative steps).
+
+    Default to [{"id": "1", "tool": "summarize", "input": {"text": "Note content"}, "dependencies": []}] if no specific plan is needed.`
             };
             const messages = [...previousMessages, systemPrompt, { role: 'user', content: note.content }];
             const plan = await llm.invoke(messages);
@@ -161,19 +160,19 @@ async function runNote(noteId) {
             const tool = tools.get(step.tool);
             if (tool) {
                 try {
-                    const memoryMap = new Map(note.memory.filter(m => m.type === 'tool' && m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
+                    const memoryMap = new Map(note.memory.filter(m => m.type === 'tool_result' && m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
                     const input = replacePlaceholders(step.input, memoryMap);
                     const result = await tool.invoke(input);
-                    note.memory.push({ type: 'tool', stepId: step.id, content: result, timestamp: Date.now() });
+                    note.memory.push({ type: 'tool_result', content: result, timestamp: Date.now() });
                     await memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
                     step.status = 'completed';
                 } catch (err) {
                     step.status = 'failed';
-                    note.memory.push({ type: 'error', stepId: step.id, content: err.message, timestamp: Date.now() });
+                    note.memory.push({ type: 'error', content: err.message, timestamp: Date.now() });
                 }
             } else {
                 step.status = 'failed';
-                note.memory.push({ type: 'error', stepId: step.id, content: `Tool ${step.tool} not found`, timestamp: Date.now() });
+                note.memory.push({ type: 'error', content: `Tool ${step.tool} not found`, timestamp: Date.now() });
             }
 
             for (const [id, deps] of dependencies.entries()) {
@@ -191,14 +190,14 @@ async function runNote(noteId) {
         if (changesMade) {
             note.updatedAt = new Date().toISOString();
             await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
-            wss.clients.forEach(client => client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] })));
+            broadcastNotes();
         }
     } catch (err) {
         note.status = 'failed';
         note.memory.push({ type: 'error', content: err.message, timestamp: Date.now() });
         note.updatedAt = new Date().toISOString();
         await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
-        wss.clients.forEach(client => client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] })));
+        broadcastNotes();
     }
 
     return note;
@@ -223,6 +222,12 @@ function replacePlaceholders(input, memoryMap) {
     return input;
 }
 
+function broadcastNotes() {
+    wss.clients.forEach(client => {
+        const notesArray = Array.from(notes.values());
+        client.send(JSON.stringify({ type: 'notes', data: notesArray }));
+    });
+}
 
 // Combined HTTP and WebSocket server
 let wss; // Define wss in outer scope so runNote can access it
@@ -257,6 +262,7 @@ async function startServer() {
                 const note = Note.parse({ id, title: data.title, content: '', createdAt: new Date().toISOString() });
                 notes.set(id, note);
                 await writeFile(join(NOTES_DIR, `${id}.json`), JSON.stringify(note));
+                broadcastNotes();
             }
 
             if (type === 'updateNote') {
@@ -289,23 +295,22 @@ async function startServer() {
         ws.on('close', () => console.log('Client disconnected'));
     });
 
+    // Load initial notes and tools
+    await loadTools(TOOLS_BUILTIN_DIR);
+    fs.mkdirSync(TOOLS_DIR, { recursive: true });
+    await loadTools(TOOLS_DIR);
+    loadNotes();
+
     // Start the combined server
-    const PORT = 8080;
-    httpServer.listen(PORT, () => {
-        console.log(`Server running on //localhost:${PORT} (HTTP + WebSocket)`);
+    const port = process.env.PORT || 8080;
+    httpServer.listen(port, () => {
+        console.log(`Server running on //localhost:${port} (HTTP + WebSocket)`);
     });
 
     return { vite, httpServer, wss };
 }
 
 // Start everything
-async function initialize() {
-    await loadNotes();
-    await loadTools(TOOLS_BUILTIN_DIR);
-    fs.mkdirSync(TOOLS_DIR, { recursive: true });
-    await loadTools(TOOLS_DIR);
-    console.log('Notes and tools loaded');
-    await startServer();
-}
-
 initialize().catch(console.error);
+
+import { unlink } from 'node:fs/promises';
