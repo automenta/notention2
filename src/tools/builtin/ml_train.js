@@ -11,6 +11,8 @@ export default {
     name: 'ml_train',
     description: 'Train ML model',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod', 'crypto'],
     async invoke(input) {
         const {modelType, data, targetId} = schema.parse(input);
         const modelId = crypto.randomUUID();

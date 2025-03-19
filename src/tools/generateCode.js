@@ -15,6 +15,8 @@ export default {
     name: 'generateCode',
     description: 'Generate JS code',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod', 'node:fs/promises', 'node:path', 'vm'],
     async invoke(input) {
         const {description, execute = false} = schema.parse(input);
         const code = await llm.invoke(`Generate JS code: ${description}`);

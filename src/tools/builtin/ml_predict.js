@@ -9,6 +9,8 @@ export default {
     name: 'ml_predict',
     description: 'Predict with ML model',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(i) {
         const {modelId, input} = schema.parse(i);
         const notes = await import('../../server.js').then(m => m.notes);

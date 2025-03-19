@@ -8,6 +8,8 @@ export default {
     name: 'graph_metrics',
     description: 'Compute graph metrics',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(input) {
         const {startId} = schema.parse(input);
         const notes = await import('../../server.js').then(m => m.notes);

@@ -9,6 +9,8 @@ export default {
     name: 'eval_expr',
     description: 'Evaluate math/string expressions',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(input) {
         const {expr, context} = schema.parse(input);
         try {

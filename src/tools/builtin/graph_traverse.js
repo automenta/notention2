@@ -10,6 +10,8 @@ export default {
     name: 'graph_traverse',
     description: 'Traverse graph (DFS/BFS)',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(input) {
         const {startId, mode, callback} = schema.parse(input);
         const notes = await import('../../server.js').then(m => m.notes);
