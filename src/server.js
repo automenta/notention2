@@ -1,20 +1,29 @@
-import {WebSocketServer} from 'ws';
-import {InMemoryChatMessageHistory} from '@langchain/core/chat_history';
-import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
-import {readdir, readFile, unlink, writeFile} from 'node:fs/promises';
-import {join} from 'node:path';
-import {z} from 'zod';
-import * as fs from "node:fs";
-import react from '@vitejs/plugin-react';
-import {createViteServer} from "vitest/node";
-import * as http from "node:http";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { readdir, readFile, writeFile } from 'fs/promises';
+import { join } from 'path';
+import { z } from 'zod';
+import { LLaMA } from 'llama.js'; // Hypothetical LLM module
+import express from 'express';
 
-// Note schema
+// Directory constants
+const NOTES_DIR = './data/notes';
+const TOOLS_DIR = './tools/user';
+const TOOLS_BUILTIN_DIR = './tools/builtin';
+
+// Initialize directories if they don’t exist
+if (!existsSync(NOTES_DIR)) mkdirSync(NOTES_DIR, { recursive: true });
+if (!existsSync(TOOLS_DIR)) mkdirSync(TOOLS_DIR, { recursive: true });
+if (!existsSync(TOOLS_BUILTIN_DIR)) mkdirSync(TOOLS_BUILTIN_DIR, { recursive: true });
+
+// Tool registry
+const tools = new Map();
+
+// Note schema with enhanced fields
 const Note = z.object({
     id: z.string(),
     title: z.string(),
     content: z.string(),
-    status: z.enum(['pending', 'running', 'completed']).default('pending'),
+    status: z.enum(['pending', 'running', 'completed', 'failed']).default('pending'),
     logic: z.array(z.object({
         id: z.string(),
         tool: z.string(),
@@ -22,290 +31,194 @@ const Note = z.object({
         dependencies: z.array(z.string()).default([]),
         status: z.enum(['pending', 'running', 'completed', 'failed']).default('pending'),
     })).optional(),
-    memory: z.array(z.any()).default([]),
+    memory: z.array(z.object({
+        type: z.string(),
+        content: z.any(),
+        timestamp: z.number(),
+    })).default([]),
     references: z.array(z.string()).default([]),
+    domains: z.array(z.string()).default([]), // Domain tagging
+    deadline: z.string().datetime().nullable().default(null), // Deadlines
+    priority: z.number().int().default(0), // Priority
     createdAt: z.string().datetime().default(() => new Date().toISOString()),
     updatedAt: z.string().datetime().nullable().default(null),
 });
 
-// Filesystem indices
-const NOTES_DIR = '../notes';
-const TOOLS_BUILTIN_DIR = 'tools';
-const TOOLS_DIR = '../tools';
-const TESTS_DIR = 'tests';
-const GEN_DIR = 'generated';
-
-// Development & seed notes
-const devNotes = [
-    {
-        id: 'dev-1',
-        title: 'Core Loop',
-        content: 'Full cycle: CRUD, plan, tools',
-        status: 'pending',
-        tests: ['test-core-loop.js']
-    },
-    {id: 'dev-2', title: 'Graph UI', content: 'Add D3.js graph later', status: 'pending', references: ['dev-1']},
-    {
-        id: 'dev-3',
-        title: 'Self-Unpacking',
-        content: 'Seed generates system',
-        status: 'pending',
-        logic: [{id: 's1', tool: 'generateCode', input: {description: 'Note CRUD API'}}],
-        tests: ['test-self-unpacking.js']
-    },
-    {
-        id: 'dev-4',
-        title: 'Tool Chaining',
-        content: 'Multi-step plans with refs',
-        status: 'pending',
-        references: ['dev-1']
-    },
-];
-const seedNote = {
-    id: 'seed-0',
-    title: 'Netention Seed',
-    content: 'Demonstrate planning: summarize content and generate code from it',
-    status: 'pending',
-    logic: [
-        { id: '1', tool: 'summarize', input: { text: 'This is a demo of Netention, a system for active notes.' }, dependencies: [], status: 'pending' },
-        { id: '2', tool: 'generateCode', input: { description: 'Function to display summary: ${1}' }, dependencies: ['1'], status: 'pending' }
-    ]
-};
-
-// Server state
-const llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1, maxRetries: 2});
+// In-memory note storage
 const notes = new Map();
-const tools = new Map();
-const memory = new InMemoryChatMessageHistory();
 
-// Load from filesystem
-async function loadNotes() {
-    fs.mkdirSync(NOTES_DIR, {recursive: true});
-    const files = await readdir(NOTES_DIR);
-    for (const file of files) {
-        const data = JSON.parse(await readFile(join(NOTES_DIR, file), 'utf8'));
-        notes.set(data.id, Note.parse(data));
+// LLM instance (hypothetical)
+const llm = new LLaMA({ model: 'llama-3b' });
+const memory = { getMessages: async () => [] }; // Placeholder for memory context
+
+// Load tools dynamically from a directory
+async function loadToolsFromDir(dir) {
+    try {
+        const files = await readdir(dir);
+        for (const file of files) {
+            if (file.endsWith('.js')) {
+                const toolModule = await import(join(dir, file));
+                const tool = toolModule.default;
+                tools.set(tool.name, tool);
+                console.log(`Loaded tool: ${tool.name} from ${dir}`);
+            }
+        }
+    } catch (error) {
+        console.error(`Error loading tools from ${dir}:`, error);
     }
-    if (!notes.size) {
-        devNotes.concat(seedNote).forEach(n => {
-            const note = Note.parse({...n, createdAt: new Date().toISOString()});
+}
+
+// Load both built-in and user-defined tools
+async function loadTools() {
+    await loadToolsFromDir(TOOLS_BUILTIN_DIR);
+    await loadToolsFromDir(TOOLS_DIR);
+}
+
+// Load existing notes from disk
+function loadNotes() {
+    const files = readdirSync(NOTES_DIR);
+    for (const file of files) {
+        if (file.endsWith('.json')) {
+            const noteData = JSON.parse(readFileSync(join(NOTES_DIR, file), 'utf-8'));
+            const note = Note.parse(noteData);
             notes.set(note.id, note);
-            writeFile(join(NOTES_DIR, `${note.id}.json`), JSON.stringify(note));
-        });
-    }
-}
-
-async function loadTools(path) {
-    const files = await readdir(path);
-    for (const file of files) {
-        let i = "./" + path + "/" + file;
-        const {default: tool} = await import(i);
-        tools.set(file.replace('.js', ''), tool);
-    }
-}
-
-async function removeReferences(noteId) {
-    for (const [id, note] of notes.entries()) {
-        if (note.references.includes(noteId)) {
-            note.references = note.references.filter(ref => ref !== noteId);
-            await writeFile(join(NOTES_DIR, `${id}.json`), JSON.stringify(note));
         }
     }
 }
 
-// Core loop with anticipation
-async function runNote(noteId) {
-    const note = notes.get(noteId);
-    if (!note) return null;
-    note.status = 'running';
-    note.updatedAt = new Date().toISOString();
-    await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
-    // Send initial update
-    wss.clients.forEach(client => client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] })));
+// Execute a tool step with error handling
+async function executeToolStep(step, note, outputs) {
+    const tool = tools.get(step.tool);
+    if (!tool) throw new Error(`Tool ${step.tool} not found`);
+    
+    const input = JSON.parse(JSON.stringify(step.input), (key, value) => {
+        if (typeof value === 'string' && value.startsWith('${') && value.endsWith('}')) {
+            const depId = value.slice(2, -1);
+            return outputs.get(depId) ?? value;
+        }
+        return value;
+    });
 
     try {
-        await memory.addMessage({ role: 'user', content: `${note.title}: ${note.content}` });
-        const refs = note.references.map(id => notes.get(id)).filter(Boolean);
-
-        if (!note.logic?.length) {
-            const previousMessages = await memory.getMessages();
-            const systemPrompt = {
-                role: 'system',
-                content: `Generate a JSON plan with steps: { id, tool, input, dependencies }. Default to a single step using "summarize" on the note's content if no specific plan is needed. Example: [{"id": "1", "tool": "summarize", "input": {"text": "Note content"}, "dependencies": []}]`
-            };
-            const messages = [...previousMessages, systemPrompt, { role: 'user', content: note.content }];
-            const plan = await llm.invoke(messages);
-            note.logic = JSON.parse(plan.content);
-            if (!note.logic.length) {
-                note.logic = [{ id: crypto.randomUUID(), tool: 'summarize', input: { text: note.content }, dependencies: [], status: 'pending' }];
-            }
-            note.memory.push({ type: 'system', content: 'Default plan generated', timestamp: Date.now() });
-            note.updatedAt = new Date().toISOString();
-            await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
-        }
-
-        // Dependency-based execution
-        const stepsById = new Map(note.logic.map(step => [step.id, step]));
-        const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
-        const readyQueue = note.logic.filter(step => step.dependencies.length === 0).map(step => step.id);
-        let changesMade = false;
-
-        while (readyQueue.length > 0) {
-            const stepId = readyQueue.shift();
-            const step = stepsById.get(stepId);
-            if (step.status !== 'pending') continue;
-
-            step.status = 'running';
-            changesMade = true;
-
-            const tool = tools.get(step.tool);
-            if (tool) {
-                try {
-                    const memoryMap = new Map(note.memory.filter(m => m.type === 'tool' && m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
-                    const input = replacePlaceholders(step.input, memoryMap);
-                    const result = await tool.invoke(input);
-                    note.memory.push({ type: 'tool', stepId: step.id, content: result, timestamp: Date.now() });
-                    await memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
-                    step.status = 'completed';
-                } catch (err) {
-                    step.status = 'failed';
-                    note.memory.push({ type: 'error', stepId: step.id, content: err.message, timestamp: Date.now() });
-                }
-            } else {
-                step.status = 'failed';
-                note.memory.push({ type: 'error', stepId: step.id, content: `Tool ${step.tool} not found`, timestamp: Date.now() });
-            }
-
-            for (const [id, deps] of dependencies.entries()) {
-                deps.delete(stepId);
-                if (deps.size === 0 && stepsById.get(id).status === 'pending') {
-                    readyQueue.push(id);
-                }
-            }
-        }
-
-        const allCompleted = note.logic.every(step => step.status === 'completed');
-        const hasFailed = note.logic.some(step => step.status === 'failed');
-        note.status = allCompleted ? 'completed' : (hasFailed && !changesMade) ? 'failed' : 'pending';
-
-        if (changesMade) {
-            note.updatedAt = new Date().toISOString();
-            await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
-            wss.clients.forEach(client => client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] })));
-        }
-    } catch (err) {
-        note.status = 'failed';
-        note.memory.push({ type: 'error', content: err.message, timestamp: Date.now() });
-        note.updatedAt = new Date().toISOString();
-        await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
-        wss.clients.forEach(client => client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] })));
+        step.status = 'running';
+        const result = await tool.execute(input);
+        step.status = 'completed';
+        outputs.set(step.id, result);
+        note.memory.push({ type: 'tool_result', content: result, timestamp: Date.now() });
+    } catch (error) {
+        step.status = 'failed';
+        note.memory.push({ type: 'error', content: error.message, timestamp: Date.now() });
+        throw error;
     }
-
-    return note;
 }
 
-function replacePlaceholders(input, memoryMap) {
-    if (typeof input === 'string') {
-        let replacedInput = input;
-        for (const [stepId, output] of memoryMap.entries()) {
-            replacedInput = replacedInput.replace(new RegExp(`\\\$\{\s*${stepId}\s*\}`, 'g'), output);
-        }
-        return replacedInput;
-    } else if (typeof input === 'object' && input !== null) {
-        const replacedObject = {};
-        for (const key in input) {
-            if (Object.hasOwnProperty.call(input, key)) {
-                replacedObject[key] = replacePlaceholders(input[key], memoryMap);
-            }
-        }
-        return replacedObject;
+// Run a note’s plan
+async function runNote(noteId) {
+    const note = notes.get(noteId);
+    if (!note) throw new Error(`Note ${noteId} not found`);
+    if (note.status !== 'pending') return;
+
+    note.status = 'running';
+    await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
+
+    // Generate plan if not provided
+    if (!note.logic || note.logic.length === 0) {
+        const memorySummary = note.memory.map(m => `${m.type}: ${m.content}`).join('\n');
+        const systemPrompt = {
+            role: 'system',
+            content: `You are an AI assistant generating a plan for an active note in the Netention system. Note details:
+- Title: ${note.title}
+- Content: ${note.content}
+- References: ${note.references.map(ref => notes.get(ref)?.title || 'Unknown').join(', ')}
+- Memory: ${memorySummary}
+
+Generate a JSON plan with steps: { id, tool, input, dependencies }. Available tools: ${Array.from(tools.keys()).join(', ')}.
+Consider:
+1. The main goal based on content and memory.
+2. Appropriate tools to achieve the goal.
+3. Dependencies between steps.
+4. Anticipate failures and suggest contingencies (e.g., alternative steps).
+
+Default to [{"id": "1", "tool": "summarize", "input": {"text": "Note content"}, "dependencies": []}] if no specific plan is needed.`
+        };
+        const response = await llm.invoke([systemPrompt, ...await memory.getMessages()]);
+        note.logic = JSON.parse(response.content);
     }
-    return input;
+
+    // Execute the plan
+    const outputs = new Map();
+    while (note.logic.some(step => step.status === 'pending')) {
+        const step = note.logic.find(s => s.status === 'pending' && s.dependencies.every(d => outputs.has(d)));
+        if (!step) break;
+
+        try {
+            await executeToolStep(step, note, outputs);
+        } catch (error) {
+            note.status = 'failed';
+            break;
+        }
+    }
+
+    note.status = note.logic.every(s => s.status === 'completed') ? 'completed' : 'failed';
+    note.updatedAt = new Date().toISOString();
+
+    // Reflect on execution for self-improvement
+    const reflectionPrompt = {
+        role: 'system',
+        content: `Reflect on the execution of the plan for note "${note.title}". Status: "${note.status}". Analyze what went well and what could be improved. Suggest optimizations for future plans.`
+    };
+    const reflection = await llm.invoke([reflectionPrompt, ...await memory.getMessages()]);
+    note.memory.push({ type: 'reflection', content: reflection.content, timestamp: Date.now() });
+
+    await writeFile(join(NOTES_DIR, `${noteId}.json`), JSON.stringify(note));
 }
 
+// Express server setup
+const app = express();
+app.use(express.json());
 
-// Combined HTTP and WebSocket server
-let wss; // Define wss in outer scope so runNote can access it
+// API: Get all notes
+app.get('/notes', (req, res) => {
+    res.json([...notes.values()]);
+});
 
+// API: Create or update a note
+app.post('/notes', async (req, res) => {
+    const noteData = req.body;
+    const note = Note.parse({
+        ...noteData,
+        id: noteData.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    });
+    notes.set(note.id, note);
+    await writeFile(join(NOTES_DIR, `${note.id}.json`), JSON.stringify(note));
+    res.json(note);
+});
+
+// API: Run a note
+app.post('/notes/:id/run', async (req, res) => {
+    try {
+        await runNote(req.params.id);
+        res.json(notes.get(req.params.id));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Scheduler: Run pending notes based on priority
+setInterval(async () => {
+    const pendingNotes = [...notes.values()]
+        .filter(n => n.status === 'pending')
+        .sort((a, b) => b.priority - a.priority || new Date(a.deadline || Infinity) - new Date(b.deadline || Infinity));
+    for (const note of pendingNotes) {
+        await runNote(note.id);
+    }
+}, 10000); // Check every 10 seconds
+
+// Start the server
 async function startServer() {
-    // Create Vite dev server in middleware mode
-    const vite = await createViteServer({
-        root: "client",
-        plugins: [react()],
-        server: {
-            middlewareMode: true,
-        },
-    });
-
-    // Create HTTP server
-    const httpServer = http.createServer((req, res) => {
-        vite.middlewares.handle(req, res);
-    });
-
-    // Attach WebSocket server to the HTTP server
-    wss = new WebSocketServer({ server: httpServer });
-
-    wss.on('connection', ws => {
-        console.log('Client connected');
-        ws.send(JSON.stringify({ type: 'notes', data: [...notes.values()] }));
-
-        ws.on('message', async (msg) => {
-            const { type, ...data } = JSON.parse(msg);
-
-            if (type === 'createNote') {
-                const id = crypto.randomUUID();
-                const note = Note.parse({ id, title: data.title, content: '', createdAt: new Date().toISOString() });
-                notes.set(id, note);
-                await writeFile(join(NOTES_DIR, `${id}.json`), JSON.stringify(note));
-            }
-
-            if (type === 'updateNote') {
-                const note = notes.get(data.id);
-                if (note) {
-                    const updated = Note.parse({ ...note, ...data, updatedAt: new Date().toISOString() });
-                    notes.set(data.id, updated);
-                    await writeFile(join(NOTES_DIR, `${data.id}.json`), JSON.stringify(updated));
-                }
-            }
-
-            if (type === 'deleteNote') {
-                await removeReferences(data.id); // Add this line before deletion
-                notes.delete(data.id);
-                await unlink(join(NOTES_DIR, `${data.id}.json`)).catch(() => {});
-            }
-
-            if (type === 'runNote') {
-                const updated = await runNote(data.id);
-                if (updated) notes.set(data.id, updated);
-            }
-
-            wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'notes', data: [...notes.values()] }));
-                }
-            });
-        });
-
-        ws.on('close', () => console.log('Client disconnected'));
-    });
-
-    // Start the combined server
-    const PORT = 8080;
-    httpServer.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT} (HTTP + WebSocket)`);
-    });
-
-    return { vite, httpServer, wss };
+    await loadTools();
+    loadNotes();
+    app.listen(3000, () => console.log('Server running on port 3000'));
 }
 
-// Start everything
-async function initialize() {
-    await loadNotes();
-    await loadTools(TOOLS_BUILTIN_DIR);
-    fs.mkdirSync(TOOLS_DIR, { recursive: true });
-    await loadTools(TOOLS_DIR);
-    console.log('Notes and tools loaded');
-    await startServer();
-}
-
-initialize().catch(console.error);
+startServer().catch(console.error);
