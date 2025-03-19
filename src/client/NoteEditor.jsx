@@ -3,11 +3,32 @@ import React, {useEffect, useState} from 'react';
 export default function NoteEditor({note, onUpdate, onRun}) {
     const [title, setTitle] = useState(note.title);
     const [content, setContent] = useState(note.content || ''); // Ensure content is never undefined
+    const [isSaving, setIsSaving] = useState(false);
+    const [runStatus, setRunStatus] = useState('');
 
     useEffect(() => {
         setTitle(note.title);
         setContent(note.content || '');
     }, [note]);
+
+    useEffect(() => {
+        if (note.status === 'running') {
+            setRunStatus('Running...');
+        } else if (note.status === 'completed') {
+            setRunStatus('Completed');
+        } else if (note.status === 'failed') {
+            setRunStatus('Failed!');
+        } else {
+            setRunStatus('');
+        }
+    }, [note.status]);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        await onUpdate({ id: note.id, title, content, logic: [{ id: crypto.randomUUID(), tool: 'summarize', input: { text: content }, status: 'pending' }] });
+        setIsSaving(false);
+        onRun(note.id); // Trigger LM processing immediately
+    };
 
     return (
         <div style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '4px', marginTop: '20px' }}>
@@ -25,13 +46,19 @@ export default function NoteEditor({note, onUpdate, onRun}) {
             />
             <div style={{ marginBottom: '10px' }}>
                 <button
-                    onClick={() => {
-                        onUpdate({ id: note.id, title, content, logic: [{ id: crypto.randomUUID(), tool: 'summarize', input: { text: content }, status: 'pending' }] });
-                        onRun(note.id); // Trigger LM processing immediately
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    style={{
+                        padding: '5px 10px',
+                        marginRight: '10px',
+                        background: isSaving ? '#cccccc' : '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: isSaving ? 'not-allowed' : 'pointer'
                     }}
-                    style={{ padding: '5px 10px', marginRight: '10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
                 >
-                    Save and Summarize
+                    {isSaving ? 'Saving...' : 'Save and Summarize'}
                 </button>
                 <button
                     onClick={() => onRun(note.id)}
@@ -39,6 +66,7 @@ export default function NoteEditor({note, onUpdate, onRun}) {
                 >
                     Re-run
                 </button>
+                {runStatus && <span style={{ marginLeft: '10px' }}>{runStatus}</span>}
             </div>
             {note.memory.length > 0 && (
                 <div style={{ background: '#f9f9f9', padding: '10px', borderRadius: '4px' }}>

@@ -36,6 +36,15 @@ export default function NoteList({notes, onSelect, onDelete}) {
                     >
                         Delete
                     </button>
+                    {note.status === 'running' && (
+                        <span style={{ color: 'blue', marginLeft: '10px' }}>Running...</span>
+                    )}
+                    {note.status === 'failed' && (
+                        <span style={{ color: 'red', marginLeft: '10px' }}>Failed!</span>
+                    )}
+                    {note.status === 'pendingUnitTesting' && (
+                        <span style={{ color: 'orange', marginLeft: '10px' }}>Pending Unit Test</span>
+                    )}
                 </li>
             ))}
         </ul>
