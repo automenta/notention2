@@ -53,7 +53,7 @@ const llm = new ChatGoogleGenerativeAI({ model: "gemini-2.0-flash", temperature:
 const notes = new Map();
 const tools = new Map();
 const memory = new InMemoryChatMessageHistory();
-const queue = new PriorityQueue((a, b) => b.priority - a.priority);
+const queue = new PriorityQueue((a, b) => b.state.priority - a.state.priority);
 
 // Load from filesystem
 async function loadNotes() {
@@ -174,7 +174,7 @@ async function runNote(noteId) {
                     note.memory.push({ type: 'tool_result', content: result, timestamp: Date.now() });
                     await memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
                     step.status = 'completed';
-                } catch (err) {
+                } catch (error) {
                     step.status = 'failed';
                     note.memory.push({ type: 'error', content: error.message, timestamp: Date.now() });
                 }
