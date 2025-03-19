@@ -172,11 +172,11 @@ async function runNote(noteId) {
                     });
                     const result = await tool.invoke(input);
                     note.memory.push({ type: 'tool_result', content: result, timestamp: Date.now() });
-                    await memory.addMessage({ role: 'assistant', content: result, timestamp: Date.now() });
+                    await memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
                     step.status = 'completed';
                 } catch (err) {
                     step.status = 'failed';
-                    note.memory.push({ type: 'error', content: err.message, timestamp: Date.now() });
+                    note.memory.push({ type: 'error', content: error.message, timestamp: Date.now() });
                 }
             } else {
                 step.status = 'failed';
