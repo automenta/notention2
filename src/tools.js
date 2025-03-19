@@ -36,6 +36,7 @@ export class Tools {
             this.tools.set(tool.name, tool);
         } catch (e) {
             console.error(`Error loading tool ${file} from ${path}: ${e}`);
+            throw e;
         }
     }
 
