@@ -10,6 +10,7 @@ import { createViteServer } from "vitest/node";
 import * as http from "node:http";
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { PriorityQueue } from "@datastructures-js/priority-queue";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,10 +23,10 @@ const TESTS_DIR = 'tests';
 const GEN_DIR = 'generated';
 
 // Note schema with enhanced fields
-const Note = z.object({
+const NoteSchema = z.object({
     id: z.string(),
     title: z.string(),
-    content: z.string(),
+    content: z.any(),
     status: z.enum(['pending', 'running', 'completed', 'failed']).default('pending'),
     logic: z.array(z.object({
         id: z.string(),
@@ -52,6 +53,7 @@ const llm = new ChatGoogleGenerativeAI({ model: "gemini-2.0-flash", temperature:
 const notes = new Map();
 const tools = new Map();
 const memory = new InMemoryChatMessageHistory();
+const queue = new PriorityQueue((a, b) => b.priority - a.priority);
 
 // Load from filesystem
 async function loadNotes() {
@@ -60,15 +62,15 @@ async function loadNotes() {
     for (const file of files) {
         try {
             const data = JSON.parse(await readFile(join(NOTES_DIR, file), 'utf8'));
-            const note = Note.parse(data);
-            notes.set(data.id, note);
+            const note = NoteSchema.parse(data);
+            notes.set(note.id, note);
         } catch (e) {
             console.error(`Error loading note ${file}: ${e}`);
         }
     }
     if (!notes.size) {
         devNotes.concat(seedNote).forEach(n => {
-            const note = Note.parse({ ...n, createdAt: new Date().toISOString() });
+            const note = NoteSchema.parse({ ...n, createdAt: new Date().toISOString() });
             notes.set(note.id, note);
             writeFile(join(NOTES_DIR, `${note.id}.json`), JSON.stringify(note));
         });
@@ -161,10 +163,16 @@ async function runNote(noteId) {
             if (tool) {
                 try {
                     const memoryMap = new Map(note.memory.filter(m => m.type === 'tool_result' && m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
-                    const input = replacePlaceholders(step.input, memoryMap);
+                    const input = JSON.parse(JSON.stringify(step.input), (key, value) => {
+                        if (typeof value === 'string' && value.startsWith('${') && value.endsWith('}')) {
+                            const depId = value.slice(2, -1);
+                            return memoryMap.get(depId) ?? value;
+                        }
+                        return value;
+                    });
                     const result = await tool.invoke(input);
                     note.memory.push({ type: 'tool_result', content: result, timestamp: Date.now() });
-                    await memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
+                    await memory.addMessage({ role: 'assistant', content: result, timestamp: Date.now() });
                     step.status = 'completed';
                 } catch (err) {
                     step.status = 'failed';
@@ -183,9 +191,7 @@ async function runNote(noteId) {
             }
         }
 
-        const allCompleted = note.logic.every(step => step.status === 'completed');
-        const hasFailed = note.logic.some(step => step.status === 'failed');
-        note.status = allCompleted ? 'completed' : (hasFailed && !changesMade) ? 'failed' : 'pending';
+        const allCompleted = note.logic.every(step => step.status === 'completed') ? 'completed' : (hasFailed && !changesMade) ? 'failed' : 'pending';
 
         if (changesMade) {
             note.updatedAt = new Date().toISOString();
@@ -259,7 +265,7 @@ async function startServer() {
 
             if (type === 'createNote') {
                 const id = crypto.randomUUID();
-                const note = Note.parse({ id, title: data.title, content: '', createdAt: new Date().toISOString() });
+                const note = NoteSchema.parse({ id, title: data.title, content: '', createdAt: new Date().toISOString() });
                 notes.set(id, note);
                 await writeFile(join(NOTES_DIR, `${id}.json`), JSON.stringify(note));
                 broadcastNotes();
@@ -268,7 +274,7 @@ async function startServer() {
             if (type === 'updateNote') {
                 const note = notes.get(data.id);
                 if (note) {
-                    const updated = Note.parse({ ...note, ...data, updatedAt: new Date().toISOString() });
+                    const updated = NoteSchema.parse({ ...note, ...data, updatedAt: new Date().toISOString() });
                     notes.set(data.id, updated);
                     await writeFile(join(NOTES_DIR, `${data.id}.json`), JSON.stringify(updated));
                 }
