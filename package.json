@@ -8,6 +8,7 @@
     "test": "vitest run --coverage"
   },
   "dependencies": {
+    "@datastructures-js/priority-queue": "^6.3.2",
     "@langchain/core": "^0.3.42",
     "@langchain/google-genai": "^0.1.11",
     "@langchain/openai": "^0.4.5",

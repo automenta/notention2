@@ -1,13 +1,12 @@
-import { readdir, readFile, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'path';
-import { z } from 'zod';
+import {readdir, readFile, unlink, writeFile} from 'node:fs/promises';
+import {join} from 'path';
 import * as fs from "node:fs";
-import { NoteSchema } from './server.js'; // Import NoteSchema
+import {NoteSchema} from './server.js'; // Import NoteSchema
 
 export class FileManager {
     constructor(notesDir) {
         this.notesDir = notesDir;
-        fs.mkdirSync(this.notesDir, { recursive: true });
+        fs.mkdirSync(this.notesDir, {recursive: true});
         this.notes = new Map();
         this.loadNotes();
     }

@@ -16,13 +16,13 @@ export default {
     description: 'Generate JS code',
     schema,
     async invoke(input) {
-        const { description, execute = false } = schema.parse(input);
+        const {description, execute = false} = schema.parse(input);
         const code = await llm.invoke(`Generate JS code: ${description}`);
         const fileName = `gen-${Date.now()}.js`;
         await writeFile(join('./generated', fileName), code.content);
         if (execute) {
             const vm = require('vm');
-            const sandbox = { console, require };
+            const sandbox = {console, require};
             vm.createContext(sandbox);
             vm.runInContext(code.content, sandbox);
         }

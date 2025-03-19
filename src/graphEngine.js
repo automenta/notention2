@@ -18,7 +18,7 @@ export class GraphEngine {
     addEdge(sourceId, targetId, relationship) {
         const source = this.getNote(sourceId);
         if (source) {
-            source.references.push({ target: targetId, rel: relationship });
+            source.references.push({target: targetId, rel: relationship});
         }
     }
 

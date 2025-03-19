@@ -4,7 +4,7 @@ export default function NoteList({notes, onSelect, onDelete}) {
     const selectedNoteId = null; // Removing unused variable
 
     return (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
+        <ul style={{listStyle: 'none', padding: 0}}>
             {notes.map(note => (
                 <li
                     key={note.id}
@@ -21,29 +21,35 @@ export default function NoteList({notes, onSelect, onDelete}) {
                 >
                     <span
                         onClick={() => onSelect(note.id)}
-                        style={{ cursor: 'pointer', flex: 1 }}
+                        style={{cursor: 'pointer', flex: 1}}
                     >
                         {note.title} <small>({note.status})</small>
                         {note.memory.length > 0 && (
-                            <span style={{ color: '#555', marginLeft: '10px' }}>
+                            <span style={{color: '#555', marginLeft: '10px'}}>
                                 - {note.memory[note.memory.length - 1].content.slice(0, 50)}...
                             </span>
                         )}
                     </span>
                     <button
                         onClick={() => onDelete(note.id)}
-                        style={{ padding: '5px 10px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px' }}
+                        style={{
+                            padding: '5px 10px',
+                            background: '#ff4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px'
+                        }}
                     >
                         Delete
                     </button>
                     {note.status === 'running' && (
-                        <span style={{ color: 'blue', marginLeft: '10px' }}>Running...</span>
+                        <span style={{color: 'blue', marginLeft: '10px'}}>Running...</span>
                     )}
                     {note.status === 'failed' && (
-                        <span style={{ color: 'red', marginLeft: '10px' }}>Failed!</span>
+                        <span style={{color: 'red', marginLeft: '10px'}}>Failed!</span>
                     )}
                     {note.status === 'pendingUnitTesting' && (
-                        <span style={{ color: 'orange', marginLeft: '10px' }}>Pending Unit Test</span>
+                        <span style={{color: 'orange', marginLeft: '10px'}}>Pending Unit Test</span>
                     )}
                 </li>
             ))}
