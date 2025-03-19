@@ -430,6 +430,16 @@ class NetentionServer {
                 this.loadTools(CONFIG.TOOLS_DIR),
                 this.loadNotes()
             ]);
+            // Explicitly load new tools (optional for clarity)
+            const newTools = ['browser_use', 'computer_use', 'computer_monitor', 'rag', 'mcp'];
+            for (const toolName of newTools) {
+                try {
+                    const {default: tool} = await import(`./tools/builtin/${toolName}.js`);
+                    this.state.tools.set(tool.name, tool);
+                } catch (e) {
+                    this.state.log(`Failed to load ${toolName}: ${e}`, 'warn');
+                }
+            }
             this.state.log('Notes and tools loaded');
             await this.start();
         } catch (e) {
