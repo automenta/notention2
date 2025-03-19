@@ -5,14 +5,15 @@ const schema = z.object({
     constraints: z.any().optional(),
 });
 
+//https://modelcontextprotocol.io
 export default {
     name: 'mcp',
-    description: 'Meta-Cognitive Planner interface',
+    description: 'Model Context Protocol interface',
     schema,
     version: '1.0.0',
     dependencies: ['zod', '@langchain/google-genai'],
     async invoke(input) {
         const {task} = schema.parse(input);
-        return `Stub: MCP plan for ${task}`;
+        return `Stub: MCP for ${task}`;
     }
 };
