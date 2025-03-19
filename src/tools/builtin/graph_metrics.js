@@ -1,4 +1,4 @@
-import {z} from 'zod';
+import { z } from 'zod';
 
 const schema = z.object({
     startId: z.string()
@@ -10,12 +10,12 @@ export default {
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    async invoke(input) {
-        const {startId} = schema.parse(input);
-        const notes = await import('../../server.js').then(m => m.notes);
-        const note = notes.get(startId);
+    async invoke(input, context) {
+        const { startId } = schema.parse(input);
+        const graph = context.graph;
+        const note = graph.getNote(startId);
         if (!note) return `Node ${startId} not found`;
-        const degree = note.references.length;
-        return {degree, nodes: notes.size};
+        const degree = graph.getReferences(startId).length;
+        return { degree, nodes: graph.getSize() };
     }
 };

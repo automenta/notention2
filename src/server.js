@@ -1,10 +1,10 @@
-import { WebSocketServer} from 'ws';
-import {InMemoryChatMessageHistory} from '@langchain/core/chat_history';
-import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
-import {z} from 'zod';
+import { WebSocketServer } from 'ws';
+import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { z } from 'zod';
 import react from '@vitejs/plugin-react';
 import { level } from 'level';
-import {createViteServer} from "vitest/node";
+import { createViteServer } from "vitest/node";
 import * as http from "node:http";
 import { Graph } from './graph.js';
 
@@ -67,7 +67,7 @@ const INITIAL_NOTES = [
         title: 'Self-Unpacking',
         content: 'Seed generates system',
         status: 'pending',
-        logic: [{id: 's1', tool: 'generateCode', input: {description: 'Note CRUD API'}}],
+        logic: [{ id: 's1', tool: 'generateCode', input: { description: 'Note CRUD API' } }],
         tests: ['test-self-unpacking.js'],
         priority: 90
     },
@@ -89,14 +89,14 @@ const INITIAL_NOTES = [
             {
                 id: '1',
                 tool: 'summarize',
-                input: {text: 'This is a demo of Netention, a system for active notes.'},
+                input: { text: 'This is a demo of Netention, a system for active notes.' },
                 dependencies: [],
                 status: 'pending'
             },
             {
                 id: '2',
                 tool: 'generateCode',
-                input: {description: 'Function to display summary: ${1}'},
+                input: { description: 'Function to display summary: ${1}' },
                 dependencies: ['1'],
                 status: 'pending'
             }
@@ -107,7 +107,7 @@ const INITIAL_NOTES = [
 // === State Management ===
 class ServerState {
     constructor() {
-        this.llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1});
+        this.llm = new ChatGoogleGenerativeAI({ model: "gemini-2.0-flash", temperature: 1 });
         this.graph = new Graph();
         this.tools = new Map();
         this.memory = new InMemoryChatMessageHistory();
@@ -141,7 +141,7 @@ class NetentionServer {
         for (const f of files) {
             const i = join(path, f);
             try {
-                const {default: tool} = await import("./" + i);
+                const { default: tool } = await import("./" + i);
                 this.state.tools.set(f.replace('.js', ''), tool);
                 this.state.log(`Imported tool: ${i}`);
             } catch (e) {
@@ -161,7 +161,7 @@ class NetentionServer {
         }
         if (!this.state.graph.getSize()) {
             for (const n of INITIAL_NOTES) {
-                const note = NoteSchema.parse({...n, createdAt: new Date().toISOString()});
+                const note = NoteSchema.parse({ ...n, createdAt: new Date().toISOString() });
                 await this.writeNoteToDB(note);
                 this.state.graph.addNote(note);
                 for (const ref of note.references) {
@@ -196,13 +196,13 @@ class NetentionServer {
             Math.min(CONFIG.MAX_PRIORITY, note.priority + Math.floor((new Date(note.deadline) - Date.now()) / 1000)) :
             note.priority;
         const index = this.state.executionQueue.findIndex(item => item.priority < priority);
-        if (index === -1) this.state.executionQueue.push({noteId: note.id, priority});
-        else this.state.executionQueue.splice(index, 0, {noteId: note.id, priority});
+        if (index === -1) this.state.executionQueue.push({ noteId: note.id, priority });
+        else this.state.executionQueue.splice(index, 0, { noteId: note.id, priority });
     }
 
     async processQueue() {
         while (this.state.executionQueue.length) {
-            const {noteId} = this.state.executionQueue.shift();
+            const { noteId } = this.state.executionQueue.shift();
             await this.runNote(noteId);
         }
     }
@@ -215,7 +215,7 @@ class NetentionServer {
             note.status = 'running';
             note.updatedAt = new Date().toISOString();
 
-            await this.state.memory.addMessage({role: 'user', content: `${note.title}: ${note.content}`});
+            await this.state.memory.addMessage({ role: 'user', content: `${note.title}: ${note.content}` });
 
             if (!note.logic?.length) {
                 const previousMessages = await this.state.memory.getMessages();
@@ -224,16 +224,16 @@ class NetentionServer {
                     content: `Generate a JSON plan using tools: ${[...this.state.tools.keys()].join(', ')}. Default to "summarize" if unsure. Format: [{id, tool, input, dependencies}]`
                 };
                 // Ensure system message is first
-                const messages = [systemPrompt, ...previousMessages, {role: 'user', content: note.content}];
+                const messages = [systemPrompt, ...previousMessages, { role: 'user', content: note.content }];
                 const plan = await this.state.timeoutPromise(this.state.llm.invoke(messages), CONFIG.TOOL_TIMEOUT);
                 note.logic = JSON.parse(plan.content) || [{
                     id: crypto.randomUUID(),
                     tool: 'summarize',
-                    input: {text: note.content},
+                    input: { text: note.content },
                     dependencies: [],
                     status: 'pending'
                 }];
-                note.memory.push({type: 'system', content: 'Generated plan', timestamp: Date.now()});
+                note.memory.push({ type: 'system', content: 'Generated plan', timestamp: Date.now() });
             }
 
             const stepsById = new Map(note.logic.map(step => [step.id, step]));
@@ -254,22 +254,25 @@ class NetentionServer {
                     try {
                         const memoryMap = new Map(note.memory.filter(m => m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
                         const input = this.replacePlaceholders(step.input, memoryMap);
-                        const result = await this.state.timeoutPromise(tool.invoke(input, {graph: this.state.graph}), CONFIG.TOOL_TIMEOUT);
-                        note.memory.push({type: 'tool', stepId: step.id, content: result, timestamp: Date.now()});
-                        await this.state.memory.addMessage({role: 'assistant', content: JSON.stringify(result)});
+                        const result = await this.state.timeoutPromise(tool.invoke(input, { graph: this.state.graph }), CONFIG.TOOL_TIMEOUT);
+                        note.memory.push({ type: 'tool', stepId: step.id, content: result, timestamp: Date.now() });
+                        await this.state.memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
 
                         // Anticipatory actions
                         switch (step.tool) {
                             case 'ml_train':
-                                this.queueExecution({id: result, priority: note.priority - 10});
+                                this.queueExecution({ id: result, priority: note.priority - 10 });
                                 break;
                             case 'test_gen':
-                                const testNoteId = await this.state.tools.get('spawn')?.invoke({
-                                    content: {
-                                        type: 'test',
-                                        code: result
-                                    }
+                                const testCode = result;
+                                const testNoteId = crypto.randomUUID();
+                                await this.state.graph.addNote({
+                                    id: testNoteId,
+                                    title: `Test for ${note.id}`,
+                                    content: testCode,
+                                    status: 'pending',
                                 });
+                                this.state.graph.addEdge(testNoteId, note.id, 'tests');
                                 if (testNoteId) note.tests = (note.tests || []).concat(testNoteId);
                                 break;
                             case 'schedule':
@@ -280,7 +283,7 @@ class NetentionServer {
                         step.status = 'completed';
                     } catch (err) {
                         step.status = 'failed';
-                        note.memory.push({type: 'error', stepId: step.id, content: err.message, timestamp: Date.now()});
+                        note.memory.push({ type: 'error', stepId: step.id, content: err.message, timestamp: Date.now() });
                     }
                 } else {
                     step.status = 'failed';
@@ -306,7 +309,7 @@ class NetentionServer {
 
             if (note.tests?.length && note.status === 'completed') {
                 for (const testId of note.tests) {
-                    await this.state.tools.get('test_run')?.invoke({testId});
+                    await this.state.tools.get('test_run')?.invoke({ testId });
                 }
             }
 
@@ -316,7 +319,7 @@ class NetentionServer {
             await this.writeNoteToDB(note);
         } catch (err) {
             note.status = 'failed';
-            note.memory.push({type: 'error', content: err.message, timestamp: Date.now()});
+            note.memory.push({ type: 'error', content: err.message, timestamp: Date.now() });
             this.state.log(`Error running note ${noteId}: ${err}`, 'error');
         }
 
@@ -337,11 +340,15 @@ class NetentionServer {
     }
 
     // === Scheduling ===
-    scheduleNote({noteId, time}) {
+    scheduleNote({ noteId, time }) {
         const note = this.state.graph.getNote(noteId);
         if (note) {
             note.deadline = time;
-            setTimeout(() => this.queueExecution(note), new Date(time) - Date.now());
+            setTimeout(async () => {
+                note.status = 'running';
+                await this.state.graph.addNote(note);
+                this.queueExecution(note);
+            }, new Date(time) - Date.now());
         }
     }
 
@@ -351,8 +358,8 @@ class NetentionServer {
         if (!note) return;
         const graphTool = this.state.tools.get('graph_traverse');
         if (graphTool) {
-            const result = await graphTool.invoke({startId: noteId, mode: 'bfs', callback: 'update'}, {graph: this.state.graph});
-            note.memory.push({type: 'graph', content: result, timestamp: Date.now()});
+            const result = await graphTool.invoke({ startId: noteId, mode: 'bfs', callback: 'update' }, { graph: this.state.graph });
+            note.memory.push({ type: 'graph', content: result, timestamp: Date.now() });
             await this.writeNoteToDB(note);
         }
     }
@@ -365,11 +372,11 @@ class NetentionServer {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(msgStr);
                 } else {
-                    this.state.messageQueue.push({client, message: msgStr});
+                    this.state.messageQueue.push({ client, message: msgStr });
                 }
             });
         } else {
-            this.state.messageQueue.push({message: msgStr});
+            this.state.messageQueue.push({ message: msgStr });
         }
     }
 
@@ -377,7 +384,7 @@ class NetentionServer {
         if (!this.state.batchTimeout) {
             this.state.batchTimeout = setTimeout(() => {
                 if (this.state.updateBatch.size) {
-                    this.broadcast({type: 'notes', data: this.state.graph.getNotes()});
+                    this.broadcast({ type: 'notes', data: this.state.graph.getNotes() });
                     this.state.updateBatch.clear();
                 }
                 this.state.batchTimeout = null;
@@ -389,18 +396,18 @@ class NetentionServer {
         const vite = await createViteServer({
             root: "client",
             plugins: [react()],
-            server: {middlewareMode: true},
+            server: { middlewareMode: true },
         });
 
         const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
-        this.state.wss = new WebSocketServer({server: httpServer});
+        this.state.wss = new WebSocketServer({ server: httpServer });
 
         this.state.wss.on('connection', ws => {
             this.state.log('Client connected');
-            ws.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
+            ws.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
 
             while (this.state.messageQueue.length) {
-                const {client, message} = this.state.messageQueue.shift();
+                const { client, message } = this.state.messageQueue.shift();
                 if (!client || client.readyState === WebSocket.OPEN) {
                     (client || ws).send(message);
                 }
@@ -408,7 +415,7 @@ class NetentionServer {
 
             ws.on('message', async msg => {
                 try {
-                    const {type, ...data} = JSON.parse(msg);
+                    const { type, ...data } = JSON.parse(msg);
 
                     switch (type) {
                         case 'createNote': {
@@ -485,7 +492,7 @@ class NetentionServer {
     async initialize() {
         try {
             await Promise.all([
-                 this.loadTools(CONFIG.TOOLS_BUILTIN_DIR),
+                this.loadTools(CONFIG.TOOLS_BUILTIN_DIR),
                 this.loadTools(CONFIG.TOOLS_DIR),
                 this.loadNotesFromDB()
             ]);
@@ -493,7 +500,7 @@ class NetentionServer {
             const newTools = ['browser_use', 'computer_use', 'computer_monitor', 'rag', 'mcp'];
             for (const toolName of newTools) {
                 try {
-                    const {default: tool} = await import(`./tools/builtin/${toolName}.js`);
+                    const { default: tool } = await import(`./tools/builtin/${toolName}.js`);
                     this.state.tools.set(tool.name, tool);
                 } catch (e) {
                     this.state.log(`Error loading tool ${file} from ${path}: ${e}`);

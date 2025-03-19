@@ -1,4 +1,4 @@
-import {z} from 'zod';
+import { z } from 'zod';
 
 const schema = z.object({
     noteId: z.string()
@@ -10,10 +10,10 @@ export default {
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    async invoke(input) {
-        const {noteId} = schema.parse(input);
-        const notes = await import('../../server.js').then(m => m.notes);
-        const note = notes.get(noteId);
+    async invoke(input, context) {
+        const { noteId } = schema.parse(input);
+        const graph = context.graph;
+        const note = graph.getNote(noteId);
         if (!note) return `Note ${noteId} not found`;
         return JSON.stringify({
             id: note.id,
