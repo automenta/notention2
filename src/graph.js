@@ -1,4 +1,4 @@
-export class GraphEngine {
+export class Graph {
     constructor() {
         this.graph = new Map();
     }

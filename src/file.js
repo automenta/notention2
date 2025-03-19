@@ -3,7 +3,7 @@ import {join} from 'path';
 import * as fs from "node:fs";
 import {NoteSchema} from './server.js'; // Import NoteSchema
 
-export class FileManager {
+export class File {
     constructor(notesDir) {
         this.notesDir = notesDir;
         fs.mkdirSync(this.notesDir, {recursive: true});

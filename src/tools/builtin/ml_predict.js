@@ -9,8 +9,8 @@ export default {
     name: 'ml_predict',
     description: 'Predict with ML model',
     schema,
-    async invoke(input) {
-        const {modelId, input} = schema.parse(input);
+    async invoke(i) {
+        const {modelId, input} = schema.parse(i);
         const notes = await import('../../server.js').then(m => m.notes);
         const model = notes.get(modelId);
         if (!model) return `Model ${modelId} not found`;

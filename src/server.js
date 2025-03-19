@@ -90,28 +90,30 @@ const tools = new Map();
 const memory = new InMemoryChatMessageHistory();
 
 // Load from filesystem
-async function loadNotes() {
-    fs.mkdirSync(NOTES_DIR, {recursive: true});
-    const files = await readdir(NOTES_DIR);
-    for (const file of files) {
-        const data = JSON.parse(await readFile(join(NOTES_DIR, file), 'utf8'));
+async function loadNoteDir(path) {
+    for (const f of await readdir(path)) {
+        const data = JSON.parse(await readFile(join(path, f), 'utf8'));
         notes.set(data.id, Note.parse(data));
     }
     if (!notes.size) {
         devNotes.concat(seedNote).forEach(n => {
             const note = Note.parse({...n, createdAt: new Date().toISOString()});
             notes.set(note.id, note);
-            writeFile(join(NOTES_DIR, `${note.id}.json`), JSON.stringify(note));
+            writeFile(join(path, `${note.id}.json`), JSON.stringify(note));
         });
     }
 }
 
-async function loadTools(path) {
-    const files = await readdir(path);
-    for (const file of files) {
-        let i = join(path, file);
-        const {default: tool} = await import(i);
-        tools.set(file.replace('.js', ''), tool);
+async function loadToolDir(path) {
+    for (const f of await readdir(path)) {
+        const i = join(path, f);
+        try {
+            const {default: tool} = await import("./" + i);
+            tools.set(f.replace('.js', ''), tool);
+            console.log('imported tool', i);
+        } catch (e) {
+            console.warn('error importing tool', i);
+        }
     }
 }
 
@@ -315,7 +317,7 @@ async function startServer() {
     // Start the combined server
     const PORT = 8080;
     httpServer.listen(PORT, () => {
-        console.log(`Server running on //localhost:${PORT} (HTTP + WebSocket)`);
+        console.log(`Server running on localhost:${PORT} (HTTP + WebSocket)`);
     });
 
     return {vite, httpServer, wss};
@@ -323,10 +325,15 @@ async function startServer() {
 
 // Start everything
 async function initialize() {
-    await loadNotes();
-    await loadTools(TOOLS_BUILTIN_DIR);
+
+    await loadToolDir(TOOLS_BUILTIN_DIR);
+
+    fs.mkdirSync(NOTES_DIR, {recursive: true});
+    await loadNoteDir(NOTES_DIR);
+
     fs.mkdirSync(TOOLS_DIR, {recursive: true});
-    await loadTools(TOOLS_DIR);
+    await loadToolDir(TOOLS_DIR);
+
     console.log('Notes and tools loaded');
     await startServer();
 }

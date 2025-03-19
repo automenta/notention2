@@ -469,7 +469,7 @@ to new challenges and opportunities. It's a system that defines itself, understa
 
 ----
 
-## Netention v4: Terse Software Specification
+## Netention: Terse Software Specification
 
 ### I. Overview
 
@@ -844,12 +844,12 @@ class Executor {
 * **Schema Validation**: Zod
 * **Bundling**: esbuild
 
-This terse specification outlines a complete, unified Netention v4 system, ready for implementation, emphasizing
+This terse specification outlines a complete, unified Netention system, ready for implementation, emphasizing
 conciseness and actionable detail.
 
-## Netention v4: Resource Management & Tool Integration
+## Netention: Resource Management & Tool Integration
 
-This document expands on the Netention v4 specification, focusing on:
+This document expands on the Netention specification, focusing on:
 
 1. **Integrated Resource Management**: Combining CPU and memory prioritization for continuous, fair operation.
 2. **Fundamental Tools**: Exploring useful, combinable tools for early development, leveraging LangChain.js.
@@ -1115,15 +1115,15 @@ export { CodeGenTool, codeGenInputSchema, codeGenOutputSchema };
     * `PromptTemplate` structures prompts for each step.
     * `BufferMemory` stores the conversation history and error logs.
 
-This demonstrates how Netention v4 combines resource management, fundamental tools, and LangChain.js to create a
+This demonstrates how Netention combines resource management, fundamental tools, and LangChain.js to create a
 powerful, self-improving system. The unified Note model, filesystem persistence, and LangChain integration enable a
 streamlined, autonomous architecture. The system is capable of continuous operation, adapting to user needs and resource
 constraints without requiring constant human intervention. This approach allows the system to start very simply, and
 evolve.
 
-## Netention v4: Enhanced Tools & Resource Management
+## Netention: Enhanced Tools & Resource Management
 
-This document augments the Netention v4 specification with:
+This document augments the Netention specification with:
 
 * Enhanced Fundamental Tools and Composition Examples.
 * Detailed CPU/Memory Priority and Resource Management.
@@ -1228,12 +1228,12 @@ This document augments the Netention v4 specification with:
   agents, enabling reusable, parameterized prompts and simplifying prompt engineering. The `LLMInterface` component
   leverages `PromptTemplate`.
 
-By fully integrating LangChain.js, Netention v4 achieves a robust, modular, and highly extensible architecture, capable
+By fully integrating LangChain.js, Netention achieves a robust, modular, and highly extensible architecture, capable
 of complex AI-driven workflows while minimizing custom code and maximizing reliance on a mature, well-supported library.
 The enhanced resource management ensures continuous, fair, and efficient operation, making Netention a truly autonomous
 and self-sustaining system.
 
-## Netention v4: Revitalized Design from First Principles
+## Netention: Revitalized Design from First Principles
 
 ### I. Core Vision & Principles (Refocused)
 
@@ -1454,7 +1454,6 @@ class NoteImpl {
 
 ### VII. Technology Stack (Refined)
 
-* **Runtime**: Node.js (or Deno - consider migration for security).
 * **LLM**: LangChain.js (OpenAI, Anthropic, etc.) - central dependency.
 * **Persistence**: Filesystem (JSON files) + `chokidar` for reactivity.
 * **Graph DB (Implicit)**: Filesystem directory structure + in-memory `Map` in `FileManager`.
@@ -1472,7 +1471,7 @@ class NoteImpl {
     * Hardcode initial tools (as JS files in `/tools/`): `codeGen`, `fileWrite`, `reflect`, `spawn`.
     * Total human code: ~200-300 LOC.
 2. **Stage 1: Core Bootstrap (System-Driven)**:
-    * Run Root Note: `node index.js` (or `deno run index.ts`).
+    * Run Root Note: `node index.js`
     * Root Note `logic` (bootstrap code) executes:
         * Generates core Note types (Task, Plan, Tool, UI, etc.) as JSON files in `/notes/`.
         * Implements basic `ToolRegistry` and `FileManager` functionality.
@@ -1501,9 +1500,9 @@ class NoteImpl {
 * **Emergent UI**: UI evolves dynamically with the system, adapting to user needs and system capabilities.
 * **Minimal Bootstrap**:  Tiny seed code enables rapid prototyping and system self-assembly.
 
-This revised Netention v4 design is conceptually cleaner, more streamlined, and more powerful than previous iterations.
+This revised Netention design is conceptually cleaner, more streamlined, and more powerful than previous iterations.
 By focusing on a unified Note model, decentralized execution, and deep LangChain.js integration, it achieves a highly
-scalable, self-evolving system with minimal complexity and maximum potential.This revised and refactored Netention v4
+scalable, self-evolving system with minimal complexity and maximum potential.This revised and refactored Netention
 design specification is excellent. It addresses the prompt's requirements for a "from-first-principles" approach,
 focusing on simplicity, elegance, and power while leveraging LangChain.js and a filesystem-based persistence model. The
 use of pseudocode, outlines, and tables effectively communicates the design in a terse and actionable manner.
@@ -1541,11 +1540,6 @@ Here's a breakdown of the strengths and some minor suggestions for further refin
   error handling strategies within the `Note.run()` and `reflect()` methods. How will the system handle LLM API
   failures, tool execution errors, or schema validation issues? Perhaps a more robust error logging and retry mechanism
   could be outlined. Consider a "circuit breaker" pattern for failing Notes/Tools to prevent cascading failures.
-* **Security (Deno vs. Node.js)**:  The suggestion to consider Deno is excellent, particularly for a self-evolving
-  system that generates and executes code. Perhaps strengthen the rationale for Deno beyond "zero-config security" –
-  emphasize its built-in security features like sandboxing and permissions model as crucial for a system designed to
-  self-modify and execute arbitrary code. If sticking with Node.js, emphasize `vm2` sandbox robustness and security best
-  practices.
 * **Scalability Limits (Filesystem Persistence)**: While the filesystem approach is simpler, acknowledge potential
   scalability limits for extremely large Note networks. Briefly mention potential strategies for scaling persistence if
   needed in the future (e.g., sharding, more robust embedded DB as a *potential* future evolution, though filesystem
@@ -1566,14 +1560,14 @@ Here's a breakdown of the strengths and some minor suggestions for further refin
   for UI and system behavior? Emphasize self-testing capabilities (using `test_gen` and `test_run` tools) as a core part
   of Netention's evolution.
 
-These are minor suggestions and do not detract from the overall excellence of the design. The revised Netention v4 is a
+These are minor suggestions and do not detract from the overall excellence of the design. The revised Netention is a
 significant improvement, representing a well-considered and highly promising architecture for a self-evolving knowledge
 and task management system. The focus on simplicity, decentralization, and deep LangChain.js integration makes it both
 conceptually elegant and practically feasible.
 
-## Netention v4: Revitalized Design with Robust Failure Handling & Self-Testing
+## Netention: Revitalized Design with Robust Failure Handling & Self-Testing
 
-This document revises the Netention v4 specification, enhancing it with robust failure handling, integrated
+This document revises the Netention specification, enhancing it with robust failure handling, integrated
 self-testing, and a streamlined error recovery mechanism, all while leveraging LangChain.js for intelligent automation.
 
 ### I. Core Vision & Principles (Unchanged)
@@ -1818,12 +1812,12 @@ class NoteImpl {
 
 ### VII. Conclusion
 
-This revised Netention v4 design significantly strengthens the system's robustness and self-healing capabilities by
+This revised Netention design significantly strengthens the system's robustness and self-healing capabilities by
 integrating graceful failure handling and automated unit testing. By leveraging LangChain.js for intelligent error
 analysis and test generation, Netention becomes a more resilient and self-improving system, capable of continuous
 operation and autonomous evolution even in the face of errors and unexpected issues. The focus on decentralized
-execution and intrinsic resource management, combined with these new failure handling features, positions Netention v4
-as a truly advanced and practically viable self-evolving knowledge ecosystem.This revised Netention v4 design
+execution and intrinsic resource management, combined with these new failure handling features, positions Netention
+as a truly advanced and practically viable self-evolving knowledge ecosystem.This revised Netention design
 specification is a substantial improvement, particularly in addressing the crucial aspects of failure handling and
 self-testing. The integration of these features, driven by LangChain.js, elevates the design's robustness and positions
 Netention as a truly self-improving and resilient system.
@@ -1880,13 +1874,13 @@ Here's a breakdown of the strengths of the revision and some minor suggestions:
   API errors, tool execution exceptions) to verify that the `handleFailure()` logic works as expected and that unit
   tests are correctly requested and executed.
 
-These suggestions are again minor refinements. The revised Netention v4 specification is exceptionally well-designed,
+These suggestions are again minor refinements. The revised Netention specification is exceptionally well-designed,
 demonstrating a clear path towards a robust, self-improving, and practically implementable system. The integration of
 intelligent failure handling and automated unit testing is a particularly strong and innovative aspect of this design.
 
-## Netention v4: System Components and Interactions
+## Netention: System Components and Interactions
 
-This document outlines the core components of the revitalized Netention v4 design and describes how they interact to
+This document outlines the core components of the revitalized Netention design and describes how they interact to
 create a self-evolving, intelligent knowledge network.
 
 ### I. Core Components
@@ -2029,7 +2023,7 @@ create a self-evolving, intelligent knowledge network.
 9. **Self-Evolution:**
     * The root note, and other notes can modify themselves, and other notes, using code generation, or other tools.
 
-This component and interaction outline provides a clear picture of how Netention v4 operates as a dynamic,
+This component and interaction outline provides a clear picture of how Netention operates as a dynamic,
 decentralized, and self-evolving system. The interactions are primarily event-driven (file changes, user actions,
 scheduled tasks), promoting reactivity and responsiveness. The use of LangChain.js for core AI functionality and the
 filesystem for persistence simplifies the architecture while providing a robust and extensible foundation. The revised
@@ -2037,7 +2031,7 @@ failure handling and self-testing mechanisms ensure system stability and continu
 
 ----
 
-# **Netention v5: Minimum Viable Specification**
+# **Netention: Minimum Viable Specification**
 
 ## **Vision**
 
@@ -2050,7 +2044,7 @@ failure handling and self-testing mechanisms ensure system stability and continu
 
 1. **Unification**: Notes subsume Agents, Plans, Tools—single entity.
 2. **Recursion**: Every Note embeds sub-Notes, fractal-like.
-3. **Dependencies**: LangChain.js (AI), IPFS (storage), Deno (runtime).
+3. **Dependencies**: LangChain.js (AI), IPFS (storage)
 4. **Efficiency**: Priority-driven, memory-pruning execution.
 5. **Minimal**: \~500 LOC human-coded, then autonomous.
 
@@ -2082,7 +2076,6 @@ type Note = {
 
 | Dependency       | Role                     | Benefit             |
 |------------------|--------------------------|---------------------|
-| **Deno**         | Runtime, sandboxed JS/TS | Secure, lightweight |
 | **LangChain.js** | LLM, tools, memory       | Cuts ~80% AI code   |
 | **IPFS**         | Distributed storage      | Scalable, immutable |
 | **Hono**         | HTTP/WebSocket API       | Real-time sync      |
@@ -2098,7 +2091,7 @@ type Note = {
 class Note {
   constructor(data: Note) {
     this.data = data;
-    this.llm = new ChatOpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+    this.llm = new ChatOpenAI({ apiKey: env.get("OPENAI_API_KEY") });
     this.memory = new BufferMemory();
     this.tools = loadTools(this.data.tools);
     this.executor = AgentExecutor.fromTools(this.tools, this.llm, this.memory);
@@ -2173,7 +2166,7 @@ class Note {
     get: async (id: string) => JSON.parse(await ipfs.cat(id)),
   };
   ```
-- **Sync**: `Deno.watchFs("./ipfs")` triggers reload on external edits.
+- **Sync**: `watchFs("./ipfs")` triggers reload on external edits.
 
 ### **In-Memory**
 
@@ -2188,7 +2181,7 @@ class Note {
    ```typescript
    const seed: Note = {
      id: crypto.randomUUID(),
-     content: { desc: "Bootstrap Netention v5", type: "system" },
+     content: { desc: "Bootstrap Netention", type: "system" },
      graph: [],
      state: { status: "running", priority: 100 },
      memory: [],
@@ -2217,7 +2210,7 @@ class Note {
 | Name         | Role                   | Impl                    |
 |--------------|------------------------|-------------------------|
 | `code_gen`   | Generate JS code       | LangChain LLM           |
-| `file_write` | Write to IPFS          | Deno `writeFile` + IPFS |
+| `file_write` | Write to IPFS          | `writeFile` + IPFS      |
 | `reflect`    | Self-analyze, optimize | LangChain `RetrievalQA` |
 | `notify`     | User interaction       | Hono WebSocket push     |
 
@@ -2299,13 +2292,13 @@ class Note {
 
 - **Minimal**: Core fits in ~200 LOC, rest self-generated.
 - **Complete**: Tasks, UI, evolution—all present.
-- **Scalable**: IPFS/Deno/LangChain handle growth.
+- **Scalable**: IPFS/LangChain handle growth.
 - **Elegant**: One entity, infinite potential.
 
-This spec delivers a terse, viable Netention v5—unified, recursive, and ready to evolve from a single seed into a
+This spec delivers a terse, viable Netention—unified, recursive, and ready to evolve from a single seed into a
 reality-defining system.
 
-Below is an updated specification for **Netention v5**, integrating a priority/memory system designed to run in a
+Below is an updated specification for **Netention**, integrating a priority/memory system designed to run in a
 continuous open loop forever, fairly allocating resources based on priority. The design ensures long-term stability,
 equitable resource distribution, and self-sustainability by embedding resource management into the core Note lifecycle.
 Additionally, I’ll explore and push helpful features into the boot stage to maximize initial autonomy and utility,
@@ -2313,7 +2306,7 @@ keeping the spec terse with pseudocode, tables, and outlines.
 
 ---
 
-# **Netention v5: Continuous Priority-Driven System**
+# **Netention: Continuous Priority-Driven System**
 
 ## **Vision**
 
@@ -2327,7 +2320,7 @@ keeping the spec terse with pseudocode, tables, and outlines.
 2. **Priority-Driven**: Higher priority = more resources, dynamically adjusted.
 3. **Memory Equilibrium**: Self-pruning keeps footprint bounded.
 4. **Boot Autonomy**: Seed maximizes initial capability, minimizes human tweaks.
-5. **Dependencies**: Deno, LangChain.js, IPFS, Hono, Cytoscape.js.
+5. **Dependencies**: LangChain.js, IPFS, Hono, Cytoscape.js.
 
 ---
 
@@ -2417,7 +2410,7 @@ type Note = {
         n.resources.tokens += Math.floor(share * MAX_TOKENS_PER_TICK);
         new Note(n).runTick();
       });
-      Deno.sleepSync(100); // Throttle to 10 ticks/sec
+      sleepSync(100); // Throttle to 10 ticks/sec
     }
   }
   ```
@@ -2436,7 +2429,7 @@ type Note = {
 class Note {
   constructor(data: Note) {
     this.data = data;
-    this.llm = new ChatOpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+    this.llm = new ChatOpenAI({ apiKey: env.get("OPENAI_API_KEY") });
     this.memory = new BufferMemory();
     this.tools = loadTools(this.data.tools);
     this.executor = AgentExecutor.fromTools(this.tools, this.llm, this.memory);
@@ -2500,7 +2493,7 @@ const seed: Note = {
   id: crypto.randomUUID(),
   content: {
     type: "system",
-    desc: "Bootstrap Netention v5",
+    desc: "Bootstrap Netention",
     config: { maxMemory: 50, tickRate: 10, decayRate: 7 * 24 * 60 * 60 * 1000 }
   },
   graph: [],
@@ -2572,7 +2565,7 @@ const seed: Note = {
 
 ```typescript
 // main.ts
-import { PriorityQueue } from "deno_std";
+import { PriorityQueue } from "std";
 import { serve } from "hono";
 import { ChatOpenAI, AgentExecutor, BufferMemory } from "langchain";
 
@@ -2598,10 +2591,10 @@ runForever();
 - **Boot-Ready**: Seed packs UI, tools, and reflection for instant utility.
 - **Minimal**: Core logic fits in ~250 LOC, rest emerges.
 
-This spec delivers a lean, infinite-running Netention v5, with a boot stage primed for autonomy and user value from the
+This spec delivers a lean, infinite-running Netention, with a boot stage primed for autonomy and user value from the
 first tick.
 
-To maximize utility and value in the seed Note of **Netention v5**, we’ll pack it with features, tools, and
+To maximize utility and value in the seed Note of **Netention**, we’ll pack it with features, tools, and
 configurations that enable immediate functionality, adaptability, and growth potential while keeping it terse and
 viable. The goal is to embed a rich starting point that minimizes human intervention post-boot, leveraging the system’s
 recursive nature and dependencies (LangChain.js, IPFS, etc.). Below, I’ll outline additions to the seed, focusing on
@@ -2609,7 +2602,7 @@ pseudocode and tables for density, ensuring the system is maximally useful out o
 
 ---
 
-# **Netention v5: Enhanced Seed Specification**
+# **Netention: Enhanced Seed Specification**
 
 ## **Seed Design Goals**
 
@@ -2629,7 +2622,7 @@ const seed: Note = {
   id: crypto.randomUUID(),
   content: {
     type: "system",
-    desc: "Netention v5: Self-evolving knowledge/task fabric",
+    desc: "Netention: Self-evolving knowledge/task fabric",
     config: {
       maxMemory: 50,           // Per-Note memory cap
       tickRate: 10,            // Ticks/sec
@@ -2794,7 +2787,7 @@ const seed: Note = {
 
 ```typescript
 // main.ts
-import { PriorityQueue } from "deno_std";
+import { PriorityQueue } from "std";
 import { serve } from "hono";
 import { ChatOpenAI, AgentExecutor, BufferMemory } from "langchain";
 
@@ -2833,10 +2826,10 @@ runForever();
 - **Flexibility**: Config and metamodel adapt to any context.
 - **No Delay**: Everything’s ready at boot—no "Stage 1" required.
 
-This enhanced seed transforms Netention v5 into a powerhouse from the first tick—productive, intelligent, and infinitely
+This enhanced seed transforms Netention into a powerhouse from the first tick—productive, intelligent, and infinitely
 scalable, all while staying minimal and leveraging recursive elegance.
 
-Below, I’ll enhance the **Netention v5** seed Note by integrating additional programming-focused features—expression
+Below, I’ll enhance the **Netention** seed Note by integrating additional programming-focused features—expression
 evaluators (for numbers, strings, etc.) and graph search, traversal, and metrics tools—pushing even more utility and
 value into the boot stage. These additions empower the system with immediate computational power and graph-based
 reasoning, enhancing its ability to handle complex tasks and self-evolve from the start. The spec remains terse, using
@@ -2844,7 +2837,7 @@ pseudocode and tables for density.
 
 ---
 
-# **Netention v5: Enhanced Seed with Programming Features**
+# **Netention: Enhanced Seed with Programming Features**
 
 ## **Seed Design Goals**
 
@@ -2863,7 +2856,7 @@ const seed: Note = {
   id: crypto.randomUUID(),
   content: {
     type: "system",
-    desc: "Netention v5: Self-evolving knowledge/task fabric",
+    desc: "Netention: Self-evolving knowledge/task fabric",
     config: {
       maxMemory: 50,
       tickRate: 10,
@@ -3086,10 +3079,10 @@ seed.graph.push({ target: uiList.id, rel: "embeds" }, { target: uiGraph.id, rel:
   optimization.
 - **Boot Value**: Adds ~50-100 LOC but multiplies capability, making v5 a programming powerhouse from tick one.
 
-This seed now packs a dense toolkit—computational, analytical, and structural—ensuring Netention v5 is not just viable
+This seed now packs a dense toolkit—computational, analytical, and structural—ensuring Netention is not just viable
 but a formidable, self-evolving system right out of the gate.
 
-Below, I’ll enhance the **Netention v5** seed Note by integrating a **Testing** feature—specifically tools for creating
+Below, I’ll enhance the **Netention** seed Note by integrating a **Testing** feature—specifically tools for creating
 and running unit tests—to ensure functionality persists as the system evolves. Unit tests will act as "temporary
 milestones" embedded in the graph, providing a living specification. I’ll also explore additional fundamental tools that
 combine powerfully with existing ones, focusing on terse pseudocode and tables for density. These additions maximize
@@ -3097,7 +3090,7 @@ utility, adaptability, and creative potential from boot.
 
 ---
 
-# **Netention v5: Enhanced Seed with Testing & Fundamental Tools**
+# **Netention: Enhanced Seed with Testing & Fundamental Tools**
 
 ## **Seed Design Goals**
 
@@ -3116,7 +3109,7 @@ const seed: Note = {
   id: crypto.randomUUID(),
   content: {
     type: "system",
-    desc: "Netention v5: Self-evolving knowledge/task fabric",
+    desc: "Netention: Self-evolving knowledge/task fabric",
     config: {
       maxMemory: 50,
       tickRate: 10,
@@ -3336,7 +3329,7 @@ seed.graph.push({ target: uiList.id, rel: "embeds" }, { target: uiGraph.id, rel:
 ### **Updated Seed Size**
 
 - **LOC**: ~400 (adds ~50-100 LOC for new tools).
-- **Dependencies**: No new ones; leverages LangChain.js/Deno.
+- **Dependencies**: No new ones; leverages LangChain.js.
 
 ### **Utility & Value Boost**
 
@@ -3374,10 +3367,10 @@ seed.graph.push({ target: uiList.id, rel: "embeds" }, { target: uiGraph.id, rel:
 - **Schedule**: Adds temporal control, enhancing task management.
 - **Debug**: Provides visibility, crucial for autonomous debugging and user trust.
 
-This seed now packs a robust, combinatorial toolkit—testing, workflow, timing, and diagnostics—making Netention v5 a
+This seed now packs a robust, combinatorial toolkit—testing, workflow, timing, and diagnostics—making Netention a
 self-sustaining, creative powerhouse from boot, all within ~400 LOC.
 
-Below, I’ll enhance the **Netention v5** seed Note by adding **generic machine-learning (ML) model Notes**—dynamic,
+Below, I’ll enhance the **Netention** seed Note by adding **generic machine-learning (ML) model Notes**—dynamic,
 pluggable decision trees, classifiers, PCA, and clustering tools that act as "glue" in the graph. I’ll also enhance *
 *planning and anticipatory planning** by integrating these ML tools with existing ones, plus new pathfinding tools like
 A* to boost foresight and optimization. The spec remains terse, using pseudocode and tables for density, pushing maximum
@@ -3385,13 +3378,13 @@ utility into the boot stage.
 
 ---
 
-# **Netention v5: Enhanced Seed with ML & Advanced Planning**
+# **Netention: Enhanced Seed with ML & Advanced Planning**
 
 ## **Seed Design Goals**
 
 - **ML Glue**: Generic, dynamic ML models as Notes for universal integration.
 - **Planning Power**: Leverage ML and pathfinding (A*) for smarter anticipation.
-- **Minimal**: Add ~100-150 LOC, lean on LangChain.js/Deno.
+- **Minimal**: Add ~100-150 LOC, lean on LangChain.js.
 
 ---
 
@@ -3404,7 +3397,7 @@ const seed: Note = {
   id: crypto.randomUUID(),
   content: {
     type: "system",
-    desc: "Netention v5: Self-evolving knowledge/task fabric",
+    desc: "Netention: Self-evolving knowledge/task fabric",
     config: { maxMemory: 50, tickRate: 10, decayRate: 7 * 24 * 60 * 60 * 1000, tokenBudget: 10000, defaultPriority: 50, replicationPeers: 5 },
     metamodel: { note: { id: "string", content: "any", graph: "array", state: "object", ... }, rules: ["spawn sub-Notes", "prune memory", "sync via IPFS", "test functionality", "learn dynamically"] },
     prompts: {
@@ -3645,17 +3638,17 @@ seed.graph.push({ target: uiGraph.id, rel: "embeds" }, { target: planDay.id, rel
   foresight.
 - **Synergy**: Combines with `test_run`, `graph_traverse`, etc., for a self-improving, intelligent system from boot.
 
-This seed now packs a formidable toolkit—ML adaptability and advanced planning—making Netention v5 a recursive,
+This seed now packs a formidable toolkit—ML adaptability and advanced planning—making Netention a recursive,
 learning, planning juggernaut in ~450 LOC.
 
-Below is a terse outline of the **Netention v5** system's components and their interactions, synthesizing the enhanced
+Below is a terse outline of the **Netention** system's components and their interactions, synthesizing the enhanced
 seed design with ML models, advanced planning, and testing features. The focus is on clarity and density, using tables
 and pseudocode to depict the structure and flow. This reflects a self-evolving, priority-driven system running in a
 continuous open loop, with components interacting via the Note graph and tools.
 
 ---
 
-# **Netention v5: System Components & Interactions**
+# **Netention: System Components & Interactions**
 
 ## **Components Overview**
 
@@ -3667,7 +3660,7 @@ continuous open loop, with components interacting via the Note graph and tools.
 | **Priority Queue** | Manages Note execution order             | Fair resource allocation           |
 | **IPFS Storage**   | Persistent, distributed Note storage     | Immutable, scalable                |
 | **UI (Cytoscape)** | Visualizes Notes and graph               | Dynamic, interactive               |
-| **Runtime (Deno)** | Executes system in sandboxed environment | Secure, lightweight                |
+| **Runtime**        | Executes system in sandboxed environment | Secure, lightweight                |
 
 ---
 
@@ -3742,7 +3735,7 @@ continuous open loop, with components interacting via the Note graph and tools.
   ```
 - **Role**: Visualizes Notes/graph, updates via Hono.
 
-### **7. Runtime (Deno)**
+### **7. Runtime**
 
 - **Role**: Executes `runForever()`, manages sandboxed JS/TS.
 
@@ -3781,7 +3774,7 @@ continuous open loop, with components interacting via the Note graph and tools.
          n.resources.tokens += (n.state.priority / totalPriority) * 100;
          n.runTick();
        });
-       Deno.sleepSync(100); // 10 ticks/sec
+       sleep(100); // 10 ticks/sec
      }
    }
    ```
@@ -3860,5 +3853,5 @@ continuous open loop, with components interacting via the Note graph and tools.
 - **Efficient**: Priority queue ensures fair, continuous operation.
 - **Visual**: UI reflects system state instantly.
 
-This outline captures Netention v5’s components—Notes, Tools, Graph, Queue, Storage, UI, Runtime—and their tight-knit
+This outline captures Netention’s components—Notes, Tools, Graph, Queue, Storage, UI, Runtime—and their tight-knit
 interactions, forming a self-sustaining, intelligent fabric from a single seed.

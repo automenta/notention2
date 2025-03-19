@@ -1,4 +1,4 @@
-export class Executor {
+export class Exe {
     constructor(toolRegistry) {
         this.toolRegistry = toolRegistry;
     }

@@ -1,6 +1,6 @@
 import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
 
-export class LLMInterface {
+export class LLM {
     constructor() {
         this.llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1, maxRetries: 2});
     }

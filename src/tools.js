@@ -1,7 +1,7 @@
 import {readdir} from 'node:fs/promises';
 import {join} from 'node:path';
 
-export class ToolRegistry {
+export class Tools {
     constructor() {
         this.tools = new Map();
     }
