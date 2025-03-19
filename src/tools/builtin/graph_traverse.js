@@ -18,16 +18,19 @@ export default {
         const visited = new Set();
         const stackOrQueue = [startId];
         const results = [];
+
         while (stackOrQueue.length) {
             const id = mode === 'dfs' ? stackOrQueue.pop() : stackOrQueue.shift();
             if (visited.has(id)) continue;
             visited.add(id);
+
             const note = graph.getNote(id);
             if (note) {
                 results.push({ id, title: note.title });
                 stackOrQueue.push(...graph.getReferences(id));
             }
         }
+
         return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
     }
 };

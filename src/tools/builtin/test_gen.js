@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const schema = z.object({
     code: z.string(),
@@ -14,13 +15,16 @@ export default {
         const graph = context.graph;
         const testCode = `test('${targetId} works', () => { expect((${code})(2, 3)).toBe(5); });`;
         const testId = crypto.randomUUID();
+
         await graph.addNote({
             id: testId,
             title: `Test for ${targetId}`,
             content: testCode,
             status: 'pending',
         });
-        if (targetId) graph.addEdge(testId, targetId, 'tests');
+        if (targetId) {
+            graph.addEdge(testId, targetId, 'tests');
+        }
         return testCode;
     }
 };

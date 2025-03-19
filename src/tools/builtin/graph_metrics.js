@@ -14,7 +14,11 @@ export default {
         const { startId } = schema.parse(input);
         const graph = context.graph;
         const note = graph.getNote(startId);
-        if (!note) return `Node ${startId} not found`;
+
+        if (!note) {
+            return `Node ${startId} not found`;
+        }
+
         const degree = graph.getReferences(startId).length;
         return { degree, nodes: graph.getSize() };
     }

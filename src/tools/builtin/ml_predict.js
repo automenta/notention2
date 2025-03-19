@@ -15,7 +15,11 @@ export default {
         const { modelId, input: data } = schema.parse(input);
         const graph = context.graph;
         const model = graph.getNote(modelId);
-        if (!model) return `Model ${modelId} not found`;
+
+        if (!model) {
+            return `Model ${modelId} not found`;
+        }
+
         return `Predicted: ${JSON.stringify(data)} using ${model.content.type}`;
     }
 };

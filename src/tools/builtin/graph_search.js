@@ -15,16 +15,19 @@ export default {
         const visited = new Set();
         const queue = [startId];
         const results = [];
+
         while (queue.length) {
             const id = queue.shift();
             if (visited.has(id)) continue;
             visited.add(id);
+
             const note = graph.getNote(id);
             if (note && (note.title.includes(query) || note.content.includes(query))) {
                 results.push({ id, title: note.title });
             }
             queue.push(...graph.getReferences(id));
         }
+
         return results;
     }
 };

@@ -17,6 +17,7 @@ export default {
         const { modelType, data, targetId } = schema.parse(input);
         const modelId = crypto.randomUUID();
         const graph = context.graph;
+
         await graph.addNote({
             id: modelId,
             title: `${modelType} Model`,
@@ -24,7 +25,11 @@ export default {
             status: 'completed',
             memory: [{ type: 'system', content: `Trained on ${data.length} points`, timestamp: Date.now() }],
         });
-        if (targetId) graph.addEdge(modelId, targetId, 'enhances');
+
+        if (targetId) {
+            graph.addEdge(modelId, targetId, 'enhances');
+        }
+
         return modelId;
     }
 };

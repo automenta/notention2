@@ -12,7 +12,11 @@ export default {
         const { testId } = schema.parse(input);
         const graph = context.graph;
         const testNote = graph.getNote(testId);
-        if (!testNote) return `Test ${testId} not found`;
+
+        if (!testNote) {
+            return `Test ${testId} not found`;
+        }
+
         const sandbox = { expect: (val) => ({ toBe: (exp) => val === exp }) };
         const fn = new Function('test', 'expect', testNote.content);
         let passed = true;

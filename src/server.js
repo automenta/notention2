@@ -7,8 +7,6 @@ import { Level } from 'level';
 import { createViteServer } from "vitest/node";
 import * as http from "node:http";
 import { Graph } from './graph.js';
-import {readdirSync} from "node:fs";
-import {join} from "node:path";
 import crypto from 'crypto';
 import { Tools } from './tools.js';
 
@@ -30,7 +28,7 @@ const NoteSchema = z.object({
     id: z.string(),
     title: z.string(),
     content: z.string(),
-    status: z.enum(['pending', 'running', 'completed', 'failed']).default('pending'),
+    status: z.enum(['pending', 'running', 'completed', 'failed', 'pendingUnitTesting']).default('pending'),
     priority: z.number().min(0).max(CONFIG.MAX_PRIORITY).default(50),
     deadline: z.string().datetime().nullable().optional(),
     logic: z.array(z.object({
@@ -248,6 +246,7 @@ class NetentionServer {
     async _setNoteToRunning(note) {
         note.status = 'running';
         note.updatedAt = new Date().toISOString();
+        await this.writeNoteToDB(note);
     }
 
     async _addNoteToMemory(note) {
@@ -275,6 +274,7 @@ class NetentionServer {
                 status: 'pending'
             }];
             note.memory.push({ type: 'system', content: 'Generated plan', timestamp: Date.now() });
+            await this.writeNoteToDB(note);
         } catch (planError) {
             throw new Error(`Error generating plan: ${planError.message}`);
         }
@@ -290,28 +290,36 @@ class NetentionServer {
             const step = stepsById.get(stepId);
             if (step.status !== 'pending') continue;
 
-            step.status = 'running';
-
-            const tool = this.state.tools.getTool(step.tool);
-            if (tool) {
-                try {
-                    await this._executeToolStep(note, step, tool);
-                } catch (toolError) {
-                    this._handleToolStepError(note, step, toolError);
-                }
-            } else {
-                this._handleToolNotFoundError(note, step);
-            }
-            this._updateDependencies(dependencies, stepsById, readyQueue, stepId);
+            await this._executeStep(note, step, dependencies, stepsById, readyQueue);
         }
     }
 
-    async _executeToolStep(note, step, tool) {
+    async _executeStep(note, step, dependencies, stepsById, readyQueue) {
+        step.status = 'running';
+        await this.writeNoteToDB(note);
+
+        const tool = this.state.tools.getTool(step.tool);
+        if (!tool) {
+            return this._handleToolNotFoundError(note, step);
+        }
+
+        try {
+            await this._runTool(note, step, tool);
+        } catch (toolError) {
+            this._handleToolStepError(note, step, toolError);
+        } finally {
+            this._processStepDependencies(dependencies, stepsById, readyQueue, step.id, note);
+        }
+    }
+
+
+    async _runTool(note, step, tool) {
         const memoryMap = new Map(note.memory.filter(m => m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
         const input = this.replacePlaceholders(step.input, memoryMap);
         const result = await this.state.timeoutPromise(tool.invoke(input, { graph: this.state.graph }), CONFIG.TOOL_TIMEOUT);
         note.memory.push({ type: 'tool', stepId: step.id, content: result, timestamp: Date.now() });
         await this.state.memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
+        await this.writeNoteToDB(note);
 
         switch (step.tool) {
             case 'ml_train':
@@ -327,6 +335,7 @@ class NetentionServer {
                 break;
         }
         step.status = 'completed';
+        await this.writeNoteToDB(note);
     }
 
     async _createTestNote(note, testCode, testNoteId) {
@@ -334,18 +343,20 @@ class NetentionServer {
             id: testNoteId,
             title: `Test for ${note.id}`,
             content: testCode,
-            status: 'pending',
+            status: 'pendingUnitTesting', // More specific status for test notes
         });
         this.state.graph.addEdge(testNoteId, note.id, 'tests');
         if (testNoteId) note.tests = (note.tests || []).concat(testNoteId);
+        await this.writeNoteToDB(note);
     }
 
 
-    _updateDependencies(dependencies, stepsById, readyQueue, stepId) {
+    _processStepDependencies(dependencies, stepsById, readyQueue, stepId, note) {
         for (const [id, deps] of dependencies) {
             deps.delete(stepId);
             if (!deps.size && stepsById.get(id).status === 'pending') {
                 readyQueue.push(id);
+                this.state.log(`Step ${id} added to readyQueue because dependencies met.`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: id });
             }
         }
     }
@@ -355,18 +366,32 @@ class NetentionServer {
         const allCompleted = note.logic.every(step => step.status === 'completed');
         const hasFailed = note.logic.some(step => step.status === 'failed');
         note.status = allCompleted ? 'completed' : (hasFailed) ? 'failed' : 'pending';
+        await this.writeNoteToDB(note);
     }
 
     async _runNoteTests(note) {
         if (note.tests?.length && note.status === 'completed') {
+            note.status = 'pendingUnitTesting'; // Update note status to indicate testing
+            await this.writeNoteToDB(note);
             for (const testId of note.tests) {
-                await this.state.tools.getTool('test_run')?.invoke({ testId });
+                const testResult = await this.state.tools.getTool('test_run')?.invoke({ testId }, { graph: this.state.graph });
+                note.memory.push({ type: 'testResult', content: `Test ${testId}: ${testResult}`, timestamp: Date.now() });
+                if (testResult !== 'Tests passed') {
+                    note.status = 'failed'; // If any test fails, mark note as failed
+                    await this.writeNoteToDB(note);
+                    return; // Exit if tests fail
+                }
+            }
+            if (note.status !== 'failed') {
+                note.status = 'completed'; // Only mark as completed if all tests passed and not already failed
+                await this.writeNoteToDB(note);
             }
         }
     }
 
+
     async _finalizeNoteRun(note) {
-        await this.writeNoteToDB(note);
+        await this.writeNoteToDB(note); // Ensure final state is saved
         return note;
     }
 
@@ -382,6 +407,7 @@ class NetentionServer {
         step.status = 'failed';
         note.memory.push({ type: 'error', stepId: step.id, content: error.message, timestamp: Date.now() });
         this.state.log(`Error running tool ${step.tool} for note ${note.id}: ${error}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool, error: error.message });
+        this.writeNoteToDB(note);
     }
 
     _handleToolNotFoundError(note, step) {
@@ -393,6 +419,7 @@ class NetentionServer {
             timestamp: Date.now()
         });
         this.state.log(`Tool ${step.tool} not found for step ${step.id} in note ${note.id}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool });
+        this.writeNoteToDB(note);
     }
 
 
@@ -415,7 +442,6 @@ class NetentionServer {
             note.deadline = time;
             setTimeout(async () => {
                 note.status = 'running';
-                await this.state.graph.addNote(note); // Is this line needed? - No, it's not needed.
                 this.queueExecution(note);
             }, new Date(time) - Date.now());
         }
@@ -459,6 +485,149 @@ class NetentionServer {
         }
     }
 
+    _handleWebSocketMessage = async (parsedMessage) => {
+        try {
+            const { type, ...data } = parsedMessage;
+
+            const messageSchema = z.object({
+                type: z.string(),
+                data: z.any().optional()
+            });
+            const validatedMessage = messageSchema.parse(parsedMessage);
+            const { type: validatedType, data: validatedData } = validatedMessage;
+
+            switch (validatedType) {
+                case 'createNote':
+                    await this._handleCreateNote(parsedMessage);
+                    break;
+                case 'updateNote':
+                    await this._handleUpdateNote(parsedMessage);
+                    break;
+                case 'deleteNote':
+                    await this._handleDeleteNote(parsedMessage);
+                    break;
+                case 'runNote':
+                    await this._handleRunNote(parsedMessage);
+                    break;
+                case 'graphUpdate':
+                    await this._handleGraphUpdate(parsedMessage);
+                    break;
+                default:
+                    this.state.log(`Unknown WebSocket message type: ${validatedType}`, 'warn', { component: 'WebSocketHandler', messageType: validatedType });
+            }
+
+            this.state.updateBatch.add(validatedData?.id || '');
+            this.scheduleBatchUpdate();
+        } catch (e) {
+            if (e instanceof z.ZodError) {
+                this.state.log(`WebSocket message validation error: ${e.errors}`, 'warn', { component: 'WebSocketHandler', errorType: 'ValidationError', validationErrors: e.errors });
+            } else {
+                this.state.log(`WebSocket message processing error: ${e}`, 'error', { component: 'WebSocketHandler', errorType: 'ProcessingError', error: e.message });
+            }
+        }
+    };
+
+
+    async _handleCreateNote(message) {
+        const createNoteSchema = z.object({
+            type: z.literal('createNote'),
+            title: z.string(),
+            priority: z.number().optional(),
+            deadline: z.string().datetime().nullable().optional(),
+            references: z.array(z.string()).optional()
+        });
+        const validatedCreateNoteData = createNoteSchema.parse(message);
+        const { title, priority, deadline, references } = validatedCreateNoteData;
+        const id = crypto.randomUUID();
+        const note = NoteSchema.parse({
+            id,
+            title,
+            content: '',
+            createdAt: new Date().toISOString(),
+            priority: priority || 50,
+            deadline,
+            references: references || []
+        });
+        this.state.graph.addNote(note);
+        for (const ref of note.references) {
+            this.state.graph.addEdge(id, ref, 'reference');
+        }
+        await this.writeNoteToDB(note);
+        this.queueExecution(note);
+    }
+
+    async _handleUpdateNote(message) {
+        const updateNoteSchema = z.object({
+            type: z.literal('updateNote'),
+            id: z.string(),
+            title: z.string().optional(),
+            content: z.string().optional(),
+            priority: z.number().optional(),
+            deadline: z.string().datetime().nullable().optional(),
+            references: z.array(z.string()).optional(),
+            logic: z.array(z.any()).optional()
+        });
+        const validatedUpdateNoteData = updateNoteSchema.parse(message);
+        const { id: noteIdToUpdate, title: titleUpdate, content: contentUpdate, priority: priorityUpdate, deadline: deadlineUpdate, references: referencesUpdate, logic: logicUpdate } = validatedUpdateNoteData;
+        const note = this.state.graph.getNote(noteIdToUpdate);
+        if (note) {
+            const updated = NoteSchema.parse({
+                ...note,
+                title: titleUpdate !== undefined ? titleUpdate : note.title,
+                content: contentUpdate !== undefined ? contentUpdate : note.content,
+                priority: priorityUpdate !== undefined ? priorityUpdate : note.priority,
+                deadline: deadlineUpdate !== undefined ? deadlineUpdate : note.deadline,
+                references: referencesUpdate !== undefined ? referencesUpdate : note.references,
+                logic: logicUpdate !== undefined ? logicUpdate : note.logic,
+                updatedAt: new Date().toISOString()
+            });
+            this.state.graph.addNote(updated);
+            this.state.graph.edges.set(noteIdToUpdate, []);
+            for (const ref of updated.references) {
+                this.state.graph.addEdge(noteIdToUpdate, ref, 'reference');
+            }
+            await this.writeNoteToDB(updated);
+            this.queueExecution(updated);
+        }
+    }
+
+    async _handleDeleteNote(message) {
+        const deleteNoteSchema = z.object({
+            type: z.literal('deleteNote'),
+            id: z.string()
+        });
+        const validatedDeleteNoteData = deleteNoteSchema.parse(message);
+        const { id: noteIdToDelete } = validatedDeleteNoteData;
+        const updatedNotes = this.state.graph.removeNote(noteIdToDelete);
+        for (const note of updatedNotes) {
+            await this.writeNoteToDB(note);
+        }
+        await this.deleteNoteFromDB(noteIdToDelete).catch((e) => {
+            this.state.log(`Delete note from DB error: ${e}`, 'error', { component: 'WebSocketHandler', noteId: noteIdToDelete, error: e.message });
+        });
+    }
+
+    async _handleRunNote(message) {
+        const runNoteSchema = z.object({
+            type: z.literal('runNote'),
+            id: z.string()
+        });
+        const validatedRunNoteData = runNoteSchema.parse(message);
+        const { id: noteIdToRun } = validatedRunNoteData;
+        this.queueExecution(this.state.graph.getNote(noteIdToRun));
+    }
+
+    async _handleGraphUpdate(message) {
+        const graphUpdateSchema = z.object({
+            type: z.literal('graphUpdate'),
+            id: z.string()
+        });
+        const validatedGraphUpdateData = graphUpdateSchema.parse(message);
+        const { id: noteIdToUpdateGraph } = validatedGraphUpdateData;
+        await this.updateGraph(noteIdToUpdateGraph);
+    }
+
+
     async start() {
         const vite = await createViteServer({
             root: "client",
@@ -483,129 +652,12 @@ class NetentionServer {
             ws.on('message', async msg => {
                 try {
                     const parsedMessage = JSON.parse(msg);
-                    const { type, ...data } = parsedMessage;
-
-                    const messageSchema = z.object({
-                        type: z.string(),
-                        data: z.any().optional()
-                    });
-                    const validatedMessage = messageSchema.parse(parsedMessage);
-                    const { type: validatedType, data: validatedData } = validatedMessage;
-
-                    switch (validatedType) {
-                        case 'createNote': {
-                            const createNoteSchema = z.object({
-                                type: z.literal('createNote'),
-                                title: z.string(),
-                                priority: z.number().optional(),
-                                deadline: z.string().datetime().nullable().optional(),
-                                references: z.array(z.string()).optional()
-                            });
-                            const validatedCreateNoteData = createNoteSchema.parse(parsedMessage);
-                            const { title, priority, deadline, references } = validatedCreateNoteData;
-                            const id = crypto.randomUUID();
-                            const note = NoteSchema.parse({
-                                id,
-                                title,
-                                content: '',
-                                createdAt: new Date().toISOString(),
-                                priority: priority || 50,
-                                deadline,
-                                references: references || []
-                            });
-                            this.state.graph.addNote(note);
-                            for (const ref of note.references) {
-                                this.state.graph.addEdge(id, ref, 'reference');
-                            }
-                            await this.writeNoteToDB(note);
-                            this.queueExecution(note);
-                            break;
-                        }
-                        case 'updateNote': {
-                            const updateNoteSchema = z.object({
-                                type: z.literal('updateNote'),
-                                id: z.string(),
-                                title: z.string().optional(),
-                                content: z.string().optional(),
-                                priority: z.number().optional(),
-                                deadline: z.string().datetime().nullable().optional(),
-                                references: z.array(z.string()).optional(),
-                                logic: z.array(z.any()).optional()
-                            });
-                            const validatedUpdateNoteData = updateNoteSchema.parse(parsedMessage);
-                            const { id: noteIdToUpdate, title: titleUpdate, content: contentUpdate, priority: priorityUpdate, deadline: deadlineUpdate, references: referencesUpdate, logic: logicUpdate } = validatedUpdateNoteData;
-                            const note = this.state.graph.getNote(noteIdToUpdate);
-                            if (note) {
-                                const updated = NoteSchema.parse({
-                                    ...note,
-                                    title: titleUpdate !== undefined ? titleUpdate : note.title,
-                                    content: contentUpdate !== undefined ? contentUpdate : note.content,
-                                    priority: priorityUpdate !== undefined ? priorityUpdate : note.priority,
-                                    deadline: deadlineUpdate !== undefined ? deadlineUpdate : note.deadline,
-                                    references: referencesUpdate !== undefined ? referencesUpdate : note.references,
-                                    logic: logicUpdate !== undefined ? logicUpdate : note.logic,
-                                    updatedAt: new Date().toISOString()
-                                });
-                                this.state.graph.addNote(updated);
-                                this.state.graph.edges.set(noteIdToUpdate, []);
-                                for (const ref of updated.references) {
-                                    this.state.graph.addEdge(noteIdToUpdate, ref, 'reference');
-                                }
-                                await this.writeNoteToDB(updated);
-                                this.queueExecution(updated);
-                            }
-                            break;
-                        }
-                        case 'deleteNote': {
-                            const deleteNoteSchema = z.object({
-                                type: z.literal('deleteNote'),
-                                id: z.string()
-                            });
-                            const validatedDeleteNoteData = deleteNoteSchema.parse(parsedMessage);
-                            const { id: noteIdToDelete } = validatedDeleteNoteData;
-                            const updatedNotes = this.state.graph.removeNote(noteIdToDelete);
-                            for (const note of updatedNotes) {
-                                await this.writeNoteToDB(note);
-                            }
-                            await this.deleteNoteFromDB(noteIdToDelete).catch((e) => {
-                                this.state.log(`Delete note from DB error: ${e}`, 'error', { component: 'WebSocketHandler', noteId: noteIdToDelete, error: e.message });
-                            });
-                            break;
-                        }
-                        case 'runNote': {
-                            const runNoteSchema = z.object({
-                                type: z.literal('runNote'),
-                                id: z.string()
-                            });
-                            const validatedRunNoteData = runNoteSchema.parse(parsedMessage);
-                            const { id: noteIdToRun } = validatedRunNoteData;
-                            this.queueExecution(this.state.graph.getNote(noteIdToRun));
-                            break;
-                        }
-                        case 'graphUpdate': {
-                            const graphUpdateSchema = z.object({
-                                type: z.literal('graphUpdate'),
-                                id: z.string()
-                            });
-                            const validatedGraphUpdateData = graphUpdateSchema.parse(parsedMessage);
-                            const { id: noteIdToUpdateGraph } = validatedGraphUpdateData;
-                            await this.updateGraph(noteIdToUpdateGraph);
-                            break;
-                        }
-                        default:
-                            this.state.log(`Unknown WebSocket message type: ${validatedType}`, 'warn', { component: 'WebSocketHandler', messageType: validatedType });
-                    }
-
-                    this.state.updateBatch.add(validatedData?.id || '');
-                    this.scheduleBatchUpdate();
+                    await this._handleWebSocketMessage(parsedMessage);
                 } catch (e) {
-                    if (e instanceof z.ZodError) {
-                        this.state.log(`WebSocket message validation error: ${e.errors}`, 'warn', { component: 'WebSocketHandler', errorType: 'ValidationError', validationErrors: e.errors });
-                    } else {
-                        this.state.log(`WebSocket message processing error: ${e}`, 'error', { component: 'WebSocketHandler', errorType: 'ProcessingError', error: e.message });
-                    }
+                    this.state.log(`WebSocket message processing error: ${e}`, 'error', { component: 'WebSocketHandler', errorType: 'MessageParsingError', error: e.message });
                 }
             });
+
 
             ws.on('close', () => this.state.log('Client disconnected', 'info', { component: 'WebSocketHandler' }));
         });

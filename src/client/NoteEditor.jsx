@@ -43,6 +43,10 @@ const getRunStatusText = (status) => {
     }
 };
 
+const createLogicForSummary = (content) => {
+    return [{id: crypto.randomUUID(), tool: 'summarize', input: {text: content}, status: 'pending'}];
+};
+
 
 export default function NoteEditor({note, onUpdate, onRun}) {
     const [title, setTitle] = useState(note.title);
@@ -73,9 +77,6 @@ export default function NoteEditor({note, onUpdate, onRun}) {
         onRun(note.id);
     };
 
-    const createLogicForSummary = (content) => {
-        return [{id: crypto.randomUUID(), tool: 'summarize', input: {text: content}, status: 'pending'}];
-    };
 
     return (
         <div style={{padding: '15px', border: '1px solid #ccc', borderRadius: '4px', marginTop: '20px'}}>

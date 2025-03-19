@@ -14,7 +14,11 @@ export default {
         const { noteId } = schema.parse(input);
         const graph = context.graph;
         const note = graph.getNote(noteId);
-        if (!note) return `Note ${noteId} not found`;
+
+        if (!note) {
+            return `Note ${noteId} not found`;
+        }
+
         return JSON.stringify({
             id: note.id,
             title: note.title,
