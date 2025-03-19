@@ -1,6 +1,8 @@
 import React from 'react';
 
 export default function NoteList({notes, onSelect, onDelete}) {
+    const isDevNote = (note) => note.id.startsWith('dev-') || note.id === 'seed-0';
+
     return (
         <ul style={{listStyle: 'none', padding: 0}}>
             {notes.map(note => (
@@ -14,7 +16,7 @@ export default function NoteList({notes, onSelect, onDelete}) {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        backgroundColor: 'white',
+                        backgroundColor: isDevNote(note) ? '#f0f0f0' : 'white', // Different background color
                     }}
                 >
                     <span

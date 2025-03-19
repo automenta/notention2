@@ -77,6 +77,7 @@ function App() {
                 <NoteEditor
                     note={notes.find(n => n.id === selectedNoteId)}
                     onUpdate={(updates) => send({type: 'updateNote', ...updates})}
+                    // onUpdate={(updates) => console.log("Update Note:", updates)} // Debugging
                     onRun={(id) => send({type: 'runNote', id})}
                 />
             )}

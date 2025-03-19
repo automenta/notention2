@@ -22,6 +22,7 @@ const CONFIG = {
     MAX_PRIORITY: 100,
     QUEUE_INTERVAL: 100,
     DEBUG_LOGGING: true,
+    AUTO_RUN_TESTS: false
 };
 
 const NoteSchema = z.object({
@@ -30,7 +31,7 @@ const NoteSchema = z.object({
     content: z.string(),
     status: z.enum(['pending', 'running', 'completed', 'failed', 'pendingUnitTesting']).default('pending'),
     priority: z.number().min(0).max(CONFIG.MAX_PRIORITY).default(50),
-    deadline: z.string().datetime().nullable().optional(),
+    deadline: z.string().nullable().optional(),
     logic: z.array(z.object({
         id: z.string(),
         tool: z.string(),
@@ -52,7 +53,7 @@ const INITIAL_NOTES = [
         content: 'Full cycle: CRUD, plan, tools',
         status: 'pending',
         tests: ['test-core-loop.js'],
-        priority: 80
+        priority: 20
     },
     {
         id: 'dev-2',
@@ -60,7 +61,7 @@ const INITIAL_NOTES = [
         content: 'Add D3.js graph later',
         status: 'pending',
         references: ['dev-1'],
-        priority: 60
+        priority: 20
     },
     {
         id: 'dev-3',
@@ -69,7 +70,7 @@ const INITIAL_NOTES = [
         status: 'pending',
         logic: [{ id: 's1', tool: 'generateCode', input: { description: 'Note CRUD API' } }],
         tests: ['test-self-unpacking.js'],
-        priority: 90
+        priority: 20
     },
     {
         id: 'dev-4',
@@ -77,7 +78,7 @@ const INITIAL_NOTES = [
         content: 'Multi-step plans with refs',
         status: 'pending',
         references: ['dev-1'],
-        priority: 70
+        priority: 20
     },
     {
         id: 'seed-0',
@@ -370,7 +371,7 @@ class NetentionServer {
     }
 
     async _runNoteTests(note) {
-        if (note.tests?.length && note.status === 'completed') {
+        if (note.tests?.length && note.status === 'completed' && CONFIG.AUTO_RUN_TESTS) { // Check the flag
             note.status = 'pendingUnitTesting'; // Update note status to indicate testing
             await this.writeNoteToDB(note);
             for (const testId of note.tests) {

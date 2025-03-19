@@ -51,18 +51,19 @@ const createLogicForSummary = (content) => {
 export default function NoteEditor({note, onUpdate, onRun}) {
     const [title, setTitle] = useState(note.title);
     const [content, setContent] = useState(note.content || '');
+    const [priority, setPriority] = useState(note.priority || 50); // Default priority
+    const [deadline, setDeadline] = useState(note.deadline || ''); // Default deadline
     const [isSaving, setIsSaving] = useState(false);
     const [runStatus, setRunStatus] = useState(getRunStatusText(note.status));
 
     useEffect(() => {
         setTitle(note.title);
         setContent(note.content || '');
+        setPriority(note.priority || 50);
+        setDeadline(note.deadline || '');
     }, [note]);
 
-    useEffect(() => {
-        setRunStatus(getRunStatusText(note.status));
-    }, [note.status]);
-
+    // ... (existing code)
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -71,12 +72,13 @@ export default function NoteEditor({note, onUpdate, onRun}) {
             id: note.id,
             title,
             content,
+            priority,
+            deadline,
             logic
         });
         setIsSaving(false);
         onRun(note.id);
     };
-
 
     return (
         <div style={{padding: '15px', border: '1px solid #ccc', borderRadius: '4px', marginTop: '20px'}}>
@@ -84,6 +86,22 @@ export default function NoteEditor({note, onUpdate, onRun}) {
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Note Title"
+                style={{width: '100%', padding: '8px', marginBottom: '10px'}}
+            />
+            <label htmlFor="priority" style={{display: 'block', marginBottom: '5px'}}>Priority:</label>
+            <input
+                type="number"
+                id="priority"
+                value={priority}
+                onChange={e => setPriority(parseInt(e.target.value))}
+                style={{width: '100%', padding: '8px', marginBottom: '10px'}}
+            />
+            <label htmlFor="deadline" style={{display: 'block', marginBottom: '5px'}}>Deadline:</label>
+            <input
+                type="datetime-local"
+                id="deadline"
+                value={deadline}
+                onChange={e => setDeadline(e.target.value)}
                 style={{width: '100%', padding: '8px', marginBottom: '10px'}}
             />
             <textarea
