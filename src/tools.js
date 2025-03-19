@@ -25,15 +25,20 @@ export class Tools {
     async loadTools(path) {
         const files = await readdir(path);
         for (const file of files) {
-            try {
-                const {default: toolModule} = await import(`file://${join(path, file)}`);
-                const tool = new Tool(toolModule);
-                this.tools.set(tool.name, tool);
-            } catch (e) {
-                console.error(`Error loading tool ${file} from ${path}: ${e}`);
-            }
+            await this._loadToolFromFile(path, file);
         }
     }
+
+    async _loadToolFromFile(path, file) {
+        try {
+            const {default: toolModule} = await import(`file://${join(path, file)}`);
+            const tool = new Tool(toolModule);
+            this.tools.set(tool.name, tool);
+        } catch (e) {
+            console.error(`Error loading tool ${file} from ${path}: ${e}`);
+        }
+    }
+
 
     getTool(name) {
         return this.tools.get(name);

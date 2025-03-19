@@ -10,6 +10,7 @@ import { Graph } from './graph.js';
 import {readdirSync} from "node:fs";
 import {join} from "node:path";
 import crypto from 'crypto';
+import { Tools } from './tools.js';
 
 const CONFIG = {
     DB_PATH: './netention_db',
@@ -109,7 +110,7 @@ class ServerState {
     constructor() {
         this.llm = new ChatGoogleGenerativeAI({ model: "gemini-2.0-flash", temperature: 1 });
         this.graph = new Graph();
-        this.tools = new Map();
+        this.tools = new Tools();
         this.memory = new InMemoryChatMessageHistory();
         this.wss = null;
         this.messageQueue = [];
@@ -143,19 +144,11 @@ class NetentionServer {
         this.state = new ServerState();
     }
 
-    async loadTools(path) {
-        const files = await readdirSync(path);
-        for (const f of files) {
-            const i = join(path, f);
-            try {
-                const toolPath = new URL(`./${i}`, import.meta.url).href;
-                const { default: tool } = await import(toolPath);
-                this.state.tools.set(f.replace('.js', ''), tool);
-                this.state.log(`Imported tool: ${i}`, 'info', { component: 'ToolLoader', toolPath: i });
-            } catch (e) {
-                this.state.log(`Error importing tool ${i}: ${e}`, 'warn', { component: 'ToolLoader', toolPath: i, error: e.message });
-            }
-        }
+    async loadTools() {
+        await this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
+        this.state.log("Loaded builtin tools.", 'info', { component: 'ToolLoader', directory: CONFIG.TOOLS_BUILTIN_DIR });
+        await this.state.tools.loadTools(CONFIG.TOOLS_DIR);
+        this.state.log("Loaded user tools.", 'info', { component: 'ToolLoader', directory: CONFIG.TOOLS_DIR });
     }
 
     async loadNotesFromDB() {
@@ -172,18 +165,22 @@ class NetentionServer {
             }
         }
         if (!this.state.graph.getSize()) {
-            for (const n of INITIAL_NOTES) {
-                try {
-                    const note = NoteSchema.parse({ ...n, createdAt: new Date().toISOString() });
-                    await this.writeNoteToDB(note);
-                    this.state.graph.addNote(note);
-                    for (const ref of note.references) {
-                        this.state.graph.addEdge(note.id, ref, 'reference');
-                    }
-                    this.queueExecution(note);
-                } catch (e) {
-                    this.state.log(`Error parsing INITIAL_NOTE: ${e}`, 'error', { component: 'NoteLoader', noteId: n.id, error: e.errors });
+            await this.loadInitialNotes();
+        }
+    }
+
+    async loadInitialNotes() {
+        for (const n of INITIAL_NOTES) {
+            try {
+                const note = NoteSchema.parse({ ...n, createdAt: new Date().toISOString() });
+                await this.writeNoteToDB(note);
+                this.state.graph.addNote(note);
+                for (const ref of note.references) {
+                    this.state.graph.addEdge(note.id, ref, 'reference');
                 }
+                this.queueExecution(note);
+            } catch (e) {
+                this.state.log(`Error parsing INITIAL_NOTE: ${e}`, 'error', { component: 'NoteLoader', noteId: n.id, error: e.errors });
             }
         }
     }
@@ -207,12 +204,16 @@ class NetentionServer {
     }
 
     queueExecution(note) {
-        const priority = note.deadline ?
-            Math.min(CONFIG.MAX_PRIORITY, note.priority + Math.floor((new Date(note.deadline) - Date.now()) / 1000)) :
-            note.priority;
+        const priority = this.calculatePriority(note);
         const index = this.state.executionQueue.findIndex(item => item.priority < priority);
         if (index === -1) this.state.executionQueue.push({ noteId: note.id, priority });
         else this.state.executionQueue.splice(index, 0, { noteId: note.id, priority });
+    }
+
+    calculatePriority(note) {
+        return note.deadline ?
+            Math.min(CONFIG.MAX_PRIORITY, note.priority + Math.floor((new Date(note.deadline) - Date.now()) / 1000)) :
+            note.priority;
     }
 
     async processQueue() {
@@ -229,136 +230,178 @@ class NetentionServer {
             return null;
         }
 
+        await this._runNote_setRunningStatus(note);
+
         try {
-            note.status = 'running';
-            note.updatedAt = new Date().toISOString();
-
-            try {
-                await this.state.memory.addMessage({ role: 'user', content: `${note.title}: ${note.content}` });
-            } catch (memoryError) {
-                note.status = 'failed';
-                note.memory.push({ type: 'error', content: `Error adding to memory: ${memoryError.message}`, timestamp: Date.now() });
-                this.state.log(`Error adding to memory for note ${noteId}: ${memoryError}`, 'error', { component: 'NoteRunner', noteId: noteId, error: memoryError.message });
-                await this.writeNoteToDB(note);
-                return note;
-            }
-
-            if (!note.logic?.length) {
-                try {
-                    const previousMessages = await this.state.memory.getMessages();
-                    const systemPrompt = {
-                        role: 'system',
-                        content: `Generate a JSON plan using tools: ${[...this.state.tools.keys()].join(', ')}. Default to "summarize" if unsure. Format: [{id, tool, input, dependencies}]`
-                    };
-                    const messages = [systemPrompt, ...previousMessages, { role: 'user', content: note.content }];
-                    const plan = await this.state.timeoutPromise(this.state.llm.invoke(messages), CONFIG.TOOL_TIMEOUT);
-                    note.logic = JSON.parse(plan.content) || [{
-                        id: crypto.randomUUID(),
-                        tool: 'summarize',
-                        input: { text: note.content },
-                        dependencies: [],
-                        status: 'pending'
-                    }];
-                    note.memory.push({ type: 'system', content: 'Generated plan', timestamp: Date.now() });
-                } catch (planError) {
-                    note.status = 'failed';
-                    note.memory.push({ type: 'error', content: `Error generating plan: ${planError.message}`, timestamp: Date.now() });
-                    this.state.log(`Error generating plan for note ${noteId}: ${planError}`, 'error', { component: 'NoteRunner', noteId: noteId, error: planError.message });
-                    await this.writeNoteToDB(note);
-                    return note;
-                }
-            }
-
-            const stepsById = new Map(note.logic.map(step => [step.id, step]));
-            const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
-            const readyQueue = note.logic.filter(step => !step.dependencies.length).map(step => step.id);
-            let changesMade = false;
-
-            while (readyQueue.length) {
-                const stepId = readyQueue.shift();
-                const step = stepsById.get(stepId);
-                if (step.status !== 'pending') continue;
-
-                step.status = 'running';
-                changesMade = true;
-
-                const tool = this.state.tools.get(step.tool);
-                if (tool) {
-                    try {
-                        const memoryMap = new Map(note.memory.filter(m => m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
-                        const input = this.replacePlaceholders(step.input, memoryMap);
-                        const result = await this.state.timeoutPromise(tool.invoke(input, { graph: this.state.graph }), CONFIG.TOOL_TIMEOUT);
-                        note.memory.push({ type: 'tool', stepId: step.id, content: result, timestamp: Date.now() });
-                        await this.state.memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
-
-                        switch (step.tool) {
-                            case 'ml_train':
-                                this.queueExecution({ id: result, priority: note.priority - 10 });
-                                break;
-                            case 'test_gen':
-                                const testCode = result;
-                                const testNoteId = crypto.randomUUID();
-                                await this.state.graph.addNote({
-                                    id: testNoteId,
-                                    title: `Test for ${note.id}`,
-                                    content: testCode,
-                                    status: 'pending',
-                                });
-                                this.state.graph.addEdge(testNoteId, note.id, 'tests');
-                                if (testNoteId) note.tests = (note.tests || []).concat(testNoteId);
-                                break;
-                            case 'schedule':
-                                this.scheduleNote(result);
-                                break;
-                        }
-
-                        step.status = 'completed';
-                    } catch (toolError) {
-                        step.status = 'failed';
-                        note.memory.push({ type: 'error', stepId: step.id, content: toolError.message, timestamp: Date.now() });
-                        this.state.log(`Error running tool ${step.tool} for note ${noteId}: ${toolError}`, 'error', { component: 'NoteRunner', noteId: noteId, stepId: step.id, toolName: step.tool, error: toolError.message });
-                    }
-                } else {
-                    step.status = 'failed';
-                    note.memory.push({
-                        type: 'error',
-                        stepId: step.id,
-                        content: `Tool ${step.tool} not found`,
-                        timestamp: Date.now()
-                    });
-                    this.state.log(`Tool ${step.tool} not found for step ${stepId} in note ${noteId}`, 'error', { component: 'NoteRunner', noteId: noteId, stepId: stepId, toolName: step.tool });
-                }
-
-                for (const [id, deps] of dependencies) {
-                    deps.delete(stepId);
-                    if (!deps.size && stepsById.get(id).status === 'pending') {
-                        readyQueue.push(id);
-                    }
-                }
-            }
-
-            const allCompleted = note.logic.every(step => step.status === 'completed');
-            const hasFailed = note.logic.some(step => step.status === 'failed');
-            note.status = allCompleted ? 'completed' : (hasFailed && !changesMade) ? 'failed' : 'pending';
-
-            if (note.tests?.length && note.status === 'completed') {
-                for (const testId of note.tests) {
-                    await this.state.tools.get('test_run')?.invoke({ testId });
-                }
-            }
-
-            if (changesMade) {
-                note.updatedAt = new Date().toISOString();
-            }
-            await this.writeNoteToDB(note);
-        } catch (err) {
-            note.status = 'failed';
-            note.memory.push({ type: 'error', content: err.message, timestamp: Date.now() });
-            this.state.log(`Error running note ${noteId}: ${err}`, 'error', { component: 'NoteRunner', noteId: noteId, error: err.message });
+            await this._runNote_addToMemory(note);
+        } catch (memoryError) {
+            return this._runNote_handleError(note, `Error adding to memory: ${memoryError.message}`, memoryError);
         }
 
+        if (!note.logic?.length) {
+            try {
+                await this._runNote_generatePlan(note);
+            } catch (planError) {
+                return this._runNote_handleError(note, `Error generating plan: ${planError.message}`, planError);
+            }
+        }
+
+        try {
+            await this._runNote_executePlan(note);
+        } catch (executionError) {
+            return this._runNote_handleError(note, `Error executing plan: ${executionError.message}`, executionError);
+        }
+
+        await this._runNote_updateNoteStatus(note);
+        await this._runNote_runTests(note);
+        return this._runNote_finalize(note);
+    }
+
+
+    async _runNote_setRunningStatus(note) {
+        note.status = 'running';
+        note.updatedAt = new Date().toISOString();
+    }
+
+    async _runNote_addToMemory(note) {
+        try {
+            await this.state.memory.addMessage({ role: 'user', content: `${note.title}: ${note.content}` });
+        } catch (memoryError) {
+            throw memoryError;
+        }
+    }
+
+    async _runNote_generatePlan(note) {
+        try {
+            const previousMessages = await this.state.memory.getMessages();
+            const systemPrompt = {
+                role: 'system',
+                content: `Generate a JSON plan using tools: ${[...this.state.tools.tools.keys()].join(', ')}. Default to "summarize" if unsure. Format: [{id, tool, input, dependencies}]`
+            };
+            const messages = [systemPrompt, ...previousMessages, { role: 'user', content: note.content }];
+            const plan = await this.state.timeoutPromise(this.state.llm.invoke(messages), CONFIG.TOOL_TIMEOUT);
+            note.logic = JSON.parse(plan.content) || [{
+                id: crypto.randomUUID(),
+                tool: 'summarize',
+                input: { text: note.content },
+                dependencies: [],
+                status: 'pending'
+            }];
+            note.memory.push({ type: 'system', content: 'Generated plan', timestamp: Date.now() });
+        } catch (planError) {
+            throw planError;
+        }
+    }
+
+    async _runNote_executePlan(note) {
+        const stepsById = new Map(note.logic.map(step => [step.id, step]));
+        const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
+        const readyQueue = note.logic.filter(step => !step.dependencies.length).map(step => step.id);
+        let changesMade = false;
+
+        while (readyQueue.length) {
+            const stepId = readyQueue.shift();
+            const step = stepsById.get(stepId);
+            if (step.status !== 'pending') continue;
+
+            step.status = 'running';
+            changesMade = true;
+
+            const tool = this.state.tools.getTool(step.tool);
+            if (tool) {
+                try {
+                    await this._runNote_executeToolStep(note, step, tool);
+                } catch (toolError) {
+                    step.status = 'failed';
+                    note.memory.push({ type: 'error', stepId: step.id, content: toolError.message, timestamp: Date.now() });
+                    this.state.log(`Error running tool ${step.tool} for note ${note.id}: ${toolError}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool, error: toolError.message });
+                }
+            } else {
+                step.status = 'failed';
+                note.memory.push({
+                    type: 'error',
+                    stepId: step.id,
+                    content: `Tool ${step.tool} not found`,
+                    timestamp: Date.now()
+                });
+                this.state.log(`Tool ${step.tool} not found for step ${stepId} in note ${note.id}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: stepId, toolName: step.tool });
+            }
+            this._runNote_updateDependencies(dependencies, stepsById, readyQueue, stepId);
+        }
+    }
+
+    async _runNote_executeToolStep(note, step, tool) {
+        const memoryMap = new Map(note.memory.filter(m => m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
+        const input = this.replacePlaceholders(step.input, memoryMap);
+        const result = await this.state.timeoutPromise(tool.invoke(input, { graph: this.state.graph }), CONFIG.TOOL_TIMEOUT);
+        note.memory.push({ type: 'tool', stepId: step.id, content: result, timestamp: Date.now() });
+        await this.state.memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
+
+        switch (step.tool) {
+            case 'ml_train':
+                this.queueExecution({ id: result, priority: note.priority - 10 });
+                break;
+            case 'test_gen':
+                const testCode = result;
+                const testNoteId = crypto.randomUUID();
+                await this.createTestNote(note, testCode, testNoteId);
+                break;
+            case 'schedule':
+                this.scheduleNote(result);
+                break;
+        }
+        step.status = 'completed';
+    }
+
+    async createTestNote(note, testCode, testNoteId) {
+        await this.state.graph.addNote({
+            id: testNoteId,
+            title: `Test for ${note.id}`,
+            content: testCode,
+            status: 'pending',
+        });
+        this.state.graph.addEdge(testNoteId, note.id, 'tests');
+        if (testNoteId) note.tests = (note.tests || []).concat(testNoteId);
+    }
+
+
+    _runNote_updateDependencies(dependencies, stepsById, readyQueue, stepId) {
+        for (const [id, deps] of dependencies) {
+            deps.delete(stepId);
+            if (!deps.size && stepsById.get(id).status === 'pending') {
+                readyQueue.push(id);
+            }
+        }
+    }
+
+
+    async _runNote_updateNoteStatus(note) {
+        const allCompleted = note.logic.every(step => step.status === 'completed');
+        const hasFailed = note.logic.some(step => step.status === 'failed');
+        note.status = allCompleted ? 'completed' : (hasFailed) ? 'failed' : 'pending';
+    }
+
+    async _runNote_runTests(note) {
+        if (note.tests?.length && note.status === 'completed') {
+            for (const testId of note.tests) {
+                await this.state.tools.getTool('test_run')?.invoke({ testId });
+            }
+        }
+    }
+
+    async _runNote_finalize(note) {
+        await this.writeNoteToDB(note);
         return note;
     }
+
+    _runNote_handleError(note, errorMessage, errorObject) {
+        note.status = 'failed';
+        note.memory.push({ type: 'error', content: errorMessage, timestamp: Date.now() });
+        this.state.log(errorMessage, 'error', { component: 'NoteRunner', noteId: note.id, error: errorObject?.message });
+        this.writeNoteToDB(note);
+        return note;
+    }
+
 
     replacePlaceholders(input, memoryMap) {
         if (typeof input === 'string') {
@@ -379,7 +422,7 @@ class NetentionServer {
             note.deadline = time;
             setTimeout(async () => {
                 note.status = 'running';
-                await this.state.graph.addNote(note);
+                await this.state.graph.addNote(note); // Is this line needed?
                 this.queueExecution(note);
             }, new Date(time) - Date.now());
         }
@@ -388,7 +431,7 @@ class NetentionServer {
     async updateGraph(noteId) {
         const note = this.state.graph.getNote(noteId);
         if (!note) return;
-        const graphTool = this.state.tools.get('graph_traverse');
+        const graphTool = this.state.tools.getTool('graph_traverse');
         if (graphTool) {
             const result = await graphTool.invoke({ startId: noteId, mode: 'bfs', callback: 'update' }, { graph: this.state.graph });
             note.memory.push({ type: 'graph', content: result, timestamp: Date.now() });
@@ -581,12 +624,8 @@ class NetentionServer {
     async initialize() {
         try {
             this.state.log("Starting initialization...", 'info', { component: 'Server' });
-            await this.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
-            this.state.log("Loaded builtin tools.", 'info', { component: 'ToolLoader', directory: CONFIG.TOOLS_BUILTIN_DIR });
-            await this.loadTools(CONFIG.TOOLS_DIR);
-            this.state.log("Loaded user tools.", 'info', { component: 'ToolLoader', directory: CONFIG.TOOLS_DIR });
+            await this.loadTools();
             await this.loadNotesFromDB();
-            this.state.log("Loaded notes from DB.", 'info', { component: 'NoteLoader', dbPath: CONFIG.DB_PATH });
             await this.start();
             this.state.log("Server started successfully.", 'info', { component: 'Server' });
         } catch (e) {
