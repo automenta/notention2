@@ -28,6 +28,5 @@ describe('Core Loop', () => {
         const onDelete = vi.fn();
         render(<NoteList notes={notes} onSelect={onSelect} onDelete={onDelete}/>);
         expect(screen.getByText('Test Plan (pending)')).toBeInTheDocument();
-        // Mock WebSocket and server response would be needed for full test
     });
 });

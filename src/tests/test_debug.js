@@ -13,7 +13,6 @@ describe('Debug Tool', () => {
             }]
         ]);
 
-        // Mock the import('../../server.js') to return the mockNotes map
         vi.mock('../../server.js', () => ({
             notes: mockNotes,
         }));
@@ -31,9 +30,8 @@ describe('Debug Tool', () => {
     });
 
     it('should return "Note not found" if noteId does not exist', async () => {
-        // Mock the import('../../server.js') to return an empty notes map or a map without 'nonExistentId'
         vi.mock('../../server.js', () => ({
-            notes: new Map(), // Empty map to simulate note not found
+            notes: new Map(),
         }));
         const input = {noteId: 'nonExistentId'};
         const result = await debugTool.invoke(input);

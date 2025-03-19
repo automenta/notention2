@@ -21,7 +21,7 @@ function App() {
                     prev.map(n => n.id === data.id ? data : n).filter(n => n));
             };
             websocket.onerror = () => console.error('WebSocket error');
-            websocket.onclose = () => setTimeout(connect, 1000); // Reconnect after 1s
+            websocket.onclose = () => setTimeout(connect, 1000);
             setWs(websocket);
         };
         connect();

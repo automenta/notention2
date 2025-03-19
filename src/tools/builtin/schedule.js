@@ -20,13 +20,8 @@ export default {
         note.status = 'pending';
         setTimeout(async () => {
             note.status = 'running';
-            // await import('../../server.js').then(m => m.runNote(noteId)); // This is incorrect
-            // Instead, trigger the server to run the note.  The best way to do this is likely
-            // to send a message to the server via the websocket.  For now, we'll just leave
-            // this as a stub.
             console.log(`Scheduled note ${noteId} is now running (simulated).`);
         }, new Date(time) - Date.now());
-        // await import('../../server.js').then(m => m.writeFile(join(m.NOTES_DIR, `${noteId}.json`), JSON.stringify(note))); // Incorrect
         return `Scheduled ${noteId} for ${time}`;
     }
 };

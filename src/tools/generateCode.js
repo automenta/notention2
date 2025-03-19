@@ -6,7 +6,6 @@ const schema = z.object({
     execute: z.boolean().optional(),
 });
 
-//const llm = new ChatOpenAI({openAIApiKey: process.env.OPENAI_API_KEY});
 const llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1});
 
 export default {

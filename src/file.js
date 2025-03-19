@@ -1,7 +1,7 @@
 import {readdir, readFile, unlink, writeFile} from 'node:fs/promises';
 import {join} from 'path';
 import * as fs from "node:fs";
-import {NoteSchema} from './server.js'; // Import NoteSchema
+import {NoteSchema} from './server.js';
 
 export class File {
     constructor(notesDir) {

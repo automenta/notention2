@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 
 export default function NoteEditor({note, onUpdate, onRun}) {
     const [title, setTitle] = useState(note.title);
-    const [content, setContent] = useState(note.content || ''); // Ensure content is never undefined
+    const [content, setContent] = useState(note.content || '');
     const [isSaving, setIsSaving] = useState(false);
     const [runStatus, setRunStatus] = useState('');
 
@@ -32,7 +32,7 @@ export default function NoteEditor({note, onUpdate, onRun}) {
             logic: [{id: crypto.randomUUID(), tool: 'summarize', input: {text: content}, status: 'pending'}]
         });
         setIsSaving(false);
-        onRun(note.id); // Trigger LM processing immediately
+        onRun(note.id);
     };
 
     return (

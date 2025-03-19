@@ -1,8 +1,6 @@
 import React from 'react';
 
 export default function NoteList({notes, onSelect, onDelete}) {
-    const selectedNoteId = null; // Removing unused variable
-
     return (
         <ul style={{listStyle: 'none', padding: 0}}>
             {notes.map(note => (
@@ -16,7 +14,7 @@ export default function NoteList({notes, onSelect, onDelete}) {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        backgroundColor: note.id === selectedNoteId ? '#f0f0f0' : 'white', // Corrected: removed selectedNoteId which was always null
+                        backgroundColor: 'white',
                     }}
                 >
                     <span

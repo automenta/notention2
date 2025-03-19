@@ -20,7 +20,6 @@ describe('Compose Tool', () => {
             inputs: {initialInput: 'test'}
         };
 
-        // Mock the import('../../server.js') to return the tools map
         vi.mock('../../server.js', () => ({
             tools: tools,
         }));

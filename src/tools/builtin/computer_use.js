@@ -2,8 +2,8 @@ import {z} from 'zod';
 
 const schema = z.object({
     command: z.enum(['run', 'kill', 'list']),
-    process: z.string().optional(), // Process name or ID
-    script: z.string().optional(),  // Script to execute
+    process: z.string().optional(),
+    script: z.string().optional(),
 });
 
 export default {
@@ -11,13 +11,9 @@ export default {
     description: 'Control computer processes',
     schema,
     version: '1.0.0',
-    dependencies: ['zod', 'child_process'], // Node.js module for process control
+    dependencies: ['zod', 'child_process'],
     async invoke(input) {
         const {command} = schema.parse(input);
-        // TODO: Implement computer control
-        // - run: Execute script/process
-        // - kill: Terminate process by name/ID
-        // - list: Return running processes
         return `Stub: Computer ${command}`;
     }
 };

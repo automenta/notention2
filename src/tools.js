@@ -1,15 +1,14 @@
 import {readdir} from 'node:fs/promises';
 import {join} from 'node:path';
 
-// Define a formal Tool interface
 export class Tool {
     constructor({name, description, schema, invoke, version = '1.0.0', dependencies = []}) {
-        this.name = name;              // Unique identifier
-        this.description = description; // Human-readable purpose
-        this.schema = schema;          // Input validation (Zod schema)
-        this.invoke = invoke;          // Async function to execute
-        this.version = version;        // Tool version for tracking updates
-        this.dependencies = dependencies; // Optional list of required tools or modules
+        this.name = name;
+        this.description = description;
+        this.schema = schema;
+        this.invoke = invoke;
+        this.version = version;
+        this.dependencies = dependencies;
     }
 
     async execute(input) {
