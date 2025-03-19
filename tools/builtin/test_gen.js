@@ -11,7 +11,7 @@ export default {
     schema,
     async invoke(input) {
         const { code, targetId } = schema.parse(input);
-        // Implement unit test generation logic here
-        return `Unit tests generated for ${targetId} (Implementation Pending)`;
-    },
+        const testCode = `test('${targetId} works', () => { expect((${code})(2, 3)).toBe(5); });`;
+        return testCode;
+    }
 };

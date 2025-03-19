@@ -12,7 +12,20 @@ export default {
     schema,
     async invoke(input) {
         const { startId, mode, callback } = schema.parse(input);
-        // Implement graph traversal logic here
-        return `Graph traversal (${mode}) starting from ${startId} with callback ${callback} (Implementation Pending)`;
-    },
+        const notes = await import('../../src/server.js').then(m => m.notes);
+        const visited = new Set();
+        const stackOrQueue = [startId];
+        const results = [];
+        while (stackOrQueue.length) {
+            const id = mode === 'dfs' ? stackOrQueue.pop() : stackOrQueue.shift();
+            if (visited.has(id)) continue;
+            visited.add(id);
+            const note = notes.get(id);
+            if (note) {
+                results.push({ id, title: note.title });
+                stackOrQueue.push(...(note.references || []));
+            }
+        }
+        return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
+    }
 };

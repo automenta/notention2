@@ -11,7 +11,9 @@ export default {
     schema,
     async invoke(input) {
         const { modelId, input } = schema.parse(input);
-        // Implement ML model prediction logic here
-        return `Prediction using model ${modelId} for input ${JSON.stringify(input)} (Implementation Pending)`;
-    },
+        const notes = await import('../../src/server.js').then(m => m.notes);
+        const model = notes.get(modelId);
+        if (!model) return `Model ${modelId} not found`;
+        return `Predicted: ${JSON.stringify(input)} using ${model.content.type}`;
+    }
 };

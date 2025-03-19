@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
     startId: z.string(),
@@ -11,7 +11,20 @@ export default {
     schema,
     async invoke(input) {
         const { startId, query } = schema.parse(input);
-        // Implement graph search logic here
-        return `Search results for ${query} starting from ${startId} (Implementation Pending)`;
-    },
+        const notes = await import('../../src/server.js').then(m => m.notes);
+        const visited = new Set();
+        const queue = [startId];
+        const results = [];
+        while (queue.length) {
+            const id = queue.shift();
+            if (visited.has(id)) continue;
+            visited.add(id);
+            const note = notes.get(id);
+            if (note && (note.title.includes(query) || note.content.includes(query))) {
+                results.push({ id, title: note.title });
+            }
+            queue.push(...(note.references || []));
+        }
+        return results;
+    }
 };

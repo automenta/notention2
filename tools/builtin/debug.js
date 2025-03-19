@@ -10,7 +10,15 @@ export default {
     schema,
     async invoke(input) {
         const { noteId } = schema.parse(input);
-        // Implement state debugging logic here
-        return `Debugging state for ${noteId} (Implementation Pending)`;
-    },
+        const notes = await import('../../src/server.js').then(m => m.notes);
+        const note = notes.get(noteId);
+        if (!note) return `Note ${noteId} not found`;
+        return JSON.stringify({
+            id: note.id,
+            title: note.title,
+            status: note.status,
+            memory: note.memory,
+            references: note.references,
+        }, null, 2);
+    }
 };

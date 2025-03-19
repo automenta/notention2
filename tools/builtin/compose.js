@@ -10,8 +10,14 @@ export default {
     description: 'Combine tools',
     schema,
     async invoke(input) {
-        const { tools, inputs } = schema.parse(input);
-        // Implement tool composition logic here
-        return `Tools composed: ${tools.join(', ')} with inputs ${JSON.stringify(inputs)} (Implementation Pending)`;
-    },
+        const { tools: toolNames, inputs } = schema.parse(input);
+        const tools = await import('../../src/server.js').then(m => m.tools);
+        let result = inputs;
+        for (const toolName of toolNames) {
+            const tool = tools.get(toolName);
+            if (!tool) return `Tool ${toolName} not found`;
+            result = await tool.invoke(result);
+        }
+        return result;
+    }
 };

@@ -11,12 +11,17 @@ import * as http from "node:http";
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { PriorityQueue } from "@datastructures-js/priority-queue";
+import crypto from 'crypto';
+import { GraphEngine } from './graphEngine.js';
+import { ToolRegistry } from './toolRegistry.js';
+import { LLMInterface } from './llmInterface.js';
+import { Executor } from './executor.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Directory constants
-const NOTES_DIR = './data/notes';
+export const NOTES_DIR = './data/notes';
 const TOOLS_BUILTIN_DIR = './tools/builtin';
 const TOOLS_DIR = './tools/user';
 const TESTS_DIR = 'tests';
@@ -55,11 +60,79 @@ const NoteSchema = z.object({
 });
 
 // Server state
-const llm = new ChatGoogleGenerativeAI({ model: "gemini-2.0-flash", temperature: 1, maxRetries: 2 });
-const notes = new Map();
-const tools = new Map();
+const graphEngine = new GraphEngine();
+const toolRegistry = new ToolRegistry();
+const llmInterface = new LLMInterface();
+const executor = new Executor(toolRegistry);
+export const notes = new Map();
+export const tools = toolRegistry.tools;
 const memory = new InMemoryChatMessageHistory();
 const queue = new PriorityQueue((a, b) => b.state.priority - a.state.priority);
+
+class NoteImpl {
+    constructor(data) {
+        Object.assign(this, NoteSchema.parse(data));
+    }
+
+    async run() {
+        if (this.status !== 'pending') return;
+        this.status = 'running';
+        await this.save();
+        broadcastNotes();
+
+        try {
+            for (const step of this.logic || []) {
+                if (step.status === 'pending') {
+                    const tool = toolRegistry.getTool(step.tool);
+                    if (tool) {
+                        const result = await tool.invoke(step.input);
+                        this.memory.push({ type: 'tool_result', content: result, timestamp: Date.now() });
+                        step.status = 'completed';
+                    } else {
+                        step.status = 'failed';
+                        this.memory.push({ type: 'error', content: `Tool ${step.tool} not found`, timestamp: Date.now() });
+                    }
+                }
+            }
+            this.status = 'completed';
+        } catch (error) {
+            this.status = 'failed';
+            this.memory.push({ type: 'error', content: error.message, timestamp: Date.now() });
+        }
+        await this.save();
+        broadcastNotes();
+    }
+
+    async reflect() {
+        this.priority += 1;
+        this.memory.push({ type: 'system', content: `Priority increased to ${this.priority}`, timestamp: Date.now() });
+        await this.save();
+    }
+
+    async handleFailure(error) {
+        console.error(error);
+        this.status = 'failed';
+        this.memory.push({ type: 'error', content: error.message, timestamp: Date.now() });
+        await this.save();
+    }
+
+    getLogicRunnable() {
+        return this.status === 'pending' && this.logic?.some(step => step.status === 'pending');
+    }
+
+    scheduleNextRun() {
+        setTimeout(() => this.run(), this.calculateRunDelay());
+    }
+
+    calculateRunDelay() {
+        return this.deadline ? Math.max(0, new Date(this.deadline) - Date.now()) : 1000;
+    }
+
+    async save() {
+        this.updatedAt = new Date().toISOString();
+        await writeFile(join(NOTES_DIR, `${this.id}.json`), JSON.stringify(this));
+    }
+}
 
 // Load from filesystem
 async function loadNotes() {
@@ -68,32 +141,19 @@ async function loadNotes() {
     for (const file of files) {
         try {
             const data = JSON.parse(await readFile(join(NOTES_DIR, file), 'utf8'));
-            const note = NoteSchema.parse(data);
+            const note = new NoteImpl(data);
             notes.set(note.id, note);
+            graphEngine.addNote(note); // Add this line
         } catch (e) {
             console.error(`Error loading note ${file}: ${e}`);
         }
     }
     if (!notes.size) {
         devNotes.concat(seedNote).forEach(n => {
-            const note = NoteSchema.parse({ ...n, createdAt: new Date().toISOString() });
+            const note = new NoteImpl({ ...n, createdAt: new Date().toISOString() });
             notes.set(note.id, note);
             writeFile(join(NOTES_DIR, `${note.id}.json`), JSON.stringify(note));
         });
-    }
-}
-
-async function loadTools(path) {
-    const files = await readdir(path);
-    for (const file of files) {
-        try {
-            let i = join(path, file);
-            const { default: tool } = await import(`file://${i}`);
-            tools.set(tool.name, tool);
-            console.log(`Loaded tool ${tool.name} from ${path}`);
-        } catch (e) {
-            console.error(`Error loading tool ${file} from ${path}: ${e}`);
-        }
     }
 }
 
@@ -293,8 +353,8 @@ async function startServer() {
             }
 
             if (type === 'runNote') {
-                const updated = await runNote(data.id);
-                if (updated) notes.set(data.id, updated);
+                const note = notes.get(data.id);
+                if (note) await note.run();
             }
 
             wss.clients.forEach(client => {
@@ -308,9 +368,9 @@ async function startServer() {
     });
 
     // Load initial notes and tools
-    await loadTools(TOOLS_BUILTIN_DIR);
+    await toolRegistry.loadTools(TOOLS_BUILTIN_DIR);
     fs.mkdirSync(TOOLS_DIR, { recursive: true });
-    await loadTools(TOOLS_DIR);
+    await toolRegistry.loadTools(TOOLS_DIR);
     loadNotes();
 
     // Start the combined server
@@ -323,6 +383,4 @@ async function startServer() {
 }
 
 // Start everything
-initialize().catch(console.error);
-
-import { unlink } from 'node:fs/promises';
+startServer().catch(console.error);

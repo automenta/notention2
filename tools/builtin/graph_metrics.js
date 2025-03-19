@@ -10,7 +10,10 @@ export default {
     schema,
     async invoke(input) {
         const { startId } = schema.parse(input);
-        // Implement graph metrics calculation logic here
-        return `Graph metrics for ${startId} (Implementation Pending)`;
-    },
+        const notes = await import('../../src/server.js').then(m => m.notes);
+        const note = notes.get(startId);
+        if (!note) return `Node ${startId} not found`;
+        const degree = note.references.length;
+        return { degree, nodes: notes.size };
+    }
 };
