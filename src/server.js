@@ -46,6 +46,12 @@ const NoteSchema = z.object({
     priority: z.number().int().default(0), // Priority
     createdAt: z.string().datetime().default(() => new Date().toISOString()),
     updatedAt: z.string().datetime().nullable().default(null),
+    resourceBudget: z.object({ // Intrinsic Resource Management
+        tokens: z.number().int().default(1000),
+        memoryBytes: z.number().int().default(1024 * 1024),
+        cpuUnits: z.number().int().default(100) // Abstract CPU units
+    }).default({}),
+    config: z.record(z.any()).optional() // Type-specific configurations
 });
 
 // Server state
