@@ -3,10 +3,12 @@ import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { z } from 'zod';
 import react from '@vitejs/plugin-react';
-import { level } from 'level';
+import { Level } from 'level';
 import { createViteServer } from "vitest/node";
 import * as http from "node:http";
 import { Graph } from './graph.js';
+import {readdirSync} from "node:fs";
+import {join} from "node:path";
 
 // === Configuration ===
 const CONFIG = {
@@ -117,7 +119,7 @@ class ServerState {
         this.updateBatch = new Set();
         this.batchTimeout = null;
         this.executionQueue = [];
-        this.db = level(CONFIG.DB_PATH, { valueEncoding: 'json' });
+        this.db = new Level(CONFIG.DB_PATH, { valueEncoding: 'json' });
     }
 
     log(message, level = 'info') {
@@ -137,7 +139,7 @@ class NetentionServer {
 
     // === File Operations ===
     async loadTools(path) {
-        const files = await readdir(path).catch(() => []);
+        const files = await readdirSync(path);
         for (const f of files) {
             const i = join(path, f);
             try {
