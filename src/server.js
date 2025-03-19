@@ -230,48 +230,35 @@ class NetentionServer {
             return null;
         }
 
-        await this._runNote_setRunningStatus(note);
-
         try {
-            await this._runNote_addToMemory(note);
-        } catch (memoryError) {
-            return this._runNote_handleError(note, `Error adding to memory: ${memoryError.message}`, memoryError);
-        }
-
-        if (!note.logic?.length) {
-            try {
-                await this._runNote_generatePlan(note);
-            } catch (planError) {
-                return this._runNote_handleError(note, `Error generating plan: ${planError.message}`, planError);
+            await this._setNoteToRunning(note);
+            await this._addNoteToMemory(note);
+            if (!note.logic?.length) {
+                await this._generateNotePlan(note);
             }
+            await this._executeNotePlan(note);
+            await this._updateNoteStatusPostExecution(note);
+            await this._runNoteTests(note);
+            return await this._finalizeNoteRun(note);
+        } catch (error) {
+            return this._handleNoteError(note, error);
         }
-
-        try {
-            await this._runNote_executePlan(note);
-        } catch (executionError) {
-            return this._runNote_handleError(note, `Error executing plan: ${executionError.message}`, executionError);
-        }
-
-        await this._runNote_updateNoteStatus(note);
-        await this._runNote_runTests(note);
-        return this._runNote_finalize(note);
     }
 
-
-    async _runNote_setRunningStatus(note) {
+    async _setNoteToRunning(note) {
         note.status = 'running';
         note.updatedAt = new Date().toISOString();
     }
 
-    async _runNote_addToMemory(note) {
+    async _addNoteToMemory(note) {
         try {
             await this.state.memory.addMessage({ role: 'user', content: `${note.title}: ${note.content}` });
         } catch (memoryError) {
-            throw memoryError;
+            throw new Error(`Error adding to memory: ${memoryError.message}`);
         }
     }
 
-    async _runNote_generatePlan(note) {
+    async _generateNotePlan(note) {
         try {
             const previousMessages = await this.state.memory.getMessages();
             const systemPrompt = {
@@ -289,15 +276,14 @@ class NetentionServer {
             }];
             note.memory.push({ type: 'system', content: 'Generated plan', timestamp: Date.now() });
         } catch (planError) {
-            throw planError;
+            throw new Error(`Error generating plan: ${planError.message}`);
         }
     }
 
-    async _runNote_executePlan(note) {
+    async _executeNotePlan(note) {
         const stepsById = new Map(note.logic.map(step => [step.id, step]));
         const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
         const readyQueue = note.logic.filter(step => !step.dependencies.length).map(step => step.id);
-        let changesMade = false;
 
         while (readyQueue.length) {
             const stepId = readyQueue.shift();
@@ -305,32 +291,22 @@ class NetentionServer {
             if (step.status !== 'pending') continue;
 
             step.status = 'running';
-            changesMade = true;
 
             const tool = this.state.tools.getTool(step.tool);
             if (tool) {
                 try {
-                    await this._runNote_executeToolStep(note, step, tool);
+                    await this._executeToolStep(note, step, tool);
                 } catch (toolError) {
-                    step.status = 'failed';
-                    note.memory.push({ type: 'error', stepId: step.id, content: toolError.message, timestamp: Date.now() });
-                    this.state.log(`Error running tool ${step.tool} for note ${note.id}: ${toolError}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool, error: toolError.message });
+                    this._handleToolStepError(note, step, toolError);
                 }
             } else {
-                step.status = 'failed';
-                note.memory.push({
-                    type: 'error',
-                    stepId: step.id,
-                    content: `Tool ${step.tool} not found`,
-                    timestamp: Date.now()
-                });
-                this.state.log(`Tool ${step.tool} not found for step ${stepId} in note ${note.id}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: stepId, toolName: step.tool });
+                this._handleToolNotFoundError(note, step);
             }
-            this._runNote_updateDependencies(dependencies, stepsById, readyQueue, stepId);
+            this._updateDependencies(dependencies, stepsById, readyQueue, stepId);
         }
     }
 
-    async _runNote_executeToolStep(note, step, tool) {
+    async _executeToolStep(note, step, tool) {
         const memoryMap = new Map(note.memory.filter(m => m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
         const input = this.replacePlaceholders(step.input, memoryMap);
         const result = await this.state.timeoutPromise(tool.invoke(input, { graph: this.state.graph }), CONFIG.TOOL_TIMEOUT);
@@ -344,7 +320,7 @@ class NetentionServer {
             case 'test_gen':
                 const testCode = result;
                 const testNoteId = crypto.randomUUID();
-                await this.createTestNote(note, testCode, testNoteId);
+                await this._createTestNote(note, testCode, testNoteId);
                 break;
             case 'schedule':
                 this.scheduleNote(result);
@@ -353,7 +329,7 @@ class NetentionServer {
         step.status = 'completed';
     }
 
-    async createTestNote(note, testCode, testNoteId) {
+    async _createTestNote(note, testCode, testNoteId) {
         await this.state.graph.addNote({
             id: testNoteId,
             title: `Test for ${note.id}`,
@@ -365,7 +341,7 @@ class NetentionServer {
     }
 
 
-    _runNote_updateDependencies(dependencies, stepsById, readyQueue, stepId) {
+    _updateDependencies(dependencies, stepsById, readyQueue, stepId) {
         for (const [id, deps] of dependencies) {
             deps.delete(stepId);
             if (!deps.size && stepsById.get(id).status === 'pending') {
@@ -375,13 +351,13 @@ class NetentionServer {
     }
 
 
-    async _runNote_updateNoteStatus(note) {
+    async _updateNoteStatusPostExecution(note) {
         const allCompleted = note.logic.every(step => step.status === 'completed');
         const hasFailed = note.logic.some(step => step.status === 'failed');
         note.status = allCompleted ? 'completed' : (hasFailed) ? 'failed' : 'pending';
     }
 
-    async _runNote_runTests(note) {
+    async _runNoteTests(note) {
         if (note.tests?.length && note.status === 'completed') {
             for (const testId of note.tests) {
                 await this.state.tools.getTool('test_run')?.invoke({ testId });
@@ -389,17 +365,34 @@ class NetentionServer {
         }
     }
 
-    async _runNote_finalize(note) {
+    async _finalizeNoteRun(note) {
         await this.writeNoteToDB(note);
         return note;
     }
 
-    _runNote_handleError(note, errorMessage, errorObject) {
+    _handleNoteError(note, error) {
         note.status = 'failed';
-        note.memory.push({ type: 'error', content: errorMessage, timestamp: Date.now() });
-        this.state.log(errorMessage, 'error', { component: 'NoteRunner', noteId: note.id, error: errorObject?.message });
+        note.memory.push({ type: 'error', content: error.message, timestamp: Date.now() });
+        this.state.log(`Error running note ${note.id}: ${error}`, 'error', { component: 'NoteRunner', noteId: note.id, error: error.message });
         this.writeNoteToDB(note);
         return note;
+    }
+
+    _handleToolStepError(note, step, error) {
+        step.status = 'failed';
+        note.memory.push({ type: 'error', stepId: step.id, content: error.message, timestamp: Date.now() });
+        this.state.log(`Error running tool ${step.tool} for note ${note.id}: ${error}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool, error: error.message });
+    }
+
+    _handleToolNotFoundError(note, step) {
+        step.status = 'failed';
+        note.memory.push({
+            type: 'error',
+            stepId: step.id,
+            content: `Tool ${step.tool} not found`,
+            timestamp: Date.now()
+        });
+        this.state.log(`Tool ${step.tool} not found for step ${step.id} in note ${note.id}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool });
     }
 
 
@@ -422,7 +415,7 @@ class NetentionServer {
             note.deadline = time;
             setTimeout(async () => {
                 note.status = 'running';
-                await this.state.graph.addNote(note); // Is this line needed?
+                await this.state.graph.addNote(note); // Is this line needed? - No, it's not needed.
                 this.queueExecution(note);
             }, new Date(time) - Date.now());
         }
