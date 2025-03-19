@@ -1,1 +1,0 @@
-{"id":"dev-3","title":"Self-Unpacking","content":"Seed generates system","status":"pending","logic":[{"id":"s1","tool":"generateCode","input":{"description":"Note CRUD API"},"dependencies":[],"status":"pending"}],"memory":[],"references":[],"createdAt":"2025-03-19T18:15:42.430Z","updatedAt":null}

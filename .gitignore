@@ -17,3 +17,4 @@ package-lock.json
 .aider*
 
 /notes
+data/notes
