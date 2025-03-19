@@ -17,7 +17,7 @@ export default {
         const {modelType, data, targetId} = schema.parse(input);
         const modelId = crypto.randomUUID();
         const notes = await import('../../server.js').then(m => m.notes);
-        notes.set(modelId, {
+        await notes.set(modelId, {
             id: modelId,
             title: `${modelType} Model`,
             content: {type: modelType, dataLength: data.length},

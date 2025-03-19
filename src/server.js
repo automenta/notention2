@@ -1,17 +1,15 @@
 import {WebSocketServer} from 'ws';
 import {InMemoryChatMessageHistory} from '@langchain/core/chat_history';
 import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
-import {readdir, readFile, unlink, writeFile} from 'node:fs/promises';
-import {join} from 'path';
 import {z} from 'zod';
-import * as fs from "node:fs";
 import react from '@vitejs/plugin-react';
+import { level } from 'level';
 import {createViteServer} from "vitest/node";
 import * as http from "node:http";
 
 // === Configuration ===
 const CONFIG = {
-    NOTES_DIR: './data/notes',
+    DB_PATH: './netention_db',
     TOOLS_BUILTIN_DIR: './tools/builtin',
     TOOLS_DIR: './tools/user',
     TESTS_DIR: './tests',
@@ -108,7 +106,7 @@ const INITIAL_NOTES = [
 // === State Management ===
 class ServerState {
     constructor() {
-        this.llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1, maxRetries: 2});
+        this.llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1});
         this.notes = new Map();
         this.tools = new Map();
         this.memory = new InMemoryChatMessageHistory();
@@ -118,6 +116,7 @@ class ServerState {
         this.updateBatch = new Set();
         this.batchTimeout = null;
         this.executionQueue = [];
+        this.db = level(CONFIG.DB_PATH, { valueEncoding: 'json' });
     }
 
     log(message, level = 'info') {
@@ -150,52 +149,36 @@ class NetentionServer {
         }
     }
 
-    async loadNotes() {
-        fs.mkdirSync(CONFIG.NOTES_DIR, {recursive: true});
-        const files = await readdir(CONFIG.NOTES_DIR).catch(() => []);
-        for (const f of files) {
-            const data = JSON.parse(await readFile(join(CONFIG.NOTES_DIR, f), 'utf8'));
-            const note = NoteSchema.parse(data);
+    async loadNotesFromDB() {
+        for await (const [key, value] of this.state.db.sublevel('notes').iterator()) {
+            const note = NoteSchema.parse(value);
             this.state.notes.set(note.id, note);
             this.queueExecution(note);
         }
         if (!this.state.notes.size) {
             for (const n of INITIAL_NOTES) {
                 const note = NoteSchema.parse({...n, createdAt: new Date().toISOString()});
+                await this.writeNoteToDB(note);
                 this.state.notes.set(note.id, note);
-                await this.writeNote(note);
                 this.queueExecution(note);
             }
         }
     }
 
-    async writeNote(note) {
-        const path = join(CONFIG.NOTES_DIR, `${note.id}.json`);
-        if (this.state.pendingWrites.has(path)) {
-            clearTimeout(this.state.pendingWrites.get(path));
-        }
-        return new Promise(resolve => {
-            const timeout = setTimeout(async () => {
-                try {
-                    await writeFile(path, JSON.stringify(note));
-                    this.state.pendingWrites.delete(path);
-                    this.state.updateBatch.add(note.id);
-                    this.scheduleBatchUpdate();
-                    resolve();
-                } catch (e) {
-                    this.state.log(`Write failed for ${path}: ${e}`, 'error');
-                }
-            }, 100);
-            this.state.pendingWrites.set(path, timeout);
-        });
+    async writeNoteToDB(note) {
+        await this.state.db.sublevel('notes').put(note.id, note);
+        this.state.updateBatch.add(note.id);
+        this.scheduleBatchUpdate();
+    }
+
+    async deleteNoteFromDB(noteId) {
+        await this.state.db.sublevel('notes').del(noteId);
     }
 
     async removeReferences(noteId) {
         for (const [id, note] of this.state.notes) {
             if (note.references.includes(noteId)) {
                 note.references = note.references.filter(ref => ref !== noteId);
-                note.updatedAt = new Date().toISOString();
-                await this.writeNote(note);
             }
         }
     }
@@ -224,7 +207,6 @@ class NetentionServer {
         try {
             note.status = 'running';
             note.updatedAt = new Date().toISOString();
-            await this.writeNote(note);
 
             await this.state.memory.addMessage({role: 'user', content: `${note.title}: ${note.content}`});
 
@@ -245,7 +227,6 @@ class NetentionServer {
                     status: 'pending'
                 }];
                 note.memory.push({type: 'system', content: 'Generated plan', timestamp: Date.now()});
-                await this.writeNote(note);
             }
 
             const stepsById = new Map(note.logic.map(step => [step.id, step]));
@@ -324,12 +305,11 @@ class NetentionServer {
 
             if (changesMade) {
                 note.updatedAt = new Date().toISOString();
-                await this.writeNote(note);
             }
+            await this.writeNoteToDB(note);
         } catch (err) {
             note.status = 'failed';
             note.memory.push({type: 'error', content: err.message, timestamp: Date.now()});
-            await this.writeNote(note);
             this.state.log(`Error running note ${noteId}: ${err}`, 'error');
         }
 
@@ -366,7 +346,7 @@ class NetentionServer {
         if (graphTool) {
             const result = await graphTool.invoke({startId: noteId, mode: 'bfs', callback: 'update'});
             note.memory.push({type: 'graph', content: result, timestamp: Date.now()});
-            await this.writeNote(note);
+            await this.writeNoteToDB(note);
         }
     }
 
@@ -435,7 +415,7 @@ class NetentionServer {
                                 deadline: data.deadline
                             });
                             this.state.notes.set(id, note);
-                            await this.writeNote(note);
+                            await this.writeNoteToDB(note);
                             this.queueExecution(note);
                             break;
                         }
@@ -447,7 +427,7 @@ class NetentionServer {
                                     updatedAt: new Date().toISOString()
                                 });
                                 this.state.notes.set(data.id, updated);
-                                await this.writeNote(updated);
+                                await this.writeNoteToDB(updated);
                                 this.queueExecution(updated);
                             }
                             break;
@@ -455,7 +435,8 @@ class NetentionServer {
                         case 'deleteNote': {
                             await this.removeReferences(data.id);
                             this.state.notes.delete(data.id);
-                            await unlink(join(CONFIG.NOTES_DIR, `${data.id}.json`)).catch(() => {
+                            await this.deleteNoteFromDB(data.id).catch((e) => {
+                                this.state.log(`Delete note from DB error: ${e}`, 'error');
                             });
                             break;
                         }
@@ -486,11 +467,10 @@ class NetentionServer {
     // === Initialization ===
     async initialize() {
         try {
-            fs.mkdirSync(CONFIG.TOOLS_DIR, {recursive: true});
             await Promise.all([
-                this.loadTools(CONFIG.TOOLS_BUILTIN_DIR),
+                 this.loadTools(CONFIG.TOOLS_BUILTIN_DIR),
                 this.loadTools(CONFIG.TOOLS_DIR),
-                this.loadNotes()
+                this.loadNotesFromDB()
             ]);
             // Explicitly load new tools (optional for clarity)
             const newTools = ['browser_use', 'computer_use', 'computer_monitor', 'rag', 'mcp'];

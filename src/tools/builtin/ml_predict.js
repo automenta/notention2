@@ -12,7 +12,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(i) {
-        const {modelId, input} = schema.parse(i);
+        const {modelId, input } = schema.parse(i);
         const notes = await import('../../server.js').then(m => m.notes);
         const model = notes.get(modelId);
         if (!model) return `Model ${modelId} not found`;
