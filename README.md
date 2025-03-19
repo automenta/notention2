@@ -2078,7 +2078,7 @@ type Note = {
 |------------------|--------------------------|---------------------|
 | **LangChain.js** | LLM, tools, memory       | Cuts ~80% AI code   |
 | **IPFS**         | Distributed storage      | Scalable, immutable |
-| **Hono**         | HTTP/WebSocket API       | Real-time sync      |
+| **Express**         | HTTP/WebSocket API       | Real-time sync      |
 | **Cytoscape.js** | Graph UI visualization   | Dynamic rendering   |
 
 ---
@@ -2147,7 +2147,7 @@ class Note {
 
   sync(): void {
     ipfs.add(JSON.stringify(this.data));
-    hono.broadcast(this.data.id);
+    Express.broadcast(this.data.id);
   }
 }
 ```
@@ -2201,7 +2201,7 @@ class Note {
 3. **Cycle**:
     - `think`: LangChain LLM updates `plan`.
     - `act`: Executes next step via `AgentExecutor`.
-    - `sync`: Saves to IPFS, broadcasts via Hono.
+    - `sync`: Saves to IPFS, broadcasts via Express.
 
 ---
 
@@ -2212,7 +2212,7 @@ class Note {
 | `code_gen`   | Generate JS code       | LangChain LLM           |
 | `file_write` | Write to IPFS          | `writeFile` + IPFS      |
 | `reflect`    | Self-analyze, optimize | LangChain `RetrievalQA` |
-| `notify`     | User interaction       | Hono WebSocket push     |
+| `notify`     | User interaction       | Express WebSocket push     |
 
 - **Dynamic**: Notes spawn new tools via `code_gen`.
 
@@ -2220,7 +2220,7 @@ class Note {
 
 ## **UI: Flow Graph**
 
-- **Stack**: Cytoscape.js, Hono WebSocket.
+- **Stack**: Cytoscape.js, Express WebSocket.
 - **Render**:
   ```typescript
   const cy = cytoscape({
@@ -2228,7 +2228,7 @@ class Note {
     elements: db.all().map(n => ({ data: { id: n.id, label: n.content.desc || n.id } })),
     style: [{ selector: "node", style: { content: "data(label)" } }]
   });
-  hono.on("update", (id) => cy.getElementById(id).data(await db.get(id)));
+  Express.on("update", (id) => cy.getElementById(id).data(await db.get(id)));
   ```
 - **Features**:
     - Zoom: High-level (Note clusters) -> Detail (content edit).
@@ -2250,8 +2250,8 @@ class Note {
 - **Kickoff**:
   ```typescript
   // main.ts
-  import { serve } from "hono";
-  const hono = serve({ port: 8000 });
+  import { serve } from "Express";
+  const Express = serve({ port: 8000 });
   const ipfs = new IPFS();
   const seedId = await db.put(seed);
   new Note(await db.get(seedId)).run();
@@ -2267,7 +2267,7 @@ class Note {
 |---------|------------------|---------------------|
 | Notes   | ~1M active       | IPFS offload        |
 | Memory  | 100 entries/Note | Summarize/archive   |
-| Network | 10k peers        | Hono WebSocket      |
+| Network | 10k peers        | Express WebSocket      |
 | Tokens  | 10k/day          | Priority throttling |
 
 ---
@@ -2320,7 +2320,7 @@ keeping the spec terse with pseudocode, tables, and outlines.
 2. **Priority-Driven**: Higher priority = more resources, dynamically adjusted.
 3. **Memory Equilibrium**: Self-pruning keeps footprint bounded.
 4. **Boot Autonomy**: Seed maximizes initial capability, minimizes human tweaks.
-5. **Dependencies**: LangChain.js, IPFS, Hono, Cytoscape.js.
+5. **Dependencies**: LangChain.js, IPFS, Express, Cytoscape.js.
 
 ---
 
@@ -2503,7 +2503,7 @@ const seed: Note = {
     "code_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "code_gen", desc: "Generate JS", execute: "langChain.llm" }, ... }).id,
     "file_write": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "file_write", desc: "Write IPFS", execute: "ipfs.add" }, ... }).id,
     "reflect": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "reflect", desc: "Self-analyze", execute: "langChain.reflect" }, ... }).id,
-    "notify": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "notify", desc: "User alert", execute: "hono.push" }, ... }).id,
+    "notify": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "notify", desc: "User alert", execute: "Express.push" }, ... }).id,
     "ui_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "ui_gen", desc: "Generate UI", execute: "cytoscape.add" }, ... }).id
   },
   context: [],
@@ -2535,7 +2535,7 @@ const seed: Note = {
 1. **Init**:
    ```typescript
    db.put(seed);
-   const hono = serve({ port: 8000 });
+   const Express = serve({ port: 8000 });
    const ipfs = new IPFS();
    runForever();
    ```
@@ -2566,13 +2566,13 @@ const seed: Note = {
 ```typescript
 // main.ts
 import { PriorityQueue } from "std";
-import { serve } from "hono";
+import { serve } from "Express";
 import { ChatOpenAI, AgentExecutor, BufferMemory } from "langchain";
 
 const queue = new PriorityQueue<Note>((a, b) => b.state.priority - a.state.priority);
 const ipfs = new IPFS();
 const db = { put: async (n: Note) => ipfs.add(JSON.stringify(n)), get: async (id: string) => JSON.parse(await ipfs.cat(id)) };
-const hono = serve({ port: 8000 });
+const Express = serve({ port: 8000 });
 
 db.put(seed);
 const seedNote = new Note(await db.get(seed.id));
@@ -2648,7 +2648,7 @@ const seed: Note = {
     "code_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "code_gen", desc: "Generate JS", execute: "langChain.llm" }, ... }).id,
     "file_write": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "file_write", desc: "Write IPFS", execute: "ipfs.add" }, ... }).id,
     "reflect": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "reflect", desc: "Self-analyze", execute: "langChain.reflect" }, ... }).id,
-    "notify": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "notify", desc: "User alert", execute: "hono.push" }, ... }).id,
+    "notify": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "notify", desc: "User alert", execute: "Express.push" }, ... }).id,
     "ui_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "ui_gen", desc: "Generate UI", execute: "cytoscape.add" }, ... }).id,
     // Enhanced Tools
     "search": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "search", desc: "Web search", execute: "langChain.serpapi" }, ... }).id,
@@ -2788,13 +2788,13 @@ const seed: Note = {
 ```typescript
 // main.ts
 import { PriorityQueue } from "std";
-import { serve } from "hono";
+import { serve } from "Express";
 import { ChatOpenAI, AgentExecutor, BufferMemory } from "langchain";
 
 const queue = new PriorityQueue<Note>((a, b) => b.state.priority - a.state.priority);
 const ipfs = new IPFS();
 const db = { put: async (n: Note) => ipfs.add(JSON.stringify(n)), get: async (id: string) => JSON.parse(await ipfs.cat(id)) };
-const hono = serve({ port: 8000 });
+const Express = serve({ port: 8000 });
 
 db.put(seed);
 const seedNote = new Note(await db.get(seed.id));
@@ -2885,7 +2885,7 @@ const seed: Note = {
     "code_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "code_gen", desc: "Generate JS", execute: "langChain.llm" }, ... }).id,
     "file_write": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "file_write", desc: "Write IPFS", execute: "ipfs.add" }, ... }).id,
     "reflect": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "reflect", desc: "Self-analyze", execute: "langChain.reflect" }, ... }).id,
-    "notify": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "notify", desc: "User alert", execute: "hono.push" }, ... }).id,
+    "notify": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "notify", desc: "User alert", execute: "Express.push" }, ... }).id,
     "ui_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "ui_gen", desc: "Generate UI", execute: "cytoscape.add" }, ... }).id,
     "search": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "search", desc: "Web search", execute: "langChain.serpapi" }, ... }).id,
     "summarize": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "summarize", desc: "Text summary", execute: "langChain.summarize" }, ... }).id,
@@ -3139,7 +3139,7 @@ const seed: Note = {
     "code_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "code_gen", desc: "Generate JS", execute: "langChain.llm" }, ... }).id,
     "file_write": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "file_write", desc: "Write IPFS", execute: "ipfs.add" }, ... }).id,
     "reflect": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "reflect", desc: "Self-analyze", execute: "langChain.reflect" }, ... }).id,
-    "notify": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "notify", desc: "User alert", execute: "hono.push" }, ... }).id,
+    "notify": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "notify", desc: "User alert", execute: "Express.push" }, ... }).id,
     "ui_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "ui_gen", desc: "Generate UI", execute: "cytoscape.add" }, ... }).id,
     "search": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "search", desc: "Web search", execute: "langChain.serpapi" }, ... }).id,
     "summarize": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "summarize", desc: "Text summary", execute: "langChain.summarize" }, ... }).id,
@@ -3733,7 +3733,7 @@ continuous open loop, with components interacting via the Note graph and tools.
   ```typescript
   const cy = cytoscape({ container: "#cy", elements: db.all().map(n => ({ data: { id: n.id, label: n.content.desc } })) });
   ```
-- **Role**: Visualizes Notes/graph, updates via Hono.
+- **Role**: Visualizes Notes/graph, updates via Express.
 
 ### **7. Runtime**
 
@@ -3791,7 +3791,7 @@ continuous open loop, with components interacting via the Note graph and tools.
 | **Planning**        | Note → Plan Notes    | `astar` + `plan_optimize`       | Optimized step sequence         |
 | **Testing**         | Note → Test Note     | `test_gen` + `test_run`         | Validates functionality         |
 | **Sync**            | Note → IPFS          | `db.put` + `ipfs.pubsub`        | Persists/distributes state      |
-| **UI Update**       | Note → Cytoscape     | `ui_gen` + Hono broadcast       | Visualizes graph changes        |
+| **UI Update**       | Note → Cytoscape     | `ui_gen` + Express broadcast       | Visualizes graph changes        |
 
 ---
 
