@@ -11,9 +11,9 @@ export class Tool {
         this.dependencies = dependencies;
     }
 
-    async execute(input) {
+    async execute(input, context) { // Added context
         const validatedInput = this.schema.parse(input);
-        return await this.invoke(validatedInput);
+        return await this.invoke(validatedInput, context); // Pass context to invoke
     }
 }
 
@@ -31,17 +31,28 @@ export class Tools {
 
     async _loadToolFromFile(path, file) {
         try {
-            const {default: toolModule} = await import(`./${join(path, file)}`);
-            const tool = new Tool(toolModule);
-            this.tools.set(tool.name, tool);
+            const module = await import(`file://${process.cwd()}/${path}/${file}`);
+            const toolDef = module.default;
+            const tool = new Tool(toolDef);
+            this.addTool(tool);
         } catch (e) {
             console.error(`Error loading tool ${file} from ${path}: ${e}`);
-            throw e;
         }
     }
 
+    addTool(tool) {
+        this.tools.set(tool.name, tool);
+    }
 
     getTool(name) {
         return this.tools.get(name);
+    }
+
+    hasTool(name) {
+        return this.tools.has(name);
+    }
+
+    getTools() {
+        return Array.from(this.tools.values());
     }
 }

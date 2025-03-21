@@ -120,7 +120,6 @@ class ServerState {
         this.executionQueue = new Set(); // Changed to Set
         this.analytics = new Map();
         this.scheduler = null;
-        this.toolRegistry = new Map();
     }
 
     log(message, level = 'info', context = {}) {
@@ -219,7 +218,7 @@ class NetentionServer {
     async handleToolGeneration(note, step) {
         const { name, desc, code } = step.input;
         const toolDef = { name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code) };
-        this.state.toolRegistry.set(name, toolDef);
+        this.state.tools.addTool(toolDef);
         note.memory.push({ type: 'toolGen', content: `Generated tool ${name}`, timestamp: Date.now(), stepId: step.id });
         step.status = 'completed';
         await this.writeNoteToDB(note);
@@ -264,10 +263,10 @@ class NetentionServer {
     }
 
     async executeStep(note, step, memoryMap) {
-        const tool = this.state.toolRegistry.get(step.tool) || this.state.tools.getTool(step.tool);
+        const tool = this.state.tools.getTool(step.tool);
         if (!tool) return this._handleToolNotFoundError(note, step);
         try {
-            const result = await tool.invoke(step.input, { graph: this.state.graph, llm: this.state.llm });
+            const result = await tool.execute(step.input, { graph: this.state.graph, llm: this.state.llm }); // Use execute and pass context
             memoryMap.set(step.id, result);
             note.memory.push({ type: 'tool', content: result, timestamp: Date.now(), stepId: step.id });
             step.status = 'completed';
@@ -356,8 +355,7 @@ class NetentionServer {
         this.state.log("Loading tools...", 'info', { component: 'ToolLoader' });
         await this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
         await this.state.tools.loadTools(CONFIG.TOOLS_DIR);
-        this.state.toolRegistry = new Map([...this.state.tools.tools]); // Copy tools to registry
-        this.state.log(`Loaded ${this.state.toolRegistry.size} tools.`, 'info', { component: 'ToolLoader', count: this.state.toolRegistry.size });
+        this.state.log(`Loaded ${this.state.tools.getTools().length} tools.`, 'info', { component: 'ToolLoader', count: this.state.tools.getTools().length });
     }
 
     async loadNotesFromDB() {
