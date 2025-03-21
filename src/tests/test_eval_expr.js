@@ -25,4 +25,16 @@ describe('Eval Expr Tool', () => {
         const result = await evalExprTool.invoke(input);
         expect(result).toContain('Error evaluating invalid expression');
     });
+
+    it('should collaborate between notes', async () => {
+        const input = { expr: 'context.a + context.b', context: { a: 2, b: await evalExprTool.invoke({ expr: '3' }) } };
+        const result = await evalExprTool.invoke(input);
+        expect(result).toBe(5);
+    });
+
+    it('should evaluate dynamically generated tool', async () => {
+        const dynamicTool = { expr: 'input.x * 2', context: { x: 3 } };
+        const result = await evalExprTool.invoke(dynamicTool);
+        expect(result).toBe(6);
+    });
 });

@@ -9,6 +9,7 @@ import * as http from "node:http";
 import { Graph } from './graph.js';
 import crypto from 'crypto';
 import { Tools } from './tools.js';
+import { LLM } from './llm.js'; // Import LLM
 
 const CONFIG = {
     DB_PATH: './netention_db',
@@ -107,7 +108,7 @@ const INITIAL_NOTES = [
 
 class ServerState {
     constructor() {
-        this.llm = new ChatGoogleGenerativeAI({ model: "gemini-2.0-flash", temperature: 1 });
+        this.llm = new LLM(); // Instantiate LLM Class
         this.graph = new Graph();
         this.tools = new Tools();
         this.memory = new InMemoryChatMessageHistory();
@@ -116,8 +117,9 @@ class ServerState {
         this.pendingWrites = new Map();
         this.updateBatch = new Set();
         this.batchTimeout = null;
-        this.executionQueue = [];
-        this.db = new Level(CONFIG.DB_PATH, { valueEncoding: 'json' });
+        this.executionQueue = new Set(); // Changed to Set
+        this.analytics = new Map();
+        this.scheduler = null;
     }
 
     log(message, level = 'info', context = {}) {
@@ -143,528 +145,156 @@ class NetentionServer {
         this.state = new ServerState();
     }
 
-    async loadTools() {
-        await this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
-        this.state.log("Loaded builtin tools.", 'info', { component: 'ToolLoader', directory: CONFIG.TOOLS_BUILTIN_DIR });
-        await this.state.tools.loadTools(CONFIG.TOOLS_DIR);
-        this.state.log("Loaded user tools.", 'info', { component: 'ToolLoader', directory: CONFIG.TOOLS_DIR });
+    async initScheduler() {
+        this.state.scheduler = setInterval(() => this.optimizeSchedule(), 5000);
     }
 
-    async loadNotesFromDB() {
-        for await (const [key, value] of this.state.db.sublevel('notes').iterator()) {
-            try {
-                const note = NoteSchema.parse(value);
-                this.state.graph.addNote(note);
-                for (const ref of note.references) {
-                    this.state.graph.addEdge(note.id, ref, 'reference');
-                }
-                this.queueExecution(note);
-            } catch (e) {
-                this.state.log(`Error parsing note from DB: ${e}`, 'warn', { component: 'NoteLoader', noteKey: key });
-            }
+    async optimizeSchedule() {
+        const notes = [...this.state.graph.getNotes()].filter(n => n.status === 'pending' || n.status === 'running');
+        notes.sort((a, b) => this.calculatePriority(b) - this.calculatePriority(a));
+        for (const note of notes.slice(0, 10)) {
+            if (!this.state.executionQueue.has(note.id)) this.queueExecution(note);
         }
-        if (!this.state.graph.getSize()) {
-            await this.loadInitialNotes();
-        }
-    }
-
-    async loadInitialNotes() {
-        for (const n of INITIAL_NOTES) {
-            try {
-                const note = NoteSchema.parse({ ...n, createdAt: new Date().toISOString() });
-                await this.writeNoteToDB(note);
-                this.state.graph.addNote(note);
-                for (const ref of note.references) {
-                    this.state.graph.addEdge(note.id, ref, 'reference');
-                }
-                this.queueExecution(note);
-            } catch (e) {
-                this.state.log(`Error parsing INITIAL_NOTE: ${e}`, 'error', { component: 'NoteLoader', noteId: n.id, error: e.errors });
-            }
-        }
-    }
-
-    async writeNoteToDB(note) {
-        await this.state.db.sublevel('notes').put(note.id, note);
-        this.state.updateBatch.add(note.id);
-        this.scheduleBatchUpdate();
-    }
-
-    async deleteNoteFromDB(noteId) {
-        await this.state.db.sublevel('notes').del(noteId);
-    }
-
-    async removeReferences(noteId) {
-        for (const [id, note] of this.state.graph.graph) {
-            if (note.references.includes(noteId)) {
-                note.references = note.references.filter(ref => ref !== noteId);
-            }
-        }
-    }
-
-    queueExecution(note) {
-        const priority = this.calculatePriority(note);
-        const index = this.state.executionQueue.findIndex(item => item.priority < priority);
-        if (index === -1) this.state.executionQueue.push({ noteId: note.id, priority });
-        else this.state.executionQueue.splice(index, 0, { noteId: note.id, priority });
     }
 
     calculatePriority(note) {
-        return note.deadline ?
-            Math.min(CONFIG.MAX_PRIORITY, note.priority + Math.floor((new Date(note.deadline) - Date.now()) / 1000)) :
-            note.priority;
+        const deadlineFactor = note.deadline ? (new Date(note.deadline) - Date.now()) / (1000 * 60 * 60) : 0;
+        const usage = this.state.analytics.get(note.id)?.usage || 0;
+        return (note.priority || 50) - (deadlineFactor < 0 ? 100 : deadlineFactor) + usage;
     }
 
-    async processQueue() {
-        while (this.state.executionQueue.length) {
-            const { noteId } = this.state.executionQueue.shift();
-            await this.runNote(noteId);
-        }
-    }
-
-    async runNote(noteId) {
-        const note = this.state.graph.getNote(noteId);
-        if (!note) {
-            this.state.log(`Note ${noteId} not found`, 'warn', { component: 'NoteRunner', noteId: noteId });
-            return null;
-        }
-
+    async runNote(note) {
+        if (this.state.executionQueue.has(note.id)) return note;
+        this.state.executionQueue.add(note.id);
         try {
-            await this._setNoteToRunning(note);
-            await this._addNoteToMemory(note);
-            if (!note.logic?.length) {
-                await this._generateNotePlan(note);
+            note.status = 'running';
+            await this.writeNoteToDB(note);
+            this.updateAnalytics(note, 'start');
+
+            const memoryMap = new Map(note.memory.map(m => [m.stepId || m.timestamp, m.content]));
+            const stepsById = new Map(note.logic.map(step => [step.id, step]));
+            const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
+            const readyQueue = note.logic.filter(step => !step.dependencies.length && step.status === 'pending').map(s => s.id);
+
+            while (readyQueue.length) {
+                const stepId = readyQueue.shift();
+                const step = stepsById.get(stepId);
+                step.input = this.replacePlaceholders(step.input, memoryMap);
+
+                switch (step.tool) {
+                    case 'collaborate': await this.handleCollaboration(note, step); break;
+                    case 'generateTool': await this.handleToolGeneration(note, step); break;
+                    case 'knowNote': await this.handleKnowNote(note, step); break;
+                    case 'analyze': await this.handleAnalytics(note, step); break;
+                    case 'fetchExternal': await this.handleFetchExternal(note, step); break;
+                    default: await this.executeStep(note, step, memoryMap);
+                }
+                this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
             }
-            await this._executeNotePlan(note);
+
             await this._updateNoteStatusPostExecution(note);
             await this._runNoteTests(note);
+            await this.pruneMemory(note);
+            this.updateAnalytics(note, 'complete');
             return await this._finalizeNoteRun(note);
         } catch (error) {
             return this._handleNoteError(note, error);
-        }
-    }
-
-    async _setNoteToRunning(note) {
-        note.status = 'running';
-        note.updatedAt = new Date().toISOString();
-        await this.writeNoteToDB(note);
-    }
-
-    async _addNoteToMemory(note) {
-        try {
-            await this.state.memory.addMessage({ role: 'user', content: `${note.title}: ${note.content}` });
-        } catch (memoryError) {
-            throw new Error(`Error adding to memory: ${memoryError.message}`);
-        }
-    }
-
-    async _generateNotePlan(note) {
-        try {
-            const previousMessages = await this.state.memory.getMessages();
-            const systemPrompt = {
-                role: 'system',
-                content: `Generate a JSON plan using tools: ${[...this.state.tools.tools.keys()].join(', ')}. Default to "summarize" if unsure. Format: [{id, tool, input, dependencies}]`
-            };
-            const messages = [systemPrompt, ...previousMessages, { role: 'user', content: note.content }];
-            const plan = await this.state.timeoutPromise(this.state.llm.invoke(messages), CONFIG.TOOL_TIMEOUT);
-            note.logic = JSON.parse(plan.content) || [{
-                id: crypto.randomUUID(),
-                tool: 'summarize',
-                input: { text: note.content },
-                dependencies: [],
-                status: 'pending'
-            }];
-            note.memory.push({ type: 'system', content: 'Generated plan', timestamp: Date.now() });
-            await this.writeNoteToDB(note);
-        } catch (planError) {
-            throw new Error(`Error generating plan: ${planError.message}`);
-        }
-    }
-
-    async _executeNotePlan(note) {
-        const stepsById = new Map(note.logic.map(step => [step.id, step]));
-        const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
-        const readyQueue = note.logic.filter(step => !step.dependencies.length).map(step => step.id);
-
-        while (readyQueue.length) {
-            const stepId = readyQueue.shift();
-            const step = stepsById.get(stepId);
-            if (step.status !== 'pending') continue;
-
-            await this._executeStep(note, step, dependencies, stepsById, readyQueue);
-        }
-    }
-
-    async _executeStep(note, step, dependencies, stepsById, readyQueue) {
-        step.status = 'running';
-        await this.writeNoteToDB(note);
-
-        const tool = this.state.tools.getTool(step.tool);
-        if (!tool) {
-            return this._handleToolNotFoundError(note, step);
-        }
-
-        try {
-            await this._runTool(note, step, tool);
-        } catch (toolError) {
-            this._handleToolStepError(note, step, toolError);
         } finally {
-            this._processStepDependencies(dependencies, stepsById, readyQueue, step.id, note);
+            this.state.executionQueue.delete(note.id);
         }
     }
 
-
-    async _runTool(note, step, tool) {
-        const memoryMap = new Map(note.memory.filter(m => m.stepId).map(m => [m.stepId, typeof m.content === 'object' ? JSON.stringify(m.content) : m.content]));
-        const input = this.replacePlaceholders(step.input, memoryMap);
-        const result = await this.state.timeoutPromise(tool.invoke(input, { graph: this.state.graph }), CONFIG.TOOL_TIMEOUT);
-        note.memory.push({ type: 'tool', stepId: step.id, content: result, timestamp: Date.now() });
-        await this.state.memory.addMessage({ role: 'assistant', content: JSON.stringify(result) });
-        await this.writeNoteToDB(note);
-
-        switch (step.tool) {
-            case 'ml_train':
-                this.queueExecution({ id: result, priority: note.priority - 10 });
-                break;
-            case 'test_gen':
-                const testCode = result;
-                const testNoteId = crypto.randomUUID();
-                await this._createTestNote(note, testCode, testNoteId);
-                break;
-            case 'schedule':
-                this.scheduleNote(result);
-                break;
-        }
+    async handleCollaboration(note, step) {
+        const { noteIds } = step.input;
+        const collabResult = await this.state.llm.invoke(
+            [`Collaborate on "${note.title}" with notes: ${noteIds.join(', ')}`],
+            noteIds
+        );
+        note.memory.push({ type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id });
         step.status = 'completed';
         await this.writeNoteToDB(note);
     }
 
-    async _createTestNote(note, testCode, testNoteId) {
-        await this.state.graph.addNote({
-            id: testNoteId,
-            title: `Test for ${note.id}`,
-            content: testCode,
-            status: 'pendingUnitTesting', // More specific status for test notes
-        });
-        this.state.graph.addEdge(testNoteId, note.id, 'tests');
-        if (testNoteId) note.tests = (note.tests || []).concat(testNoteId);
+    async handleToolGeneration(note, step) {
+        const { name, desc, code } = step.input;
+        const toolDef = { name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code) };
+        this.state.toolRegistry.set(name, toolDef);
+        note.memory.push({ type: 'toolGen', content: `Generated tool ${name}`, timestamp: Date.now(), stepId: step.id });
+        step.status = 'completed';
         await this.writeNoteToDB(note);
     }
 
-
-    _processStepDependencies(dependencies, stepsById, readyQueue, stepId, note) {
-        for (const [id, deps] of dependencies) {
-            deps.delete(stepId);
-            if (!deps.size && stepsById.get(id).status === 'pending') {
-                readyQueue.push(id);
-                this.state.log(`Step ${id} added to readyQueue because dependencies met.`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: id });
-            }
-        }
-    }
-
-
-    async _updateNoteStatusPostExecution(note) {
-        const allCompleted = note.logic.every(step => step.status === 'completed');
-        const hasFailed = note.logic.some(step => step.status === 'failed');
-        note.status = allCompleted ? 'completed' : (hasFailed) ? 'failed' : 'pending';
-        await this.writeNoteToDB(note);
-    }
-
-    async _runNoteTests(note) {
-        if (note.tests?.length && note.status === 'completed' && CONFIG.AUTO_RUN_TESTS) { // Check the flag
-            note.status = 'pendingUnitTesting'; // Update note status to indicate testing
-            await this.writeNoteToDB(note);
-            for (const testId of note.tests) {
-                const testResult = await this.state.tools.getTool('test_run')?.invoke({ testId }, { graph: this.state.graph });
-                note.memory.push({ type: 'testResult', content: `Test ${testId}: ${testResult}`, timestamp: Date.now() });
-                if (testResult !== 'Tests passed') {
-                    note.status = 'failed'; // If any test fails, mark note as failed
-                    await this.writeNoteToDB(note);
-                    return; // Exit if tests fail
-                }
-            }
-            if (note.status !== 'failed') {
-                note.status = 'completed'; // Only mark as completed if all tests passed and not already failed
-                await this.writeNoteToDB(note);
-            }
-        }
-    }
-
-
-    async _finalizeNoteRun(note) {
-        await this.writeNoteToDB(note); // Ensure final state is saved
-        return note;
-    }
-
-    _handleNoteError(note, error) {
-        note.status = 'failed';
-        note.memory.push({ type: 'error', content: error.message, timestamp: Date.now() });
-        this.state.log(`Error running note ${note.id}: ${error}`, 'error', { component: 'NoteRunner', noteId: note.id, error: error.message });
-        this.writeNoteToDB(note);
-        return note;
-    }
-
-    _handleToolStepError(note, step, error) {
-        step.status = 'failed';
-        note.memory.push({ type: 'error', stepId: step.id, content: error.message, timestamp: Date.now() });
-        this.state.log(`Error running tool ${step.tool} for note ${note.id}: ${error}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool, error: error.message });
-        this.writeNoteToDB(note);
-    }
-
-    _handleToolNotFoundError(note, step) {
-        step.status = 'failed';
-        note.memory.push({
-            type: 'error',
-            stepId: step.id,
-            content: `Tool ${step.tool} not found`,
-            timestamp: Date.now()
-        });
-        this.state.log(`Tool ${step.tool} not found for step ${step.id} in note ${note.id}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool });
-        this.writeNoteToDB(note);
-    }
-
-
-    replacePlaceholders(input, memoryMap) {
-        if (typeof input === 'string') {
-            return Array.from(memoryMap.entries()).reduce((str, [stepId, output]) =>
-                str.replace(new RegExp(`\\\$\{\s*${stepId}\s*\}`, 'g'), output), input);
-        }
-        if (typeof input === 'object' && input !== null) {
-            return Object.fromEntries(
-                Object.entries(input).map(([key, value]) => [key, this.replacePlaceholders(value, memoryMap)])
-            );
-        }
-        return input;
-    }
-
-    scheduleNote({ noteId, time }) {
-        const note = this.state.graph.getNote(noteId);
-        if (note) {
-            note.deadline = time;
-            setTimeout(async () => {
-                note.status = 'running';
-                this.queueExecution(note);
-            }, new Date(time) - Date.now());
-        }
-    }
-
-    async updateGraph(noteId) {
-        const note = this.state.graph.getNote(noteId);
-        if (!note) return;
-        const graphTool = this.state.tools.getTool('graph_traverse');
-        if (graphTool) {
-            const result = await graphTool.invoke({ startId: noteId, mode: 'bfs', callback: 'update' }, { graph: this.state.graph });
-            note.memory.push({ type: 'graph', content: result, timestamp: Date.now() });
-            await this.writeNoteToDB(note);
-        }
-    }
-
-    broadcast(message) {
-        const msgStr = JSON.stringify(message);
-        if (this.state.wss) {
-            this.state.wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(msgStr);
-                } else {
-                    this.state.messageQueue.push({ client, message: msgStr });
-                }
-            });
-        } else {
-            this.state.messageQueue.push({ message: msgStr });
-        }
-    }
-
-    scheduleBatchUpdate() {
-        if (!this.state.batchTimeout) {
-            this.state.batchTimeout = setTimeout(() => {
-                if (this.state.updateBatch.size) {
-                    this.broadcast({ type: 'notes', data: this.state.graph.getNotes() });
-                    this.state.updateBatch.clear();
-                }
-                this.state.batchTimeout = null;
-            }, CONFIG.BATCH_INTERVAL);
-        }
-    }
-
-    _handleWebSocketMessage = async (parsedMessage) => {
-        try {
-            const { type, ...data } = parsedMessage;
-
-            const messageSchema = z.object({
-                type: z.string(),
-                data: z.any().optional()
-            });
-            const validatedMessage = messageSchema.parse(parsedMessage);
-            const { type: validatedType, data: validatedData } = validatedMessage;
-
-            switch (validatedType) {
-                case 'createNote':
-                    await this._handleCreateNote(parsedMessage);
-                    break;
-                case 'updateNote':
-                    await this._handleUpdateNote(parsedMessage);
-                    break;
-                case 'deleteNote':
-                    await this._handleDeleteNote(parsedMessage);
-                    break;
-                case 'runNote':
-                    await this._handleRunNote(parsedMessage);
-                    break;
-                case 'graphUpdate':
-                    await this._handleGraphUpdate(parsedMessage);
-                    break;
-                default:
-                    this.state.log(`Unknown WebSocket message type: ${validatedType}`, 'warn', { component: 'WebSocketHandler', messageType: validatedType });
-            }
-
-            this.state.updateBatch.add(validatedData?.id || '');
-            this.scheduleBatchUpdate();
-        } catch (e) {
-            if (e instanceof z.ZodError) {
-                this.state.log(`WebSocket message validation error: ${e.errors}`, 'warn', { component: 'WebSocketHandler', errorType: 'ValidationError', validationErrors: e.errors });
-            } else {
-                this.state.log(`WebSocket message processing error: ${e}`, 'error', { component: 'WebSocketHandler', errorType: 'ProcessingError', error: e.message });
-            }
-        }
-    };
-
-
-    async _handleCreateNote(message) {
-        const createNoteSchema = z.object({
-            type: z.literal('createNote'),
-            title: z.string(),
-            priority: z.number().optional(),
-            deadline: z.string().datetime().nullable().optional(),
-            references: z.array(z.string()).optional()
-        });
-        const validatedCreateNoteData = createNoteSchema.parse(message);
-        const { title, priority, deadline, references } = validatedCreateNoteData;
-        const id = crypto.randomUUID();
-        const note = NoteSchema.parse({
-            id,
+    async handleKnowNote(note, step) {
+        const { title, goal } = step.input;
+        const newNoteId = crypto.randomUUID();
+        const newNote = {
+            id: newNoteId,
             title,
-            content: '',
+            content: goal,
+            status: 'pending',
+            logic: [],
+            memory: [],
             createdAt: new Date().toISOString(),
-            priority: priority || 50,
-            deadline,
-            references: references || []
-        });
-        this.state.graph.addNote(note);
-        for (const ref of note.references) {
-            this.state.graph.addEdge(id, ref, 'reference');
+        };
+        this.state.graph.addNote(newNote);
+        note.memory.push({ type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id });
+        step.status = 'completed';
+        await this.writeNoteToDB(note);
+        this.queueExecution(newNote);
+    }
+
+    async handleAnalytics(note, step) {
+        const { targetId } = step.input;
+        const target = this.state.graph.getNote(targetId);
+        if (!target) throw new Error(`Note ${targetId} not found`);
+        const analytics = this.state.analytics.get(targetId) || { usage: 0, runtime: 0 };
+        const result = `Usage: ${analytics.usage}, Avg Runtime: ${analytics.runtime / (analytics.usage || 1)}ms`;
+        note.memory.push({ type: 'analytics', content: result, timestamp: Date.now(), stepId: step.id });
+        step.status = 'completed';
+        await this.writeNoteToDB(note);
+    }
+
+    async handleFetchExternal(note, step) {
+        const { apiName, query } = step.input;
+        const data = await this.state.llm.fetchExternalData(apiName, query);
+        note.memory.push({ type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id });
+        step.status = 'completed';
+        await this.writeNoteToDB(note);
+    }
+
+    async executeStep(note, step, memoryMap) {
+        const tool = this.state.toolRegistry.get(step.tool) || this.state.tools.getTool(step.tool);
+        if (!tool) return this._handleToolNotFoundError(note, step);
+        try {
+            const result = await tool.invoke(step.input, { graph: this.state.graph, llm: this.state.llm });
+            memoryMap.set(step.id, result);
+            note.memory.push({ type: 'tool', content: result, timestamp: Date.now(), stepId: step.id });
+            step.status = 'completed';
+        } catch (error) {
+            this._handleToolStepError(note, step, error);
         }
         await this.writeNoteToDB(note);
-        this.queueExecution(note);
     }
 
-    async _handleUpdateNote(message) {
-        const updateNoteSchema = z.object({
-            type: z.literal('updateNote'),
-            id: z.string(),
-            title: z.string().optional(),
-            content: z.string().optional(),
-            priority: z.number().optional(),
-            deadline: z.string().datetime().nullable().optional(),
-            references: z.array(z.string()).optional(),
-            logic: z.array(z.any()).optional()
-        });
-        const validatedUpdateNoteData = updateNoteSchema.parse(message);
-        const { id: noteIdToUpdate, title: titleUpdate, content: contentUpdate, priority: priorityUpdate, deadline: deadlineUpdate, references: referencesUpdate, logic: logicUpdate } = validatedUpdateNoteData;
-        const note = this.state.graph.getNote(noteIdToUpdate);
-        if (note) {
-            const updated = NoteSchema.parse({
-                ...note,
-                title: titleUpdate !== undefined ? titleUpdate : note.title,
-                content: contentUpdate !== undefined ? contentUpdate : note.content,
-                priority: priorityUpdate !== undefined ? priorityUpdate : note.priority,
-                deadline: deadlineUpdate !== undefined ? deadlineUpdate : note.deadline,
-                references: referencesUpdate !== undefined ? referencesUpdate : note.references,
-                logic: logicUpdate !== undefined ? logicUpdate : note.logic,
-                updatedAt: new Date().toISOString()
-            });
-            this.state.graph.addNote(updated);
-            this.state.graph.edges.set(noteIdToUpdate, []);
-            for (const ref of updated.references) {
-                this.state.graph.addEdge(noteIdToUpdate, ref, 'reference');
-            }
-            await this.writeNoteToDB(updated);
-            this.queueExecution(updated);
-        }
-    }
-
-    async _handleDeleteNote(message) {
-        const deleteNoteSchema = z.object({
-            type: z.literal('deleteNote'),
-            id: z.string()
-        });
-        const validatedDeleteNoteData = deleteNoteSchema.parse(message);
-        const { id: noteIdToDelete } = validatedDeleteNoteData;
-        const updatedNotes = this.state.graph.removeNote(noteIdToDelete);
-        for (const note of updatedNotes) {
+    async pruneMemory(note) {
+        if (note.memory.length > 100) {
+            const summary = await this.state.llm.invoke([`Summarize: ${JSON.stringify(note.memory.slice(0, 50))}`]);
+            note.memory = [
+                { type: 'summary', content: summary.text, timestamp: Date.now() },
+                ...note.memory.slice(-50)
+            ];
             await this.writeNoteToDB(note);
         }
-        await this.deleteNoteFromDB(noteIdToDelete).catch((e) => {
-            this.state.log(`Delete note from DB error: ${e}`, 'error', { component: 'WebSocketHandler', noteId: noteIdToDelete, error: e.message });
-        });
     }
 
-    async _handleRunNote(message) {
-        const runNoteSchema = z.object({
-            type: z.literal('runNote'),
-            id: z.string()
-        });
-        const validatedRunNoteData = runNoteSchema.parse(message);
-        const { id: noteIdToRun } = validatedRunNoteData;
-        this.queueExecution(this.state.graph.getNote(noteIdToRun));
-    }
-
-    async _handleGraphUpdate(message) {
-        const graphUpdateSchema = z.object({
-            type: z.literal('graphUpdate'),
-            id: z.string()
-        });
-        const validatedGraphUpdateData = graphUpdateSchema.parse(message);
-        const { id: noteIdToUpdateGraph } = validatedGraphUpdateData;
-        await this.updateGraph(noteIdToUpdateGraph);
-    }
-
-
-    async start() {
-        const vite = await createViteServer({
-            root: "client",
-            plugins: [react()],
-            server: { middlewareMode: true },
-        });
-
-        const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
-        this.state.wss = new WebSocketServer({ server: httpServer });
-
-        this.state.wss.on('connection', ws => {
-            this.state.log('Client connected', 'info', { component: 'WebSocketHandler' });
-            ws.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
-
-            while (this.state.messageQueue.length) {
-                const { client, message } = this.state.messageQueue.shift();
-                if (!client || client.readyState === WebSocket.OPEN) {
-                    (client || ws).send(message);
-                }
-            }
-
-            ws.on('message', async msg => {
-                try {
-                    const parsedMessage = JSON.parse(msg);
-                    await this._handleWebSocketMessage(parsedMessage);
-                } catch (e) {
-                    this.state.log(`WebSocket message processing error: ${e}`, 'error', { component: 'WebSocketHandler', errorType: 'MessageParsingError', error: e.message });
-                }
-            });
-
-
-            ws.on('close', () => this.state.log('Client disconnected', 'info', { component: 'WebSocketHandler' }));
-        });
-
-        httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', { component: 'Server', port: CONFIG.PORT }));
-        setInterval(() => this.processQueue(), CONFIG.QUEUE_INTERVAL);
+    updateAnalytics(note, event) {
+        const stats = this.state.analytics.get(note.id) || { usage: 0, runtime: 0, lastStart: 0 };
+        if (event === 'start') stats.lastStart = Date.now();
+        if (event === 'complete') {
+            stats.usage++;
+            stats.runtime += Date.now() - stats.lastStart;
+        }
+        this.state.analytics.set(note.id, stats);
     }
 
     async initialize() {
@@ -672,7 +302,10 @@ class NetentionServer {
             this.state.log("Starting initialization...", 'info', { component: 'Server' });
             await this.loadTools();
             await this.loadNotesFromDB();
+            this.state.llm.setApiKey('exampleApi', 'your-key-here');
             this.state.log("Server started successfully.", 'info', { component: 'Server' });
+            await this.start();
+            this.initScheduler();
         } catch (e) {
             this.state.log(`Initialization failed: ${e}`, 'error', { component: 'Server', error: e.message });
             //setTimeout(() => this.initialize(), CONFIG.RECONNECT_DELAY);
