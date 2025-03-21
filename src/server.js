@@ -672,12 +672,12 @@ class NetentionServer {
             this.state.log("Starting initialization...", 'info', { component: 'Server' });
             await this.loadTools();
             await this.loadNotesFromDB();
-            await this.start();
             this.state.log("Server started successfully.", 'info', { component: 'Server' });
         } catch (e) {
             this.state.log(`Initialization failed: ${e}`, 'error', { component: 'Server', error: e.message });
-            setTimeout(() => this.initialize(), CONFIG.RECONNECT_DELAY);
+            //setTimeout(() => this.initialize(), CONFIG.RECONNECT_DELAY);
         }
+        await this.start();
     }
 }
 
