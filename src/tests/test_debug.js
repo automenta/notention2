@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import debugTool from '../tools/builtin/debug';
+import debugTool from '../tools/debug.js';
 
 describe('Debug Tool', () => {
     it('should return debug information for a given noteId', async () => {

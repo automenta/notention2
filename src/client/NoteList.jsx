@@ -24,7 +24,7 @@ export default function NoteList({notes, onSelect, onDelete}) {
                         style={{cursor: 'pointer', flex: 1}}
                     >
                         {note.title} <small>({note.status})</small>
-                        {note.memory.length > 0 && (
+                        {(note.memory ?? []).length > 0 && (
                             <span style={{color: '#555', marginLeft: '10px'}}>
                                 - {note.memory[note.memory.length - 1].content.slice(0, 50)}...
                             </span>

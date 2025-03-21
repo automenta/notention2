@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import mlTrainTool from '../tools/builtin/ml_train';
+import mlTrainTool from '../tools/ml_train.js';
 
 describe('ML Train Tool', () => {
     it('should train an ML model and return modelId', async () => {

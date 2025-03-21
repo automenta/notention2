@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import graphTraverseTool from '../tools/builtin/graph_traverse';
+import graphTraverseTool from '../tools/graph_traverse.js';
 
 describe('Graph Traverse Tool', () => {
     it('should traverse graph and return results', async () => {

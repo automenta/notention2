@@ -1,20 +1,17 @@
-import { WebSocketServer } from 'ws';
-import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { z } from 'zod';
+import {WebSocketServer} from 'ws';
+import {InMemoryChatMessageHistory} from '@langchain/core/chat_history';
+import {z} from 'zod';
 import react from '@vitejs/plugin-react';
-import { Level } from 'level';
-import { createViteServer } from "vitest/node";
+import {createViteServer} from "vitest/node";
 import * as http from "node:http";
-import { Graph } from './graph.js';
+import {Graph} from './graph.js';
 import crypto from 'crypto';
-import { Tools } from './tools.js';
-import { LLM } from './llm.js'; // Import LLM
+import {Tools} from './tools.js';
+import {LLM} from './llm.js'; // Import LLM
 
 const CONFIG = {
     DB_PATH: './netention_db',
-    TOOLS_BUILTIN_DIR: './tools/builtin',
-    TOOLS_DIR: './tools/user',
+    TOOLS_BUILTIN_DIR: './tools',
     TESTS_DIR: './tests',
     PORT: 8080,
     RECONNECT_DELAY: 1000,
@@ -69,7 +66,7 @@ const INITIAL_NOTES = [
         title: 'Self-Unpacking',
         content: 'Seed generates system',
         status: 'pending',
-        logic: [{ id: 's1', tool: 'generateCode', input: { description: 'Note CRUD API' } }],
+        logic: [{id: 's1', tool: 'generateCode', input: {description: 'Note CRUD API'}}],
         tests: ['test-self-unpacking.js'],
         priority: 20
     },
@@ -91,14 +88,14 @@ const INITIAL_NOTES = [
             {
                 id: '1',
                 tool: 'summarize',
-                input: { text: 'This is a demo of Netention, a system for active notes.' },
+                input: {text: 'This is a demo of Netention, a system for active notes.'},
                 dependencies: [],
                 status: 'pending'
             },
             {
                 id: '2',
                 tool: 'generateCode',
-                input: { description: 'Function to display summary: ${1}' },
+                input: {description: 'Function to display summary: ${1}'},
                 dependencies: ['1'],
                 status: 'pending'
             }
@@ -182,12 +179,23 @@ class NetentionServer {
                 step.input = this.replacePlaceholders(step.input, memoryMap);
 
                 switch (step.tool) {
-                    case 'collaborate': await this.handleCollaboration(note, step); break;
-                    case 'generateTool': await this.handleToolGeneration(note, step); break;
-                    case 'knowNote': await this.handleKnowNote(note, step); break;
-                    case 'analyze': await this.handleAnalytics(note, step); break;
-                    case 'fetchExternal': await this.handleFetchExternal(note, step); break;
-                    default: await this.executeStep(note, step, memoryMap);
+                    case 'collaborate':
+                        await this.handleCollaboration(note, step);
+                        break;
+                    case 'generateTool':
+                        await this.handleToolGeneration(note, step);
+                        break;
+                    case 'knowNote':
+                        await this.handleKnowNote(note, step);
+                        break;
+                    case 'analyze':
+                        await this.handleAnalytics(note, step);
+                        break;
+                    case 'fetchExternal':
+                        await this.handleFetchExternal(note, step);
+                        break;
+                    default:
+                        await this.executeStep(note, step, memoryMap);
                 }
                 this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
             }
@@ -205,27 +213,27 @@ class NetentionServer {
     }
 
     async handleCollaboration(note, step) {
-        const { noteIds } = step.input;
+        const {noteIds} = step.input;
         const collabResult = await this.state.llm.invoke(
             [`Collaborate on "${note.title}" with notes: ${noteIds.join(', ')}`],
             noteIds
         );
-        note.memory.push({ type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id });
+        note.memory.push({type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await this.writeNoteToDB(note);
     }
 
     async handleToolGeneration(note, step) {
-        const { name, desc, code } = step.input;
-        const toolDef = { name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code) };
+        const {name, desc, code} = step.input;
+        const toolDef = {name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code)};
         this.state.tools.addTool(toolDef);
-        note.memory.push({ type: 'toolGen', content: `Generated tool ${name}`, timestamp: Date.now(), stepId: step.id });
+        note.memory.push({type: 'toolGen', content: `Generated tool ${name}`, timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await this.writeNoteToDB(note);
     }
 
     async handleKnowNote(note, step) {
-        const { title, goal } = step.input;
+        const {title, goal} = step.input;
         const newNoteId = crypto.randomUUID();
         const newNote = {
             id: newNoteId,
@@ -237,27 +245,27 @@ class NetentionServer {
             createdAt: new Date().toISOString(),
         };
         this.state.graph.addNote(newNote);
-        note.memory.push({ type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id });
+        note.memory.push({type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await this.writeNoteToDB(note);
         this.queueExecution(newNote);
     }
 
     async handleAnalytics(note, step) {
-        const { targetId } = step.input;
+        const {targetId} = step.input;
         const target = this.state.graph.getNote(targetId);
         if (!target) throw new Error(`Note ${targetId} not found`);
-        const analytics = this.state.analytics.get(targetId) || { usage: 0, runtime: 0 };
+        const analytics = this.state.analytics.get(targetId) || {usage: 0, runtime: 0};
         const result = `Usage: ${analytics.usage}, Avg Runtime: ${analytics.runtime / (analytics.usage || 1)}ms`;
-        note.memory.push({ type: 'analytics', content: result, timestamp: Date.now(), stepId: step.id });
+        note.memory.push({type: 'analytics', content: result, timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await this.writeNoteToDB(note);
     }
 
     async handleFetchExternal(note, step) {
-        const { apiName, query } = step.input;
+        const {apiName, query} = step.input;
         const data = await this.state.llm.fetchExternalData(apiName, query);
-        note.memory.push({ type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id });
+        note.memory.push({type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await this.writeNoteToDB(note);
     }
@@ -266,9 +274,9 @@ class NetentionServer {
         const tool = this.state.tools.getTool(step.tool);
         if (!tool) return this._handleToolNotFoundError(note, step);
         try {
-            const result = await tool.execute(step.input, { graph: this.state.graph, llm: this.state.llm }); // Use execute and pass context
+            const result = await tool.execute(step.input, {graph: this.state.graph, llm: this.state.llm}); // Use execute and pass context
             memoryMap.set(step.id, result);
-            note.memory.push({ type: 'tool', content: result, timestamp: Date.now(), stepId: step.id });
+            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
         } catch (error) {
             this._handleToolStepError(note, step, error);
@@ -280,7 +288,7 @@ class NetentionServer {
         if (note.memory.length > 100) {
             const summary = await this.state.llm.invoke([`Summarize: ${JSON.stringify(note.memory.slice(0, 50))}`]);
             note.memory = [
-                { type: 'summary', content: summary.text, timestamp: Date.now() },
+                {type: 'summary', content: summary.text, timestamp: Date.now()},
                 ...note.memory.slice(-50)
             ];
             await this.writeNoteToDB(note);
@@ -288,7 +296,7 @@ class NetentionServer {
     }
 
     updateAnalytics(note, event) {
-        const stats = this.state.analytics.get(note.id) || { usage: 0, runtime: 0, lastStart: 0 };
+        const stats = this.state.analytics.get(note.id) || {usage: 0, runtime: 0, lastStart: 0};
         if (event === 'start') stats.lastStart = Date.now();
         if (event === 'complete') {
             stats.usage++;
@@ -299,15 +307,15 @@ class NetentionServer {
 
     async initialize() {
         try {
-            this.state.log("Starting initialization...", 'info', { component: 'Server' });
+            this.state.log("Starting initialization...", 'info', {component: 'Server'});
             await this.loadTools();
             await this.loadNotesFromDB();
             this.state.llm.setApiKey('exampleApi', 'your-key-here');
-            this.state.log("Server started successfully.", 'info', { component: 'Server' });
+            this.state.log("Server started successfully.", 'info', {component: 'Server'});
             await this.start();
             this.initScheduler();
         } catch (e) {
-            this.state.log(`Initialization failed: ${e}`, 'error', { component: 'Server', error: e.message });
+            this.state.log(`Initialization failed: ${e}`, 'error', {component: 'Server', error: e.message});
             //setTimeout(() => this.initialize(), CONFIG.RECONNECT_DELAY);
         }
     }
@@ -317,18 +325,18 @@ class NetentionServer {
         const vite = await createViteServer({
             root: "client",
             plugins: [react()],
-            server: { middlewareMode: true },
+            server: {middlewareMode: true},
         });
 
         const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
-        this.state.wss = new WebSocketServer({ server: httpServer });
+        this.state.wss = new WebSocketServer({server: httpServer});
 
         this.state.wss.on('connection', ws => {
-            this.state.log('Client connected', 'info', { component: 'WebSocketHandler' });
-            ws.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
+            this.state.log('Client connected', 'info', {component: 'WebSocketHandler'});
+            ws.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
 
             while (this.state.messageQueue.length) {
-                const { client, message } = this.state.messageQueue.shift();
+                const {client, message} = this.state.messageQueue.shift();
                 if (!client || client.readyState === WebSocket.OPEN) {
                     (client || ws).send(message);
                 }
@@ -339,37 +347,52 @@ class NetentionServer {
                     const parsedMessage = JSON.parse(msg);
                     await this._handleWebSocketMessage(parsedMessage);
                 } catch (e) {
-                    this.state.log(`WebSocket message processing error: ${e}`, 'error', { component: 'WebSocketHandler', errorType: 'MessageParsingError', error: e.message });
+                    this.state.log(`WebSocket message processing error: ${e}`, 'error', {
+                        component: 'WebSocketHandler',
+                        errorType: 'MessageParsingError',
+                        error: e.message
+                    });
                 }
             });
 
 
-            ws.on('close', () => this.state.log('Client disconnected', 'info', { component: 'WebSocketHandler' }));
+            ws.on('close', () => this.state.log('Client disconnected', 'info', {component: 'WebSocketHandler'}));
         });
 
-        httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', { component: 'Server', port: CONFIG.PORT }));
+        httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', {
+            component: 'Server',
+            port: CONFIG.PORT
+        }));
         setInterval(() => this.processQueue(), CONFIG.QUEUE_INTERVAL);
     }
 
     async loadTools() {
-        this.state.log("Loading tools...", 'info', { component: 'ToolLoader' });
+        this.state.log("Loading tools...", 'info', {component: 'ToolLoader'});
         await this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
-        await this.state.tools.loadTools(CONFIG.TOOLS_DIR);
-        this.state.log(`Loaded ${this.state.tools.getTools().length} tools.`, 'info', { component: 'ToolLoader', count: this.state.tools.getTools().length });
+        this.state.log(`Loaded ${this.state.tools.getTools().length} tools.`, 'info', {
+            component: 'ToolLoader',
+            count: this.state.tools.getTools().length
+        });
     }
 
     async loadNotesFromDB() {
-        this.state.log("Loading notes from DB...", 'info', { component: 'NoteLoader' });
+        this.state.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
         INITIAL_NOTES.forEach(note => this.state.graph.addNote(note));
-        this.state.log(`Loaded ${this.state.graph.getNotes().length} notes from DB.`, 'info', { component: 'NoteLoader', count: this.state.graph.getNotes().length });
+        this.state.log(`Loaded ${this.state.graph.getNotes().length} notes from DB.`, 'info', {
+            component: 'NoteLoader',
+            count: this.state.graph.getNotes().length
+        });
     }
 
     async writeNoteToDB(note) {
-        this.state.log(`Writing note ${note.id} to DB.`, 'debug', { component: 'NoteWriter', noteId: note.id });
+        this.state.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
     }
 
     async queueExecution(note) {
-        this.state.log(`Queueing note ${note.id} for execution.`, 'debug', { component: 'ExecutionQueue', noteId: note.id });
+        this.state.log(`Queueing note ${note.id} for execution.`, 'debug', {
+            component: 'ExecutionQueue',
+            noteId: note.id
+        });
     }
 
     replacePlaceholders(input, memoryMap) {

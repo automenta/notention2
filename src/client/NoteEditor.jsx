@@ -126,7 +126,7 @@ export default function NoteEditor({note, onUpdate, onRun}) {
                 </button>
                 {runStatus && <span style={{marginLeft: '10px'}}>{runStatus}</span>}
             </div>
-            {note.memory.length > 0 && (
+            {note.memory?.length > 0 && (
                 <div style={RESULT_STYLE}>
                     <h4 style={RESULT_TITLE_STYLE}>Result:</h4>
                     <p>{note.memory[note.memory.length - 1].content}</p>

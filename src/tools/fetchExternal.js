@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     apiName: z.string(),
@@ -10,7 +10,7 @@ export default {
     description: 'Fetch data from an external API',
     schema,
     async invoke(input, context) {
-        const { apiName, query } = schema.parse(input);
-        return { apiName, query };
+        const {apiName, query} = schema.parse(input);
+        return {apiName, query};
     }
 };

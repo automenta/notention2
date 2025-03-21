@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     tools: z.array(z.string()),
@@ -12,7 +12,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const { tools: toolNames, inputs } = schema.parse(input);
+        const {tools: toolNames, inputs} = schema.parse(input);
         const graph = context.graph;
         let result = inputs;
         for (const toolName of toolNames) {

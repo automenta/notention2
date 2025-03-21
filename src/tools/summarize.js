@@ -21,8 +21,6 @@ export default {
     name: 'summarize',
     description: 'Summarize text',
     schema,
-    version: '1.0.0',
-    dependencies: ['zod'],
     async invoke(input) {
         const {text, length = 'medium', style = 'paragraph'} = schema.parse(input);
         const result = await chain.call({text, length, style});

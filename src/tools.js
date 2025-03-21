@@ -1,5 +1,4 @@
 import {readdir} from 'node:fs/promises';
-import {join} from 'node:path';
 
 export class Tool {
     constructor({name, description, schema, invoke, version = '1.0.0', dependencies = []}) {

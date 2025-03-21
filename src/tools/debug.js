@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     noteId: z.string()
@@ -11,7 +11,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const { noteId } = schema.parse(input);
+        const {noteId} = schema.parse(input);
         const graph = context.graph;
         const note = graph.getNote(noteId);
 

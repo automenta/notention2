@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import composeTool from '../tools/builtin/compose';
+import composeTool from '../tools/compose.js';
 
 describe('Compose Tool', () => {
     it('should compose multiple tools and execute them in order', async () => {

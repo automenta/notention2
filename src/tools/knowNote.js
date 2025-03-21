@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     title: z.string(),
@@ -10,7 +10,7 @@ export default {
     description: 'Create a new note with a goal',
     schema,
     async invoke(input, context) {
-        const { title, goal } = schema.parse(input);
-        return { title, goal };
+        const {title, goal} = schema.parse(input);
+        return {title, goal};
     }
 };

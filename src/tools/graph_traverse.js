@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     startId: z.string(),
@@ -18,7 +18,7 @@ async function traverseGraph(graph, startId, mode) {
 
         const note = graph.getNote(id);
         if (note) {
-            results.push({ id, title: note.title });
+            results.push({id, title: note.title});
             stackOrQueue.push(...graph.getReferences(id));
         }
     }
@@ -33,7 +33,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const { startId, mode, callback } = schema.parse(input);
+        const {startId, mode, callback} = schema.parse(input);
         const graph = context.graph;
 
         const results = await traverseGraph(graph, startId, mode);

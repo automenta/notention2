@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import graphMetricsTool from '../tools/builtin/graph_metrics';
+import graphMetricsTool from '../tools/graph_metrics.js';
 
 describe('Graph Metrics Tool', () => {
     it('should return graph metrics', async () => {

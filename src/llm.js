@@ -20,7 +20,7 @@ export class LLM {
         if (Object.keys(apiContext).length) {
             context += `\nExternal Data: ${JSON.stringify(apiContext)}`;
         }
-        if (context) messages.unshift({ role: 'system', content: context });
+        if (context) messages.unshift({role: 'system', content: context});
 
         const result = await this.llm.invoke(messages);
         this.promptCache.set(cacheKey, result);

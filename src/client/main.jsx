@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import NoteList from './NoteList.jsx';
 import NoteEditor from './NoteEditor.jsx';
@@ -38,7 +38,12 @@ function App() {
         cytoscape({
             container: container,
             elements: notes.map(note => ({data: {id: note.id, label: note.title}}))
-                .concat(notes.flatMap(note => note.references.map(ref => ({data: {source: note.id, target: ref}})))),
+                .concat(notes.flatMap(note => (note.references ?? []).map(ref => ({
+                    data: {
+                        source: note.id,
+                        target: ref
+                    }
+                })))),
             style: [
                 {selector: 'node', style: {'label': 'data(label)', 'background-color': '#666', 'color': '#fff'}},
                 {selector: 'edge', style: {'width': 2, 'line-color': '#ccc', 'curve-style': 'bezier'}}
@@ -81,7 +86,8 @@ function App() {
                     onRun={(id) => send({type: 'runNote', id})}
                 />
             )}
-            <div id="cy" style={{width: '100%', height: '300px', marginTop: '20px', border: '1px solid #ddd'}} ref={cyRef}></div>
+            <div id="cy" style={{width: '100%', height: '300px', marginTop: '20px', border: '1px solid #ddd'}}
+                 ref={cyRef}></div>
         </div>
     );
 }

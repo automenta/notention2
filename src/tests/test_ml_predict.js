@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import mlPredictTool from '../tools/builtin/ml_predict';
+import mlPredictTool from '../tools/ml_predict.js';
 
 describe('ML Predict Tool', () => {
     it('should predict using a trained ML model', async () => {

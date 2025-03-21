@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 import crypto from 'crypto';
 
 const schema = z.object({
@@ -11,7 +11,7 @@ export default {
     description: 'Generate unit tests',
     schema,
     async invoke(input, context) {
-        const { code, targetId } = schema.parse(input);
+        const {code, targetId} = schema.parse(input);
         const graph = context.graph;
         const testCode = `test('${targetId} works', () => { expect((${code})(2, 3)).toBe(5); });`;
         const testId = crypto.randomUUID();

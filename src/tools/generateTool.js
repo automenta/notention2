@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     name: z.string(),
@@ -11,7 +11,7 @@ export default {
     description: 'Generate a new tool at runtime',
     schema,
     async invoke(input, context) {
-        const { name, desc, code } = schema.parse(input);
-        return { name, desc, code };
+        const {name, desc, code} = schema.parse(input);
+        return {name, desc, code};
     }
 };

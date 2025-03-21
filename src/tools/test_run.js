@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 const schema = z.object({
     testId: z.string()
@@ -9,7 +9,7 @@ export default {
     description: 'Run unit tests',
     schema,
     async invoke(input, context) {
-        const { testId } = schema.parse(input);
+        const {testId} = schema.parse(input);
         const graph = context.graph;
         const testNote = graph.getNote(testId);
 
@@ -17,7 +17,7 @@ export default {
             return `Test ${testId} not found`;
         }
 
-        const sandbox = { expect: (val) => ({ toBe: (exp) => val === exp }) };
+        const sandbox = {expect: (val) => ({toBe: (exp) => val === exp})};
         const fn = new Function('test', 'expect', testNote.content);
         let passed = true;
         fn((desc, cb) => {
