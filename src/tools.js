@@ -31,7 +31,7 @@ export class Tools {
 
     async _loadToolFromFile(path, file) {
         try {
-            const {default: toolModule} = await import(`file://${join(path, file)}`);
+            const {default: toolModule} = await import(`./${join(path, file)}`);
             const tool = new Tool(toolModule);
             this.tools.set(tool.name, tool);
         } catch (e) {

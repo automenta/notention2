@@ -90,7 +90,7 @@ The unpacking process, in light of this unified conceptual framework, can be see
 
 1. **Seed as a "Meta-Note":** The seed description itself can be thought of as a special kind of Note – a "meta-note"
    that describes the desired structure and behavior of the entire Netention system.
-2. **Bootstrapping Agent as a "Primordial Note":** The bootstrapping agent is the initial, minimal Active Note that is
+2. **Bootstrapping Agent as a "Seed Note":** The bootstrapping agent is the initial, minimal Active Note that is
    capable of interpreting the seed (the meta-note) and initiating the unpacking process.
 3. **Code Generation as Plan Execution:** The process of generating code is simply the execution of the Plan associated
    with the seed Note. The bootstrapping agent uses the `code_generation` tool to create new Notes (representing
@@ -593,13 +593,13 @@ const MemorySchema = z.object({
 
 ### V. Core Components
 
-#### A. Primordial Note (`primordial.json`)
+#### A. Seed Note (`Seed.json`)
 
 ```json
 {
-  "id": "primordial",
+  "id": "Seed",
   "type": "Root",
-  "title": "Netention Primordial Note",
+  "title": "Netention Seed Note",
   "content": {
     "description": "Self-evolving knowledge system.",
     "metamodel": {
@@ -621,11 +621,11 @@ const MemorySchema = z.object({
 }
 ```
 
-#### B. Ur-Agent (`core/urAgent.js`)
+#### B. SeedAgent (`core/seed.js`)
 
 ```javascript
-class UrAgent {
-    async run(primordialNote) {
+class SeedAgent {
+    async run(SeedNote) {
         // Load LangChain.js
         const { AgentExecutor } = require("langchain/agents");
         const { initializeTools } = require("./tools");
@@ -635,14 +635,14 @@ class UrAgent {
         // Initialize tools, LLM, Agent
         const tools = initializeTools(); // load tools from /tools/ directory
         const llm = new ChatOpenAI({ modelName: "gpt-4", temperature: 0.7 });
-        const promptTemplate = loadPrompt("path/to/urAgentPrompt.txt"); // Load prompt from file
+        const promptTemplate = loadPrompt("path/to/SeedAgentPrompt.txt"); // Load prompt from file
         const agent = new ZeroShotAgent({ llm, promptTemplate, tools });
         const executor = new AgentExecutor({ agent, tools });
 
         // Execution loop
-        let currentNote = primordialNote;
+        let currentNote = SeedNote;
         while(currentNote.status === 'active'){
-            const plan = currentNote.content.initialPlan; // Get plan from Primordial Note
+            const plan = currentNote.content.initialPlan; // Get plan from Seed Note
             for (const step of plan.steps) { // Iterate through plan steps
                 const result = await executor.run(`${step.desc} with args: ${JSON.stringify(step.args)}`);
                 // ... handle step result, update note status, memory, etc.
@@ -745,8 +745,8 @@ class ToolRegistry {
     // ... tool registration and management methods
 }
 
-function initializeTools() { // For UrAgent to load initial tools
-    // ... load initial tools for UrAgent (codeGen, fileWrite, etc.) directly
+function initializeTools() { // For SeedAgent to load initial tools
+    // ... load initial tools for SeedAgent (codeGen, fileWrite, etc.) directly
 }
 ```
 
@@ -810,10 +810,10 @@ class Executor {
 ### VI. Evolution Process
 
 1. **Stage 0: Seed**
-    * Human creates `primordial.json`, minimal `urAgent.js`.
-    * Run `urAgent.js` - system bootstraps.
+    * Human creates `Seed.json`, minimal `seed.js`.
+    * Run `seed.js` - system bootstraps.
 2. **Stage 1: Core Bootstrap**
-    * Ur-Agent generates `Note.js`, `Plan.js`, `Tool.js`, `FileSystemManager.js` etc.
+    * SeedAgent generates `Note.js`, `Plan.js`, `Tool.js`, `FileSystemManager.js` etc.
     * Basic filesystem structure & file watching setup.
 3. **Stage 2: Expansion**
     * System adds tools (`search`, `summarize`, etc.), enhances classes.
@@ -1468,7 +1468,7 @@ class NoteImpl {
     * Write minimal `NoteSchema.ts`, `FileManager.ts`, core `NoteImpl` class (with `run`, `reflect`, `save` stubs).
     * Create `root.json` - a Root Note with `type: "Root"`, basic `content` (system description, initial plan), and
       minimal `logic` (bootstrap code as string).
-    * Hardcode initial tools (as JS files in `/tools/`): `codeGen`, `fileWrite`, `reflect`, `spawn`.
+    * Hardcode initial tools (as JS files in `/tools/`): `codeGen`, `fileWrite`, `reflect`, `know`.
     * Total human code: ~200-300 LOC.
 2. **Stage 1: Core Bootstrap (System-Driven)**:
     * Run Root Note: `node index.js`
@@ -1554,7 +1554,7 @@ Here's a breakdown of the strengths and some minor suggestions for further refin
   Tool Note itself.
 * **Bootstrapping Robustness**:  The bootstrap process is elegant, but how robust is it? What happens if the Root Note
   generation fails? Consider adding some minimal error handling and recovery logic to the initial `index.js` or
-  `urAgent.js` to ensure the system can gracefully recover from initial bootstrap failures.
+  `seed.js` to ensure the system can gracefully recover from initial bootstrap failures.
 * **Testing Strategy**: Briefly mention the testing strategy. Unit tests for core components (`FileManager`,
   `ToolRegistry`, `NoteImpl` base class)? Integration tests for Note workflows and tool combinations? End-to-end testing
   for UI and system behavior? Emphasize self-testing capabilities (using `test_gen` and `test_run` tools) as a core part
@@ -1977,7 +1977,7 @@ create a self-evolving, intelligent knowledge network.
     * Root Note's `run()` method is invoked, triggering the self-evolution process.
 
 2. **Note Creation (User or System)**:
-    * New Note file created (manually or via a Tool like `codeGen` or `spawn`).
+    * New Note file created (manually or via a Tool like `codeGen` or `know`).
     * `chokidar` detects the new file.
     * `FileManager` loads the file, validates it against `NoteSchema`, creates a `NoteImpl` instance, and adds it to its
       in-memory cache.
@@ -2214,7 +2214,7 @@ class Note {
 | `reflect`    | Self-analyze, optimize | LangChain `RetrievalQA` |
 | `notify`     | User interaction       | Express WebSocket push     |
 
-- **Dynamic**: Notes spawn new tools via `code_gen`.
+- **Dynamic**: Notes 'know' new tools via `code_gen`.
 
 ---
 
@@ -2634,7 +2634,7 @@ const seed: Note = {
     metamodel: {              // Recursive self-definition
       note: { id: "string", content: "any", graph: "array", ... },
       rules: [
-        "Notes spawn sub-Notes via tools.spawn",
+        "Notes 'know' sub-Notes via tools.know",
         "Priority drives resource allocation",
         "Memory prunes below relevance 0.2"
       ]
@@ -2653,7 +2653,7 @@ const seed: Note = {
     // Enhanced Tools
     "search": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "search", desc: "Web search", execute: "langChain.serpapi" }, ... }).id,
     "summarize": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "summarize", desc: "Text summary", execute: "langChain.summarize" }, ... }).id,
-    "spawn": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "spawn", desc: "Create Note", execute: "db.put" }, ... }).id,
+    "know": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "know", desc: "Create Note", execute: "db.put" }, ... }).id,
     "sync": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "sync", desc: "Replicate Notes", execute: "ipfs.pubsub" }, ... }).id,
     "learn": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "learn", desc: "Train on data", execute: "langChain.vectorStore" }, ... }).id
   },
@@ -2675,7 +2675,7 @@ const seed: Note = {
 | **Metamodel**      | Self-describing rules and schema             | Enables recursive evolution           |
 | **Search Tool**    | Web search via SerpAPI/LangChain             | Immediate external data access        |
 | **Summarize Tool** | Text summarization via LLM                   | Enhances memory pruning, usability    |
-| **Spawn Tool**     | Creates new Notes dynamically                | Core of recursive growth              |
+| **Know Tool**      | Creates new Notes dynamically                | Core of recursive growth              |
 | **Sync Tool**      | Replicates Notes across IPFS peers           | Distributed resilience, collaboration |
 | **Learn Tool**     | Vectorizes memory for semantic learning      | Boosts intelligence over time         |
 | **UI Templates**   | Predefined UI Notes (list, graph, editor)    | Instant user interaction              |
@@ -2697,7 +2697,7 @@ const seed: Note = {
       ```json
       "metamodel": {
         "note": { "id": "string", "content": "any", "graph": "array", "state": "object", ... },
-        "rules": ["spawn sub-Notes", "prune memory", "sync via IPFS"]
+        "rules": ["know sub-Notes", "prune memory", "sync via IPFS"]
       }
       ```
     - **Value**: System understands itself from boot, evolves structure autonomously.
@@ -2712,11 +2712,11 @@ const seed: Note = {
     - **Impl**: LangChain.js `summarize` chain.
     - **Value**: Keeps memory lean, improves long-term recall.
 
-5. **Spawn Tool**
+5. **Know Tool**
     - **Purpose**: Core mechanism for creating new Notes.
     - **Impl**:
       ```typescript
-      async spawn(args: { content: any }): Promise<string> {
+      async know(args: { content: any }): Promise<string> {
         const id = crypto.randomUUID();
         db.put({ id, content: args.content, state: { status: "pending", priority: 50 }, ... });
         return id;
@@ -2812,7 +2812,7 @@ runForever();
 | Aspect                | Seed Additions Impact                 | Outcome                              |
 |-----------------------|---------------------------------------|--------------------------------------|
 | **User Productivity** | Task templates, UI, search, summarize | Instant task management, insights    |
-| **System Autonomy**   | Metamodel, spawn, reflect, learn      | Self-evolves without human input     |
+| **System Autonomy**   | Metamodel, know, reflect, learn       | Self-evolves without human input     |
 | **Collaboration**     | Sync tool, replication config         | Distributed network from start       |
 | **Intelligence**      | Learn tool, prompt library            | Smarter decisions, efficient LLM use |
 | **Resilience**        | Config, sync, memory pruning          | Adapts to constraints, scales        |
@@ -2867,7 +2867,7 @@ const seed: Note = {
     },
     metamodel: {
       note: { id: "string", content: "any", graph: "array", state: "object", ... },
-      rules: ["spawn sub-Notes", "prune memory", "sync via IPFS"]
+      rules: ["know sub-Notes", "prune memory", "sync via IPFS"]
     },
     prompts: {
       "plan": "Generate a plan for: {desc}",
@@ -2889,7 +2889,7 @@ const seed: Note = {
     "ui_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "ui_gen", desc: "Generate UI", execute: "cytoscape.add" }, ... }).id,
     "search": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "search", desc: "Web search", execute: "langChain.serpapi" }, ... }).id,
     "summarize": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "summarize", desc: "Text summary", execute: "langChain.summarize" }, ... }).id,
-    "spawn": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "spawn", desc: "Create Note", execute: "db.put" }, ... }).id,
+    "know": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "know", desc: "Create Note", execute: "db.put" }, ... }).id,
     "sync": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "sync", desc: "Replicate Notes", execute: "ipfs.pubsub" }, ... }).id,
     "learn": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "learn", desc: "Train on data", execute: "langChain.vectorStore" }, ... }).id,
     // New Programming Tools
@@ -3120,7 +3120,7 @@ const seed: Note = {
     },
     metamodel: {
       note: { id: "string", content: "any", graph: "array", state: "object", ... },
-      rules: ["spawn sub-Notes", "prune memory", "sync via IPFS", "test functionality"]
+      rules: ["know sub-Notes", "prune memory", "sync via IPFS", "test functionality"]
     },
     prompts: {
       "plan": "Generate a plan for: {desc}",
@@ -3143,7 +3143,7 @@ const seed: Note = {
     "ui_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "ui_gen", desc: "Generate UI", execute: "cytoscape.add" }, ... }).id,
     "search": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "search", desc: "Web search", execute: "langChain.serpapi" }, ... }).id,
     "summarize": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "summarize", desc: "Text summary", execute: "langChain.summarize" }, ... }).id,
-    "spawn": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "spawn", desc: "Create Note", execute: "db.put" }, ... }).id,
+    "know": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "know", desc: "Create Note", execute: "db.put" }, ... }).id,
     "sync": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "sync", desc: "Replicate Notes", execute: "ipfs.pubsub" }, ... }).id,
     "learn": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "learn", desc: "Train on data", execute: "langChain.vectorStore" }, ... }).id,
     "eval_expr": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "eval_expr", desc: "Evaluate expressions", execute: "evalExpr" }, ... }).id,
@@ -3399,7 +3399,7 @@ const seed: Note = {
     type: "system",
     desc: "Netention: Self-evolving knowledge/task fabric",
     config: { maxMemory: 50, tickRate: 10, decayRate: 7 * 24 * 60 * 60 * 1000, tokenBudget: 10000, defaultPriority: 50, replicationPeers: 5 },
-    metamodel: { note: { id: "string", content: "any", graph: "array", state: "object", ... }, rules: ["spawn sub-Notes", "prune memory", "sync via IPFS", "test functionality", "learn dynamically"] },
+    metamodel: { note: { id: "string", content: "any", graph: "array", state: "object", ... }, rules: ["know sub-Notes", "prune memory", "sync via IPFS", "test functionality", "learn dynamically"] },
     prompts: {
       "plan": "Generate a plan for: {desc}",
       "optimize": "Refine this code: {src}",
@@ -3418,7 +3418,7 @@ const seed: Note = {
     // Existing Tools (abridged)
     "code_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "code_gen", desc: "Generate JS", execute: "langChain.llm" }, ... }).id,
     "reflect": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "reflect", desc: "Self-analyze", execute: "langChain.reflect" }, ... }).id,
-    "spawn": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "spawn", desc: "Create Note", execute: "db.put" }, ... }).id,
+    "know": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "know", desc: "Create Note", execute: "db.put" }, ... }).id,
     "test_gen": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "test_gen", desc: "Generate unit tests", execute: "testGen" }, ... }).id,
     "test_run": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "test_run", desc: "Run unit tests", execute: "testRun" }, ... }).id,
     "graph_search": db.put({ id: crypto.randomUUID(), content: { type: "tool", name: "graph_search", desc: "Search graph", execute: "graphSearch" }, ... }).id,
@@ -3693,7 +3693,7 @@ continuous open loop, with components interacting via the Note graph and tools.
 - **Key Tools**:
   | Tool | Function | Inputs |
   |-----------------|-----------------------------------|-----------------------|
-  | `spawn`         | Creates new Notes | `{content: any}`     |
+  | `know`         | Creates new Notes | `{content: any}`     |
   | `ml_train`      | Trains ML models | `{modelType, data}`  |
   | `ml_predict`    | Predicts with ML | `{modelId, input}`   |
   | `astar`         | A* pathfinding | `{startId, goalId}`  |
@@ -3747,7 +3747,7 @@ continuous open loop, with components interacting via the Note graph and tools.
 
 ```
 [Seed Note]
-    ↓ (spawn)
+    ↓ (know)
 [Notes] ↔ [Graph] ↔ [Tools]
     ↓ (queue)
 [Priority Queue] → [Runtime]
@@ -3783,7 +3783,7 @@ continuous open loop, with components interacting via the Note graph and tools.
 
 | Interaction         | Source → Target      | Mechanism                       | Outcome                         |
 |---------------------|----------------------|---------------------------------|---------------------------------|
-| **Note Spawns**     | Note → Note          | `spawn` tool                    | New Note in graph               |
+| **Note Known**      | Note → Note          | `know` tool                     | New Note in graph               |
 | **Tool Execution**  | Note → Tool          | `act()` calls `executor.invoke` | Executes task/ML/pathfinding    |
 | **Priority Update** | Note → Queue         | `think()` recalcs priority      | Reorders execution              |
 | **Graph Search**    | Note → Graph         | `graph_search` traverses        | Finds relevant Notes            |
@@ -3791,7 +3791,7 @@ continuous open loop, with components interacting via the Note graph and tools.
 | **Planning**        | Note → Plan Notes    | `astar` + `plan_optimize`       | Optimized step sequence         |
 | **Testing**         | Note → Test Note     | `test_gen` + `test_run`         | Validates functionality         |
 | **Sync**            | Note → IPFS          | `db.put` + `ipfs.pubsub`        | Persists/distributes state      |
-| **UI Update**       | Note → Cytoscape     | `ui_gen` + Express broadcast       | Visualizes graph changes        |
+| **UI Update**       | Note → Cytoscape     | `ui_gen` + Express broadcast    | Visualizes graph changes        |
 
 ---
 
@@ -3804,7 +3804,7 @@ continuous open loop, with components interacting via the Note graph and tools.
     - Calls `astar` for path to goal, updates `graph`.
 - **Act**:
     - Executes `tools` (e.g., `test_run`, `graph_traverse`).
-    - Spawns sub-Notes via `spawn`.
+    - Knows sub-Notes via `know`.
 - **Sync**: Saves to IPFS, updates UI.
 
 ### **2. Tool Synergy**
@@ -3835,7 +3835,7 @@ continuous open loop, with components interacting via the Note graph and tools.
 ## **Example Flow**
 
 1. **Seed Starts**:
-    - `think()`: Plans "Evolve system" → Spawns ML model Note.
+    - `think()`: Plans "Evolve system" → Knows ML model Note.
     - `act()`: `ml_train` on memory → `ml_predict` adjusts priorities.
 2. **Planning**:
     - `astar` finds path to "Plan day" → `plan_optimize` refines.
@@ -3849,7 +3849,7 @@ continuous open loop, with components interacting via the Note graph and tools.
 ## **Why It Works**
 
 - **Unified**: Notes drive all actions via tools/graph.
-- **Recursive**: Self-spawning and ML enhance adaptability.
+- **Recursive**: Self-knowing and ML enhance adaptability.
 - **Efficient**: Priority queue ensures fair, continuous operation.
 - **Visual**: UI reflects system state instantly.
 

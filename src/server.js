@@ -310,7 +310,45 @@ class NetentionServer {
             this.state.log(`Initialization failed: ${e}`, 'error', { component: 'Server', error: e.message });
             //setTimeout(() => this.initialize(), CONFIG.RECONNECT_DELAY);
         }
-        await this.start();
+    }
+
+
+    async start() {
+        const vite = await createViteServer({
+            root: "client",
+            plugins: [react()],
+            server: { middlewareMode: true },
+        });
+
+        const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
+        this.state.wss = new WebSocketServer({ server: httpServer });
+
+        this.state.wss.on('connection', ws => {
+            this.state.log('Client connected', 'info', { component: 'WebSocketHandler' });
+            ws.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
+
+            while (this.state.messageQueue.length) {
+                const { client, message } = this.state.messageQueue.shift();
+                if (!client || client.readyState === WebSocket.OPEN) {
+                    (client || ws).send(message);
+                }
+            }
+
+            ws.on('message', async msg => {
+                try {
+                    const parsedMessage = JSON.parse(msg);
+                    await this._handleWebSocketMessage(parsedMessage);
+                } catch (e) {
+                    this.state.log(`WebSocket message processing error: ${e}`, 'error', { component: 'WebSocketHandler', errorType: 'MessageParsingError', error: e.message });
+                }
+            });
+
+
+            ws.on('close', () => this.state.log('Client disconnected', 'info', { component: 'WebSocketHandler' }));
+        });
+
+        httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', { component: 'Server', port: CONFIG.PORT }));
+        setInterval(() => this.processQueue(), CONFIG.QUEUE_INTERVAL);
     }
 }
 
