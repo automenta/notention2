@@ -120,6 +120,7 @@ class ServerState {
         this.executionQueue = new Set(); // Changed to Set
         this.analytics = new Map();
         this.scheduler = null;
+        this.toolRegistry = new Map();
     }
 
     log(message, level = 'info', context = {}) {
@@ -349,6 +350,62 @@ class NetentionServer {
 
         httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', { component: 'Server', port: CONFIG.PORT }));
         setInterval(() => this.processQueue(), CONFIG.QUEUE_INTERVAL);
+    }
+
+    async loadTools() {
+        this.state.log("Loading tools...", 'info', { component: 'ToolLoader' });
+        await this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
+        await this.state.tools.loadTools(CONFIG.TOOLS_DIR);
+        this.state.toolRegistry = new Map([...this.state.tools.tools]); // Copy tools to registry
+        this.state.log(`Loaded ${this.state.toolRegistry.size} tools.`, 'info', { component: 'ToolLoader', count: this.state.toolRegistry.size });
+    }
+
+    async loadNotesFromDB() {
+        this.state.log("Loading notes from DB...", 'info', { component: 'NoteLoader' });
+        INITIAL_NOTES.forEach(note => this.state.graph.addNote(note));
+        this.state.log(`Loaded ${this.state.graph.getNotes().length} notes from DB.`, 'info', { component: 'NoteLoader', count: this.state.graph.getNotes().length });
+    }
+
+    async writeNoteToDB(note) {
+        this.state.log(`Writing note ${note.id} to DB.`, 'debug', { component: 'NoteWriter', noteId: note.id });
+    }
+
+    async queueExecution(note) {
+        this.state.log(`Queueing note ${note.id} for execution.`, 'debug', { component: 'ExecutionQueue', noteId: note.id });
+    }
+
+    replacePlaceholders(input, memoryMap) {
+        return input;
+    }
+
+    _processStepDependencies(dependencies, stepsById, readyQueue, stepId, note) {
+    }
+
+    async _updateNoteStatusPostExecution(note) {
+    }
+
+    async _runNoteTests(note) {
+    }
+
+    async _finalizeNoteRun(note) {
+        return note;
+    }
+
+    _handleNoteError(note, error) {
+        return note;
+    }
+
+    _handleToolNotFoundError(note, step) {
+        return note;
+    }
+
+    _handleToolStepError(note, step, error) {
+    }
+
+    async _handleWebSocketMessage(parsedMessage) {
+    }
+
+    async processQueue() {
     }
 }
 
