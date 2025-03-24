@@ -224,7 +224,6 @@ class NetentionServer {
                 const step = stepsById.get(stepId);
                 step.input = this.replacePlaceholders(step.input, memoryMap);
 
-                // *** CORE LOOP: Execute each step ***
                 switch (step.tool) {
                     case 'summarize':
                         await this.handleSummarize(note, step);
@@ -244,65 +243,18 @@ class NetentionServer {
                     default:
                         await this.executeStep(note, step, memoryMap);
                 }
-                // *** END CORE LOOP ***
-
                 this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
             }
 
             await this._updateNoteStatusPostExecution(note);
             await this._runNoteTests(note);
-            await this.pruneMemory(note);
+            await self.pruneMemory(note);
             this.updateAnalytics(note, 'complete');
             return await this._finalizeNoteRun(note);
         } catch (error) {
             return this._handleNoteError(note, error);
         } finally {
             this.state.executionQueue.delete(note.id);
-        }
-    }
-
-    async handleSummarize(note, step) {
-        try {
-            const {text} = step.input;
-            const result = await this.state.tools.executeTool('summarize', {text}, {graph: this.state.graph, llm: this.state.llm});
-            note.memory.push({type: 'summary', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.writeNoteToDB(note);
-        } catch (error) {
-            step.status = 'failed';
-            note.memory.push({type: 'summaryError', content: `Summarization failed: ${error.message}`, timestamp: Date.now(), stepId: step.id});
-            await this.writeNoteToDB(note);
-        }
-    }
-
-    async handleGenerateCode(note, step) {
-        try {
-            const {description} = step.input;
-            const code = await this.state.tools.executeTool('generateCode', {description}, {graph: this.state.graph, llm: this.state.llm});
-            note.memory.push({type: 'codeGen', content: code, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.writeNoteToDB(note);
-        } catch (error) {
-            step.status = 'failed';
-            note.memory.push({type: 'codeGenError', content: `Code generation failed: ${error.message}`, timestamp: Date.now(), stepId: step.id});
-            await this.writeNoteToDB(note);
-        }
-    }
-
-    async handleReflect(note, step) {
-        const {noteId} = step.input;
-        try {
-            // Basic reflect - just summarize the note's content
-            const reflection = await this.state.tools.executeTool('reflect', {text: note.content}, {graph: this.state.graph, llm: this.state.llm});
-            note.memory.push({type: 'reflection', content: reflection, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.writeNoteToDB(note);
-            return reflection;
-        } catch (error) {
-            step.status = 'failed';
-            note.memory.push({type: 'reflectionError', content: `Reflection failed: ${error.message}`, timestamp: Date.now(), stepId: step.id});
-            await this.writeNoteToDB(note);
-            return `Reflection failed: ${error.message}`;
         }
     }
 
@@ -352,18 +304,61 @@ class NetentionServer {
 
 
     async handleCollaboration(note, step) {
+        const {noteIds} = step.input;
+        const collabResult = await this.state.llm.invoke(
+            [`Collaborate on "${note.title}" with notes: ${noteIds.join(', ')}`],
+            noteIds
+        );
+        note.memory.push({type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await this.writeNoteToDB(note);
     }
 
     async handleToolGeneration(note, step) {
+        const {name, desc, code} = step.input;
+        const toolDef = {name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code)};
+        this.state.tools.addTool(toolDef);
+        note.memory.push({type: 'toolGen', content: `Generated tool ${name}`, timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await this.writeNoteToDB(note);
     }
 
     async handleKnowNote(note, step) {
+        const {title, goal} = step.input;
+        const newNoteId = crypto.randomUUID();
+        const newNote = {
+            id: newNoteId,
+            title,
+            content: goal,
+            status: 'pending',
+            logic: [],
+            memory: [],
+            createdAt: new Date().toISOString(),
+        };
+        this.state.graph.addNote(newNote);
+        note.memory.push({type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await this.writeNoteToDB(note);
+        this.queueExecution(newNote);
     }
 
     async handleAnalytics(note, step) {
+        const {targetId} = step.input;
+        const target = this.state.graph.getNote(targetId);
+        if (!target) throw new Error(`Note ${targetId} not found`);
+        const analytics = this.state.analytics.get(targetId) || {usage: 0, runtime: 0};
+        const result = `Usage: ${analytics.usage}, Avg Runtime: ${analytics.runtime / (analytics.usage || 1)}ms`;
+        note.memory.push({type: 'analytics', content: result, timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await this.writeNoteToDB(note);
     }
 
     async handleFetchExternal(note, step) {
+        const {apiName, query} = step.input;
+        const data = await this.state.llm.fetchExternalData(apiName, query);
+        note.memory.push({type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await this.writeNoteToDB(note);
     }
 
     async executeStep(note, step, memoryMap) {
@@ -535,6 +530,25 @@ class NetentionServer {
     }
 
     async _runNoteTests(note) {
+        if (!CONFIG.AUTO_RUN_TESTS || !note.tests || !note.tests.length) return;
+        for (const testFile of note.tests) {
+            try {
+                const testModule = await import(`file://${process.cwd()}/${CONFIG.TESTS_DIR}/${testFile}`);
+                await testModule.default(note, this.state); // Assuming tests are written as async functions
+                this.state.log(`Tests for note ${note.id} passed.`, 'info', {
+                    component: 'TestRunner',
+                    noteId: note.id,
+                    testFile: testFile
+                });
+            } catch (error) {
+                this.state.log(`Tests failed for note ${note.id}: ${error}`, 'error', {
+                    component: 'TestRunner',
+                    noteId: note.id,
+                    testFile: testFile,
+                    error: error.message
+                });
+            }
+        }
     }
 
     async _finalizeNoteRun(note) {
@@ -715,6 +729,7 @@ class NetentionServer {
         note.status = 'pendingUnitTesting';
         await this.writeNoteToDB(note);
 
+
         const testNote = {
             id: testId,
             title: `Unit Test for ${note.title}`,
@@ -736,8 +751,6 @@ class NetentionServer {
             testNoteId: testId
         });
     }
-
-
 }
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
