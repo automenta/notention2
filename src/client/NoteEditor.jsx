@@ -5,7 +5,7 @@ import LogicStepEditor from './LogicStepEditor.jsx'; // Import LogicStepEditor
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
 
-export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
+export default function NoteEditor({ note, onUpdate, notes = [], onRunTool, availableTools }) { // Expect availableTools as prop
     const [title, setTitle] = useState(note?.title || '');
     const [content, setContent] = useState(note?.content || {});
     const [priority, setPriority] = useState(note?.priority || 50);
@@ -13,32 +13,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
     const [logic, setLogic] = useState(note?.logic || []);
     const [toolInput, setToolInput] = useState({ tool: '', input: '' });
     const [isSaving, setIsSaving] = useState(false);
-    const [availableTools, setAvailableTools] = useState([
-        { name: 'summarize', description: 'Summarize text', schema: { type: 'object', properties: { text: { type: 'string', description: 'Text to summarize' }, length: { type: 'string', enum: ['short', 'medium', 'long'], description: 'Summary length' } }, required: ['text'] } },
-        { name: 'generateCode', description: 'Generate code', schema: { type: 'object', properties: { description: { type: 'string', description: 'Code description' } }, required: ['description'] } },
-        { name: 'reflect', description: 'Reflect', schema: { type: 'object', properties: { noteId: { type: 'string', description: 'Note ID to reflect on' } }, required: ['noteId'] } },
-        { name: 'test_gen', description: 'Generate tests', schema: { type: 'object', properties: { code: { type: 'string', description: 'Code to test' }, targetId: { type: 'string', description: 'Target Note ID' } }, required: ['code', 'targetId'] } },
-        { name: 'test_run', description: 'Run tests', schema: { type: 'object', properties: { testId: { type: 'string', description: 'Test Note ID' } }, required: ['testId'] } },
-        { name: 'compose', description: 'Compose tools', schema: { type: 'object', properties: { tools: { type: 'array', items: { type: 'string' }, description: 'Tools to compose' }, inputs: { type: 'object', description: 'Initial inputs' } }, required: ['tools', 'inputs'] } },
-        { name: 'schedule', description: 'Schedule note', schema: { type: 'object', properties: { noteId: { type: 'string', description: 'Note ID to schedule' }, time: { type: 'string', format: 'datetime', description: 'Schedule time' } }, required: ['noteId', 'time'] } },
-        { name: 'debug', description: 'Debug note', schema: { type: 'object', properties: { noteId: { type: 'string', description: 'Note ID to debug' } }, required: ['noteId'] } },
-        { name: 'eval_expr', description: 'Evaluate expression', schema: { type: 'object', properties: { expr: { type: 'string', description: 'Expression to evaluate' }, context: { type: 'object', description: 'Context for evaluation' } }, required: ['expr'] } },
-        { name: 'graph_metrics', description: 'Graph metrics', schema: { type: 'object', properties: { startId: { type: 'string', description: 'Start Note ID' } }, required: ['startId'] } },
-        { name: 'graph_search', description: 'Graph search', schema: { type: 'object', properties: { startId: { type: 'string', description: 'Start Note ID' }, query: { type: 'string', description: 'Search query' } }, required: ['startId', 'query'] } },
-        { name: 'graph_traverse', description: 'Graph traverse', schema: { type: 'object', properties: { startId: { type: 'string', description: 'Start Note ID' }, mode: { type: 'string', enum: ['dfs', 'bfs'], default: 'bfs', description: 'Traversal mode' }, callback: { type: 'string', description: 'Callback function' } }, required: ['startId'] } },
-        { name: 'knowNote', description: 'Create note', schema: { type: 'object', properties: { title: { type: 'string', description: 'New note title' }, goal: { type: 'string', description: 'New note goal' } }, required: ['title', 'goal'] } },
-        { name: 'ml_predict', description: 'ML predict', schema: { type: 'object', properties: { modelId: { type: 'string', description: 'Model Note ID' }, input: { type: 'object', description: 'Prediction input' } }, required: ['modelId', 'input'] } },
-        { name: 'ml_train', description: 'ML train', schema: { type: 'object', properties: { modelType: { type: 'string', enum: ['dtree', 'classifier', 'pca', 'cluster'], description: 'Model type' }, data: { type: 'array', items: { type: 'object' }, description: 'Training data' }, targetId: { type: 'string', description: 'Target Note ID' } }, required: ['modelType', 'data'] } },
-        { name: 'rag', description: 'RAG query', schema: { type: 'object', properties: { query: { type: 'string', description: 'Search query' }, documents: { type: 'array', items: { type: 'string' }, description: 'Documents' }, vectorStoreId: { type: 'string', description: 'Vector store ID' } }, required: ['query'] } },
-        { name: 'webSearch', description: 'Web search', schema: { type: 'object', properties: { query: { type: 'string', description: 'Search query' }, apiKey: { type: 'string', description: 'API key' } }, required: ['query'] } },
-        { name: 'fetchExternal', description: 'Fetch external data', schema: { type: 'object', properties: { apiName: { type: 'string', description: 'API name' }, query: { type: 'string', description: 'API query' } }, required: ['apiName', 'query'] } },
-        { name: 'analyze', description: 'Analyze note', schema: { type: 'object', properties: { targetId: { type: 'string', description: 'Target Note ID' } }, required: ['targetId'] } },
-        { name: 'browser_use', description: 'Browser use', schema: { type: 'object', properties: { url: { type: 'string', format: 'url', description: 'URL to browse' }, action: { type: 'string', enum: ['open', 'scrape', 'interact'], description: 'Browser action' }, selector: { type: 'string', description: 'CSS selector' }, input: { type: 'string', description: 'Input value' } }, required: ['url', 'action'] } },
-        { name: 'computer_monitor', description: 'Computer monitor', schema: { type: 'object', properties: { metric: { type: 'string', enum: ['cpu', 'memory', 'disk', 'network'], description: 'Metric to monitor' }, interval: { type: 'number', description: 'Monitoring interval' } }, required: ['metric'] } },
-        { name: 'computer_use', description: 'Computer use', schema: { type: 'object', properties: { command: { type: 'string', enum: ['run', 'kill', 'list'], description: 'Computer command' }, process: { type: 'string', description: 'Process name' }, script: { type: 'string', description: 'Script to run' } }, required: ['command'] } },
-        { name: 'mcp', description: 'MCP task', schema: { type: 'object', properties: { task: { type: 'string', description: 'MCP task description' }, constraints: { type: 'object', description: 'Task constraints' } }, required: ['task'] } },
-    ]);
-
+    // const [availableTools, setAvailableTools] = useState([ ... removed hardcoded tools ... ]); // Removed availableTools state
 
     useEffect(() => {
         if (note) {
@@ -159,7 +134,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
                 </select>
             </div>
             <div style={{ margin: '10px 0' }}>
-                <LogicStepEditor logic={logic} onChange={handleLogicChange} availableTools={availableTools} />
+                <LogicStepEditor logic={logic} onChange={handleLogicChange} availableTools={availableTools} /> {/* Use LogicStepEditor with availableTools prop */}
             </div>
             <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button

@@ -15,6 +15,7 @@ function App() {
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
     const [edgeDrawingMode, setEdgeDrawingMode] = useState(false);
     const [sourceNode, setSourceNode] = useState(null);
+    const [availableTools, setAvailableTools] = useState([]); // State to hold available tools
 
 
     useEffect(() => {
@@ -30,6 +31,7 @@ function App() {
             if (type === 'notes') setNotes(data);
             if (type === 'noteUpdate') setNotes((prev) =>
                 prev.map(n => n.id === data.id ? data : n).filter(n => n));
+            if (type === 'tools') setAvailableTools(data); // Handle 'tools' message
         };
 
         websocket.onerror = () => {
@@ -175,6 +177,7 @@ function App() {
                 <NoteEditor
                     note={notes.find(n => n.id === selectedNoteId)}
                     onUpdate={(updates) => send({type: 'updateNote', ...updates})}
+                    availableTools={availableTools} // Pass availableTools as prop
                 />
             )}
             <div id="cy" style={{width: '100%', height: '300px', border: '1px solid #ddd'}}
