@@ -3,6 +3,9 @@ import {createRoot} from 'react-dom/client';
 import NoteList from './NoteList.jsx';
 import NoteEditor from './NoteEditor.jsx';
 import cytoscape from 'cytoscape';
+import popper from 'cytoscape-popper';
+
+cytoscape.use(popper);
 
 function App() {
     const [notes, setNotes] = useState([]);
@@ -10,6 +13,9 @@ function App() {
     const [ws, setWs] = useState(null);
     const cyRef = useRef(null);
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
+    const [edgeDrawingMode, setEdgeDrawingMode] = useState(false);
+    const [sourceNode, setSourceNode] = useState(null);
+
 
     useEffect(() => {
         const websocket = new WebSocket('ws://localhost:8080');
@@ -46,12 +52,12 @@ function App() {
 
     useEffect(() => {
         if (notes.length > 0 && cyRef.current) {
-            initializeCytoscape(notes, cyRef.current, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph); // Pass handleDeleteNodeFromGraph
+            initializeCytoscape(notes, cyRef.current, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph, handleCreateEdge); // Pass handleCreateEdge
         }
     }, [notes]);
 
 
-    const initializeCytoscape = (notes, container, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph) => { // Accept handleDeleteNoteFromGraph
+    const initializeCytoscape = (notes, container, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph, handleCreateEdge) => { // Accept handleCreateEdge
         const cy = cytoscape({
             container: container,
             elements: notes.map(note => ({data: {id: note.id, label: note.title, status: note.status}})) // Include status in node data
@@ -76,7 +82,9 @@ function App() {
                                 case 'pendingUnitTesting': return 'purple';
                                 default: return '#666';
                             }
-                        }
+                        },
+                        'width': 80,
+                        'height': 80
                     }
                 },
                 {selector: 'edge', style: {'width': 2, 'line-color': '#ccc'}}
@@ -100,6 +108,28 @@ function App() {
                 handleCreateNoteFromGraph(event.position); // Call create note handler, pass position
             }
         });
+
+        cy.on('dragstart', 'node', function(evt){
+            if (edgeDrawingMode) {
+                setSourceNode(evt.target);
+            }
+        });
+
+        cy.on('drag', 'node', function(evt){
+            if (edgeDrawingMode && sourceNode) {
+                // visual feedback during drag if needed
+            }
+        });
+
+        cy.on('dragstop', 'node', function(evt){
+            if (edgeDrawingMode && sourceNode) {
+                const targetNode = evt.target;
+                if (sourceNode !== targetNode) {
+                    handleCreateEdge(sourceNode.id(), targetNode.id());
+                }
+                setSourceNode(null);
+            }
+        });
     };
 
 
@@ -119,6 +149,11 @@ function App() {
         send({type: 'deleteNote', id: nodeId});
     };
 
+    // New handler to create edge between nodes
+    const handleCreateEdge = (sourceNoteId, targetNoteId) => {
+        send({type: 'createEdge', sourceId: sourceNoteId, targetId: targetNoteId});
+    };
+
 
     return (
         <div>
@@ -126,7 +161,10 @@ function App() {
             <p>{connectionStatus}</p>
 
             <div>
-                <button onClick={handleCreateNote}>+</button>
+                <button onClick={handleCreateNote}>+ Note</button>
+                <button onClick={() => setEdgeDrawingMode(!edgeDrawingMode)}>
+                    {edgeDrawingMode ? 'Disable Edge Draw' : 'Enable Edge Draw'}
+                </button>
             </div>
             <NoteList
                 notes={notes}
