@@ -9,6 +9,7 @@ import crypto from 'crypto';
 import {Tools} from './tools.js';
 import {LLM} from './llm.js'; // Import LLM
 import { CONFIG } from './config.js'; // Import CONFIG
+import { ServerState } from './server_state.js'; // Import ServerState
 
 const NoteSchema = z.object({
     id: z.string(),
@@ -136,39 +137,6 @@ const INITIAL_NOTES = [
     }
 ];
 
-class ServerState {
-    constructor() {
-        this.llm = new LLM(); // Instantiate LLM Class
-        this.graph = new Graph();
-        this.tools = new Tools();
-        this.memory = new InMemoryChatMessageHistory();
-        this.wss = null;
-        this.messageQueue = [];
-        this.pendingWrites = new Map();
-        this.updateBatch = new Set();
-        this.batchTimeout = null;
-        this.executionQueue = new Set(); // Changed to Set
-        this.analytics = new Map();
-        this.scheduler = null;
-    }
-
-    log(message, level = 'info', context = {}) {
-        if (level === 'debug' && !CONFIG.DEBUG_LOGGING) {
-            return;
-        }
-        const logEntry = {
-            timestamp: new Date().toISOString(),
-            level: level,
-            message: message,
-            ...context
-        };
-        console[level](JSON.stringify(logEntry));
-    }
-
-    timeoutPromise(promise, ms) {
-        return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
-    }
-}
 
 class NetentionServer {
     constructor() {
