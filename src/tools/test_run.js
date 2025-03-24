@@ -18,11 +18,30 @@ export default {
         }
 
         const sandbox = {expect: (val) => ({toBe: (exp) => val === exp})};
-        const fn = new Function('test', 'expect', testNote.content);
-        let passed = true;
-        fn((desc, cb) => {
-            if (!cb()) passed = false;
-        }, sandbox.expect);
-        return passed ? 'Tests passed' : 'Tests failed';
+        let results = [];
+        const testFn = new Function('test', 'expect', 'results', `
+            return new Promise(async (resolve, reject) => {
+                try {
+                    ${testNote.content}
+                    resolve(results);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        `);
+
+        try {
+            const testResults = await testFn((desc, cb) => {
+                try {
+                    cb();
+                    results.push({desc, pass: true});
+                } catch (error) {
+                    results.push({desc, pass: false, error: error.message});
+                }
+            }, sandbox.expect, results);
+            return JSON.stringify(testResults, null, 2);
+        } catch (error) {
+            return `Test execution error: ${error.message}`;
+        }
     }
 };

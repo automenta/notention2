@@ -305,19 +305,14 @@ class NetentionServer {
         this.state.analytics.set(note.id, stats);
     }
 
-    async initialize() {
-        try {
-            this.state.log("Starting initialization...", 'info', {component: 'Server'});
-            await this.loadTools();
-            await this.loadNotesFromDB();
-            this.state.llm.setApiKey('exampleApi', 'your-key-here');
-            this.state.log("Server started successfully.", 'info', {component: 'Server'});
-            await this.start();
-            this.initScheduler();
-        } catch (e) {
-            this.state.log(`Initialization failed: ${e}`, 'error', {component: 'Server', error: e.message});
-            //setTimeout(() => this.initialize(), CONFIG.RECONNECT_DELAY);
-        }
+    initialize() {
+        this.state.log("Starting initialization...", 'info', {component: 'Server'});
+        this.loadTools();
+        this.loadNotesFromDB();
+        this.state.llm.setApiKey('exampleApi', 'your-key-here');
+        this.state.log("Server started successfully.", 'info', {component: 'Server'});
+        this.start();
+        this.initScheduler();
     }
 
 
@@ -386,49 +381,219 @@ class NetentionServer {
 
     async writeNoteToDB(note) {
         this.state.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
+        this.state.updateBatch.add(note.id);
+        if (!this.state.batchTimeout) {
+            this.state.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
+        }
+        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve));
     }
 
-    async queueExecution(note) {
+    async flushBatchedUpdates() {
+        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
+            return this.state.graph.getNote(noteId);
+        });
+        this.state.updateBatch.clear();
+        this.state.batchTimeout = null;
+        noteUpdates.forEach(note => {
+            this.state.wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({type: 'noteUpdate', data: note}));
+                }
+            });
+            const resolver = this.state.pendingWrites.get(note.id);
+            if (resolver) resolver();
+            this.state.pendingWrites.delete(note.id);
+
+        });
+    }
+
+
+    queueExecution(note) {
         this.state.log(`Queueing note ${note.id} for execution.`, 'debug', {
             component: 'ExecutionQueue',
             noteId: note.id
         });
+        this.state.executionQueue.add(note.id);
     }
 
     replacePlaceholders(input, memoryMap) {
+        if (typeof input === 'string') {
+            return input.replace(/\${(\w+)}/g, (_, stepId) => memoryMap.get(stepId) || '');
+        }
         return input;
     }
 
     _processStepDependencies(dependencies, stepsById, readyQueue, stepId, note) {
+        for (const [currentStepId, deps] of dependencies.entries()) {
+            if (deps.has(stepId)) {
+                deps.delete(stepId);
+                if (!deps.size) readyQueue.push(currentStepId);
+            }
+        }
     }
 
     async _updateNoteStatusPostExecution(note) {
+        const pendingSteps = note.logic.filter(step => step.status === 'pending').length;
+        if (!pendingSteps) note.status = 'completed';
+        await this.writeNoteToDB(note);
     }
 
     async _runNoteTests(note) {
+        if (!CONFIG.AUTO_RUN_TESTS || !note.tests || !note.tests.length) return;
+        for (const testFile of note.tests) {
+            try {
+                const testModule = await import(`file://${process.cwd()}/${CONFIG.TESTS_DIR}/${testFile}`);
+                await testModule.default(note, this.state); // Assuming tests are written as async functions
+                this.state.log(`Tests for note ${note.id} passed.`, 'info', {
+                    component: 'TestRunner',
+                    noteId: note.id,
+                    testFile: testFile
+                });
+            } catch (error) {
+                this.state.log(`Tests failed for note ${note.id}: ${error}`, 'error', {
+                    component: 'TestRunner',
+                    noteId: note.id,
+                    testFile: testFile,
+                    error: error.message
+                });
+            }
+        }
     }
 
     async _finalizeNoteRun(note) {
+        this.state.log(`Note ${note.id} execution finalized.`, 'debug', {
+            component: 'NoteRunner',
+            noteId: note.id,
+            status: note.status
+        });
         return note;
     }
 
     _handleNoteError(note, error) {
+        this.state.log(`Error running note ${note.id}: ${error}`, 'error', {
+            component: 'NoteRunner',
+            noteId: note.id,
+            errorType: 'NoteExecutionError',
+            error: error.message
+        });
+        note.status = 'failed';
+        note.error = error.message;
+        this.writeNoteToDB(note);
         return note;
     }
 
     _handleToolNotFoundError(note, step) {
-        return note;
+        const errorMsg = `Tool ${step.tool} not found`;
+        this.state.log(errorMsg, 'error', {
+            component: 'NoteRunner',
+            noteId: note.id,
+            stepId: step.id,
+            toolName: step.tool,
+            errorType: 'ToolNotFoundError'
+        });
+        step.status = 'failed';
+        step.error = errorMsg;
+        note.status = 'failed';
+        this.writeNoteToDB(note);
+        return errorMsg;
     }
 
     _handleToolStepError(note, step, error) {
+        this.state.log(`Error executing tool ${step.tool} for note ${note.id}: ${error}`, 'error', {
+            component: 'NoteRunner',
+            noteId: note.id,
+            stepId: step.id,
+            toolName: step.tool,
+            errorType: 'ToolExecutionError',
+            error: error.message
+        });
+        step.status = 'failed';
+        step.error = error.message;
+        note.status = 'failed';
+        this.writeNoteToDB(note);
+        return `Tool execution failed: ${error.message}`;
     }
 
     async _handleWebSocketMessage(parsedMessage) {
+        if (parsedMessage.type === 'createNote') {
+            const newNote = {
+                id: crypto.randomUUID(),
+                title: parsedMessage.title || 'New Note',
+                content: '',
+                status: 'pending',
+                logic: [],
+                memory: [],
+                createdAt: new Date().toISOString(),
+            };
+            this.state.graph.addNote(newNote);
+            await this.writeNoteToDB(newNote);
+            this.queueExecution(newNote);
+            this.state.wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
+                }
+            });
+        } else if (parsedMessage.type === 'updateNote') {
+            const updatedNote = parsedMessage;
+            const existingNote = this.state.graph.getNote(updatedNote.id);
+            if (existingNote) {
+                Object.assign(existingNote, updatedNote);
+                existingNote.updatedAt = new Date().toISOString();
+                await this.writeNoteToDB(existingNote);
+                this.state.wss.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
+                    }
+                });
+            }
+        } else if (parsedMessage.type === 'deleteNote') {
+            const noteIdToDelete = parsedMessage.id;
+            this.state.graph.removeNote(noteIdToDelete);
+            await this.state.graph.removeReferences(noteIdToDelete);
+            await this.writeNoteToDB({id: noteIdToDelete}); //still write to trigger update
+            this.state.wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
+                }
+            });
+
+        } else {
+            this.state.log('Unknown message type', 'warn', {
+                component: 'WebSocketHandler',
+                messageType: parsedMessage.type
+            });
+        }
     }
 
     async processQueue() {
+        if (this.state.executionQueue.size === 0) return;
+        const noteId = this.state.executionQueue.values().next().value;
+        const note = this.state.graph.getNote(noteId);
+
+        if (!note) {
+            this.state.executionQueue.delete(noteId);
+            return;
+        }
+
+        if (note.status !== 'pending' && note.status !== 'running' && note.status !== 'pendingUnitTesting') { // Include pendingUnitTesting
+            this.state.executionQueue.delete(noteId);
+            return;
+        }
+
+        try {
+            await this.runNote(note);
+        } catch (error) {
+            this.state.log(`Error processing note ${note.id} from queue: ${error}`, 'error', {
+                component: 'ExecutionQueue',
+                noteId: note.id,
+                error: error.message
+            });
+            this.state.executionQueue.delete(noteId);
+        } finally {
+            this.state.executionQueue.delete(noteId);
+        }
     }
 }
 
-const server = new NetentionServer();
-server.initialize();
+export const NoteSchema = NoteSchema;
+export default NetentionServer;
