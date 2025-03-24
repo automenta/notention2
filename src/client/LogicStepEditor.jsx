@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactJson from 'react-json-view';
 
 export default function LogicStepEditor({ logic, onChange, availableTools }) {
     const [draggingIndex, setDraggingIndex] = useState(null);
@@ -25,31 +26,82 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
     const handleDragStart = (event, index) => {
         setDraggingIndex(index);
         setIsDragging(true);
-        event.dataTransfer.setData("text/plain", index); // Required for drag to work in Firefox
-        event.target.classList.add('dragging'); // Add class for visual feedback
+        event.dataTransfer.setData("text/plain", index);
+        event.target.classList.add('dragging');
     };
 
     const handleDragOver = (event, index) => {
-        event.preventDefault(); // Allow drop
+        event.preventDefault();
         if (isDragging && draggingIndex !== index && draggingIndex !== null) {
             const updatedLogic = [...logic];
             const draggedStep = updatedLogic[draggingIndex];
             updatedLogic.splice(draggingIndex, 1);
             updatedLogic.splice(index, 0, draggedStep);
             onChange(updatedLogic);
-            setDraggingIndex(index); // Update dragging index to current position
+            setDraggingIndex(index);
         }
     };
 
     const handleDragEnd = (event) => {
         setIsDragging(false);
         setDraggingIndex(null);
-        event.target.classList.remove('dragging'); // Remove dragging class
+        event.target.classList.remove('dragging');
     };
 
     const handleDeleteStep = (index) => {
         const updatedLogic = logic.filter((_, i) => i !== index);
         onChange(updatedLogic);
+    };
+
+    const getToolSchema = (toolName) => {
+        const tool = availableTools.find(t => t.name === toolName);
+        return tool?.schema;
+    };
+
+    const renderInputFields = (step, index) => {
+        const schema = getToolSchema(step.tool);
+        if (!schema || !schema.properties) {
+            return <div>No schema available for this tool.</div>;
+        }
+
+        return Object.entries(schema.properties).map(([paramName, paramSchema]) => {
+            const inputType = paramSchema.type === 'number' ? 'number' : 'text';
+            const value = step.input[paramName] !== undefined ? step.input[paramName] : '';
+
+            const handleInputChange = (paramValue) => {
+                const updatedInput = { ...step.input, [paramName]: paramValue };
+                handleStepChange(index, 'input', updatedInput);
+            };
+
+            if (paramSchema.type === 'object' || paramSchema.type === 'array') {
+                return (
+                    <div key={paramName} style={{ marginBottom: '10px' }}>
+                        <label style={{ marginRight: '10px' }}>{paramName}:</label>
+                        <ReactJson
+                            src={value || {}}
+                            onEdit={(val) => handleInputChange(val.updated_src)}
+                            onAdd={(val) => handleInputChange(val.updated_src)}
+                            onDelete={(val) => handleInputChange(val.updated_src)}
+                            displayObjectSize={false}
+                            displayDataTypes={false}
+                        />
+                    </div>
+                );
+            } else {
+                return (
+                    <div key={paramName} style={{ marginBottom: '10px' }}>
+                        <label style={{ marginRight: '10px' }}>{paramName}:</label>
+                        <input
+                            type={inputType}
+                            value={value}
+                            placeholder={paramSchema.description || paramName}
+                            onChange={e => handleInputChange(inputType === 'number' ? parseFloat(e.target.value) : e.target.value)}
+                            style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #ccc' }}
+                        />
+                    </div>
+                );
+            }
+        });
     };
 
 
@@ -69,7 +121,7 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
                             padding: '10px',
                             marginBottom: '5px',
                             borderRadius: '4px',
-                            backgroundColor: isDragging && draggingIndex === index ? '#f0f0f0' : 'white', // Highlight when dragging
+                            backgroundColor: isDragging && draggingIndex === index ? '#f0f0f0' : 'white',
                             cursor: 'grab',
                             display: 'flex',
                             justifyContent: 'space-between',
@@ -90,19 +142,7 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
                                 </select>
                             </div>
                             <div>
-                                <label style={{ marginRight: '10px' }}>Input:</label>
-                                <input
-                                    type="text"
-                                    value={JSON.stringify(step.input)}
-                                    onChange={e => {
-                                        try {
-                                            handleStepChange(index, 'input', JSON.parse(e.target.value));
-                                        } catch (error) {
-                                            console.error("Error parsing JSON input:", error);
-                                        }
-                                    }}
-                                    style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #ccc' }}
-                                />
+                                {renderInputFields(step, index)}
                             </div>
                             <div>Status: {step.status}</div>
                         </div>
