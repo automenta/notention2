@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import debounce from 'lodash/debounce';
 import ReactJson from 'react-json-view';
-import AceEditor from 'react-ace';
+import LogicStepEditor from './LogicStepEditor.jsx'; // Import LogicStepEditor
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
 
@@ -13,7 +13,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
     const [logic, setLogic] = useState(note?.logic || []);
     const [toolInput, setToolInput] = useState({ tool: '', input: '' });
     const [isSaving, setIsSaving] = useState(false);
-    const [logicCode, setLogicCode] = useState(''); // State for code editor
+    // const [logicCode, setLogicCode] = useState(''); // Removed logicCode state
 
     useEffect(() => {
         if (note) {
@@ -22,7 +22,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
             setPriority(note.priority || 50);
             setReferences(note.references || []);
             setLogic(note.logic || []);
-            setLogicCode(JSON.stringify(note.logic, null, 2) || ''); // Initialize code editor with logic
+            // setLogicCode(JSON.stringify(note.logic, null, 2) || ''); // Removed logicCode state initialization
         }
     }, [note]);
 
@@ -47,15 +47,8 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
         if (field === 'priority') setPriority(value);
         if (field === 'references') setReferences(value);
         if (field === 'logic') {
-            try {
-                const parsedLogic = JSON.parse(value);
-                setLogic(parsedLogic);
-                setLogicCode(value); // Update code editor value
-                value = parsedLogic; // For debouncedSave to use parsed logic object
-            } catch (e) {
-                console.error("Error parsing logic JSON:", e);
-                return; // Do not save if JSON is invalid
-            }
+            setLogic(value); // Directly set logic state
+            value = value; // For debouncedSave to use logic object
         }
         debouncedSave(
             field === 'title' ? value : title,
@@ -76,25 +69,13 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
         setPriority(note.priority || 50);
         setReferences(note.references || []);
         setLogic(note.logic || []);
-        setLogicCode(JSON.stringify(note.logic, null, 2) || ''); // Reset code editor on cancel
+        // setLogicCode(JSON.stringify(note.logic, null, 2) || ''); // Removed logicCode reset
         debouncedSave.cancel();
         setIsSaving(false);
     };
 
     const handleRunNow = () => {
         onUpdate({ id: note.id, status: 'pending' });
-    };
-
-    const handleAddStep = () => {
-        const newStep = {
-            id: `step-${Date.now()}`,
-            tool: toolInput.tool,
-            input: JSON.parse(toolInput.input || '{}'),
-            dependencies: [],
-            status: 'pending'
-        };
-        handleChange('logic', [...logic, newStep]);
-        setToolInput({ tool: '', input: '' });
     };
 
     const handleRunTool = () => {
@@ -105,9 +86,8 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
         handleChange('content', value.updated_src);
     };
 
-    const handleLogicCodeChange = (value) => {
-        setLogicCode(value);
-        handleChange('logic', value); // Parse JSON and update logic state
+    const handleLogicChange = (newLogic) => { // Handler for LogicStepEditor changes
+        handleChange('logic', newLogic);
     };
 
 
@@ -156,16 +136,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
                 </select>
             </div>
             <div style={{ margin: '10px 0' }}>
-                <label style={{ marginRight: '10px' }}>Logic Steps:</label>
-                <AceEditor
-                    mode="javascript"
-                    theme="github"
-                    value={logicCode}
-                    onChange={handleLogicCodeChange}
-                    name="logic-editor"
-                    editorProps={{ $blockScrolling: true }}
-                    style={{ width: '100%', height: '200px' }}
-                />
+                <LogicStepEditor logic={logic} onChange={handleLogicChange} /> {/* Use LogicStepEditor */}
             </div>
             <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button
