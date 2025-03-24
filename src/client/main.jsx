@@ -46,12 +46,12 @@ function App() {
 
     useEffect(() => {
         if (notes.length > 0 && cyRef.current) {
-            initializeCytoscape(notes, cyRef.current, setSelectedNoteId, handleCreateNoteFromGraph); // Pass handleCreateNoteFromGraph
+            initializeCytoscape(notes, cyRef.current, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph); // Pass handleDeleteNodeFromGraph
         }
     }, [notes]);
 
 
-    const initializeCytoscape = (notes, container, setSelectedNoteId, handleCreateNoteFromGraph) => { // Accept handleCreateNoteFromGraph
+    const initializeCytoscape = (notes, container, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph) => { // Accept handleDeleteNoteFromGraph
         const cy = cytoscape({
             container: container,
             elements: notes.map(note => ({data: {id: note.id, label: note.title, status: note.status}})) // Include status in node data
@@ -89,9 +89,15 @@ function App() {
             setSelectedNoteId(node.id()); // Update selectedNoteId in App
         });
 
-        cy.on('click', (event) => { // Handle graph click
+        cy.on('cxttap', 'node', function(evt){ // Handle context tap (right click) on node
+            var node = evt.target;
+            handleDeleteNodeFromGraph(node.id()); // Call delete node handler
+        });
+
+
+        cy.on('dblclick', (event) => { // Handle graph double click
             if (event.target === cy) { // Check if clicked on background
-                handleCreateNoteFromGraph(); // Call create note handler
+                handleCreateNoteFromGraph(event.position); // Call create note handler, pass position
             }
         });
     };
@@ -104,8 +110,13 @@ function App() {
     };
 
     // New handler for creating note from graph click
-    const handleCreateNoteFromGraph = () => {
-        send({type: 'createNote', title: 'New Note from Graph'});
+    const handleCreateNoteFromGraph = (position) => {
+        send({type: 'createNote', title: 'New Note from Graph', position: position}); // Send position data
+    };
+
+    // New handler to delete node from graph
+    const handleDeleteNodeFromGraph = (nodeId) => {
+        send({type: 'deleteNote', id: nodeId});
     };
 
 
