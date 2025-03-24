@@ -6,26 +6,33 @@ const schema = z.object({
 
 export default {
     name: 'debug',
-    description: 'Debug state',
+    description: 'Output detailed debug information about a Note',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
         const {noteId} = schema.parse(input);
-        const graph = context.graph;
-        const note = graph.getNote(noteId);
+        const note = context.graph.getNote(noteId);
 
         if (!note) {
-            return `Note ${noteId} not found`;
+            return `Error: Note with ID '${noteId}' not found.`;
         }
 
-        return JSON.stringify({
+        const debugInfo = {
             id: note.id,
             title: note.title,
+            type: note.content.type,
             status: note.status,
-            memory: note.memory,
-            references: note.references,
-            logic: note.logic // Added logic to debug output
-        }, null, 2);
+            priority: note.priority,
+            deadline: note.deadline,
+            logic: note.logic,
+            memory: note.memory ? note.memory.length : 0,
+            references: note.references ? note.references.length : 0,
+            createdAt: note.createdAt,
+            updatedAt: note.updatedAt,
+            // Add any other relevant properties you want to debug
+        };
+
+        return JSON.stringify(debugInfo, null, 2);
     }
 };

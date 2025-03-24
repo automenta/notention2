@@ -1,40 +1,38 @@
 import {z} from 'zod';
-import crypto from 'crypto';
 
 const schema = z.object({
     noteId: z.string(),
-    time: z.string()
+    time: z.string() // You might want to use a more specific format for time/date
 });
 
 export default {
     name: 'schedule',
-    description: 'Schedule tasks',
+    description: 'Schedule a Note to run at a specific time',
     schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     async invoke(input, context) {
-        const schemaExtended = z.object({
-            noteId: z.string(),
-            time: z.string(),
-            collabIds: z.array(z.string()).optional(),
-            scenario: z.string().optional()
-        });
-        const {noteId, time, collabIds = [], scenario} = schemaExtended.parse(input);
-        const graph = context.graph;
-        const note = graph.getNote(noteId);
-        if (!note) return `Note ${noteId} not found`;
-        note.deadline = time;
-        note.status = 'pending';
-        if (collabIds.length) {
-            note.logic.push({
-                id: crypto.randomUUID(),
-                tool: 'collaborate',
-                input: {noteIds: collabIds},
-                status: 'pending'
-            });
+        const {noteId, time} = schema.parse(input);
+        const note = context.graph.getNote(noteId);
+
+        if (!note) {
+            return `Error: Note with ID '${noteId}' not found.`;
         }
-        if (scenario) {
-            const prediction = await context.llm.predictOutcome(noteId, scenario);
-            note.memory.push({type: 'prediction', content: prediction, timestamp: Date.now()});
+
+        // Basic scheduling logic - in a real system, you'd use a more robust scheduler
+        const scheduledTime = new Date(time);
+        const delay = scheduledTime.getTime() - Date.now();
+
+        if (delay <= 0) {
+            return `Error: Scheduled time '${time}' is in the past.`;
         }
-        return `Scheduled ${noteId} for ${time}${collabIds.length ? ` with collab` : ''}${scenario ? ` predicted` : ''}`;
+
+        setTimeout(() => {
+            note.status = 'pending'; // Set note status to pending to be picked up by scheduler
+            context.graph.writeNoteToDB(note); // Assuming writeNoteToDB is available in context
+            console.log(`Note '${noteId}' executed as scheduled at '${time}'.`);
+        }, delay);
+
+        return `Note '${noteId}' scheduled to run at '${time}'.`;
     }
 };

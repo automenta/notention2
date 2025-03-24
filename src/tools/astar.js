@@ -6,6 +6,20 @@ const schema = z.object({
     goalId: z.string()
 });
 
+function heuristic(startId, goalId) {
+    // Simple heuristic: Manhattan distance (example, adapt as needed)
+    return Math.abs(startId.length - goalId.length);
+}
+
+function reconstructPath(cameFrom, currentId) {
+    const path = [currentId];
+    while (cameFrom.has(currentId)) {
+        currentId = cameFrom.get(currentId);
+        path.unshift(currentId);
+    }
+    return path;
+}
+
 async function astarPathfinding(graph, startId, goalId) {
     const open = new PriorityQueue({ comparator: (a, b) => b.f - a.f });
     const cameFrom = new Map();
@@ -33,7 +47,7 @@ async function astarPathfinding(graph, startId, goalId) {
             if (tentativeGScore < (gScore.get(neighborId) || Infinity)) {
                 cameFrom.set(neighborId, current.id);
                 gScore.set(neighborId, tentativeGScore);
-                fScore.set(neighborId, tentativeGScore + heuristic(neighborId, goalId));
+                fScore.set(neighborId, tentativeGScore + heuristic(neighborId, goalId, goalId));
                 if (!open.find(item => item.id === neighborId)) {
                     open.enqueue({id: neighborId, f: fScore.get(neighborId)});
                 }
@@ -45,24 +59,9 @@ async function astarPathfinding(graph, startId, goalId) {
 }
 
 
-function heuristic(startId, goalId) {
-    // Simple heuristic: Manhattan distance (example, adapt as needed)
-    return Math.abs(startId.length - goalId.length);
-}
-
-function reconstructPath(cameFrom, currentId) {
-    const path = [currentId];
-    while (cameFrom.has(currentId)) {
-        currentId = cameFrom.get(currentId);
-        path.unshift(currentId);
-    }
-    return path;
-}
-
-
 export default {
     name: 'astar',
-    description: 'A* pathfinding',
+    description: 'Find the shortest path between two notes using A* algorithm',
     schema,
     version: '1.0.0',
     dependencies: ['zod', 'priority-queue-js'],
@@ -70,8 +69,11 @@ export default {
         const {startId, goalId} = schema.parse(input);
         const graph = context.graph;
 
-        if (!graph.getNote(startId) || !graph.getNote(goalId)) {
-            return `Start or goal node not found`;
+        if (!graph.getNote(startId)) {
+            return `Error: Start Note with ID '${startId}' not found.`;
+        }
+        if (!graph.getNote(goalId)) {
+            return `Error: Goal Note with ID '${goalId}' not found.`;
         }
 
         return await astarPathfinding(graph, startId, goalId);

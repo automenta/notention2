@@ -6,20 +6,24 @@ const schema = z.object({
 
 export default {
     name: 'plan_optimize',
-    description: 'Optimize plan',
+    description: 'Optimize a given plan Note using various strategies',
     schema,
     version: '1.0.0',
-    dependencies: ['zod'],
+    dependencies: ['zod'], // Add dependencies if needed (e.g., for ML tools)
     async invoke(input, context) {
         const {planId} = schema.parse(input);
         const graph = context.graph;
         const planNote = graph.getNote(planId);
 
         if (!planNote) {
-            return `Plan ${planId} not found`;
+            return `Error: Plan Note with ID '${planId}' not found.`;
         }
 
-        // Placeholder for plan optimization logic - you'll need to implement this
-        return `Plan ${planId} optimization not yet implemented.`;
+        // Placeholder for plan optimization logic.
+        // In a real implementation, you would implement different optimization strategies here,
+        // such as using ML models to predict step priorities, A* for pathfinding, etc.
+        const optimizedPlan = `Stub Optimized Plan for Note: ${planId}. Optimization not fully implemented yet.`;
+
+        return optimizedPlan;
     }
 };
