@@ -16,10 +16,25 @@ export default {
         const {code, targetId} = schema.parse(input);
         const llm = context.llm;
 
-        const prompt = `You are a world-class expert in Javascript and proficient in writing excellent unit tests using Jest. 
-        Generate a comprehensive suite of unit tests for the following Javascript code, ensuring all functionalities are thoroughly tested, 
-        including edge cases and error handling. The tests should be directly executable with Jest and cover all aspects of the code. 
-        Output ONLY the Javascript code for the tests, and nothing else.
+        const prompt = `You are a world-class expert in Javascript and proficient in writing excellent unit tests using Jest.
+        Your goal is to create a comprehensive suite of unit tests for the Javascript code provided below. These tests should be robust, covering various scenarios, including:
+
+        1.  **Basic Functionality**: Test the primary functions and features of the code to ensure they work as expected under normal conditions.
+        2.  **Edge Cases**: Identify and test boundary conditions, unusual inputs, or situations that might cause unexpected behavior.
+        3.  **Error Handling**: Verify that the code gracefully handles errors, exceptions, and invalid inputs, and provides informative error messages when necessary.
+        4.  **Asynchronous Operations**: If the code involves asynchronous operations (like Promises or async/await), ensure tests cover these aspects, including timeouts and error conditions.
+        5.  **State Management**: If the code manages state, test state transitions and ensure that the state is correctly updated throughout the code execution.
+        6.  **Integration Points**: If the code interacts with other modules, libraries, or external services, include integration tests to verify these interactions.
+
+        The tests MUST be written using Jest syntax and should be directly executable. Focus on creating tests that are:
+
+        -   **Clear and Readable**: Tests should be easy to understand and maintain.
+        -   **Comprehensive**: Cover all significant aspects of the code.
+        -   **Independent**: Each test should be self-contained and not rely on the state of other tests.
+
+        Assume you are testing a module or class that will be used in a larger system. Aim for professional-quality unit tests that provide confidence in the code's correctness.
+
+        Output ONLY the Javascript code for the tests, and nothing else. Do not include any explanations or comments outside of the test code itself.
 
         \`\`\`javascript
         ${code}
