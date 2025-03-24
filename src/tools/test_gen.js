@@ -7,7 +7,7 @@ const schema = z.object({
 
 export default {
     name: 'test_gen',
-    description: 'Generate unit tests',
+    description: 'Generate unit tests for a given code snippet',
     schema,
     version: '1.0.0',
     dependencies: ['zod', '@langchain/google-genai'],
@@ -15,14 +15,28 @@ export default {
         const {code, targetId} = schema.parse(input);
         const llm = context.llm;
 
-        const prompt = `Generate unit tests in Jest syntax for the following Javascript code:\n\n\`\`\`javascript\n${code}\n\`\`\`\n\nThe tests should be comprehensive and cover various scenarios, including edge cases and error handling. Focus on testing the core logic and functionality of the code.`;
-        const llmResult = await llm.invoke([{role: 'user', content: prompt}]);
-        const testCode = llmResult.text;
+        const prompt = `You are a world-class expert in Javascript and proficient in writing excellent unit tests using Jest. 
+        Generate a comprehensive suite of unit tests for the following Javascript code, ensuring all functionalities are thoroughly tested, 
+        including edge cases and error handling. The tests should be directly executable with Jest and cover all aspects of the code. 
+        Output ONLY the Javascript code for the tests, and nothing else.
 
-        if (!testCode) {
-            throw new Error("Failed to generate test code.");
+        \`\`\`javascript
+        ${code}
+        \`\`\`
+        `;
+
+        try {
+            const llmResult = await llm.invoke([{role: 'user', content: prompt}]);
+            const testCode = llmResult.text;
+
+            if (!testCode) {
+                throw new Error("Failed to generate test code from LLM.");
+            }
+
+            return testCode;
+        } catch (error) {
+            console.error("Error generating test code:", error);
+            return `Error generating test code: ${error.message}`;
         }
-
-        return testCode;
     }
 };
