@@ -13,6 +13,31 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
     const [logic, setLogic] = useState(note?.logic || []);
     const [toolInput, setToolInput] = useState({ tool: '', input: '' });
     const [isSaving, setIsSaving] = useState(false);
+    const [availableTools, setAvailableTools] = useState([ // Mock availableTools
+        { name: 'summarize' },
+        { name: 'generateCode' },
+        { name: 'reflect' },
+        { name: 'test_gen' },
+        { name: 'test_run' },
+        { name: 'compose' },
+        { name: 'schedule' },
+        { name: 'debug' },
+        { name: 'eval_expr' },
+        { name: 'graph_metrics' },
+        { name: 'graph_search' },
+        { name: 'graph_traverse' },
+        { name: 'knowNote' },
+        { name: 'ml_predict' },
+        { name: 'ml_train' },
+        { name: 'rag' },
+        { name: 'webSearch' },
+        { name: 'fetchExternal' },
+        { name: 'analyze' },
+        { name: 'browser_use' },
+        { name: 'computer_monitor' },
+        { name: 'computer_use' },
+        { name: 'mcp' },
+    ]);
     // const [logicCode, setLogicCode] = useState(''); // Removed logicCode state
 
     useEffect(() => {
@@ -136,7 +161,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
                 </select>
             </div>
             <div style={{ margin: '10px 0' }}>
-                <LogicStepEditor logic={logic} onChange={handleLogicChange} /> {/* Use LogicStepEditor */}
+                <LogicStepEditor logic={logic} onChange={handleLogicChange} availableTools={availableTools} /> {/* Use LogicStepEditor with availableTools */}
             </div>
             <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button
