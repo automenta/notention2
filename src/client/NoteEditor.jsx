@@ -191,4 +191,3 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
         </div>
     );
 }
-```
