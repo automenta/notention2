@@ -15,7 +15,6 @@ const CONFIG = {
     TESTS_DIR: './tests',
     PORT: 8080,
     RECONNECT_DELAY: 1000,
-    TOOL_TIMEOUT: 30000,
     BATCH_INTERVAL: 1000,
     MAX_PRIORITY: 100,
     QUEUE_INTERVAL: 100,
@@ -235,6 +234,12 @@ class NetentionServer {
                     case 'reflect': // New Tool - Reflect
                         await this.handleReflect(note, step);
                         break;
+                    case 'test_gen': // New Tool - Test Generation
+                        await this.handleTestGeneration(note, step);
+                        break;
+                    case 'test_run': // New Tool - Test Execution
+                        await this.handleTestExecution(note, step);
+                        break;
                     default:
                         await this.executeStep(note, step, memoryMap);
                 }
@@ -301,6 +306,31 @@ class NetentionServer {
     }
 
     async handleTestGeneration(note, step) {
+        const {code, targetId} = step.input;
+        try {
+            const testCode = await this.state.tools.executeTool('test_gen', {code, targetId}, {graph: this.state.graph, llm: this.state.llm});
+            const testNoteId = crypto.randomUUID();
+            const testNote = {
+                id: testNoteId,
+                title: `Test for ${targetId}`,
+                content: {type: 'test', code: testCode},
+                status: 'pending',
+                priority: 75,
+                references: [targetId],
+                createdAt: new Date().toISOString()
+            };
+            this.state.graph.addNote(testNote);
+            note.memory.push({type: 'testGen', content: `Generated test ${testNoteId} for ${targetId}`, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.writeNoteToDB(note);
+            this.queueExecution(testNote); // Queue the test note for execution immediately
+            return testNoteId;
+        } catch (error) {
+            step.status = 'failed';
+            note.memory.push({type: 'testGenError', content: `Test generation failed: ${error.message}`, timestamp: Date.now(), stepId: step.id});
+            await this.writeNoteToDB(note);
+            return `Test generation failed: ${error.message}`;
+        }
     }
 
     async handleTestExecution(note, step) {
@@ -671,6 +701,21 @@ class NetentionServer {
         note.status = 'pendingUnitTesting';
         await this.writeNoteToDB(note);
 
+        const testNote = {
+            id: testId,
+            title: `Unit Test for ${note.title}`,
+            content: {
+                type: 'test',
+                targetNoteId: note.id // Reference the note to be tested
+            },
+            status: 'pending',
+            priority: 60, // Higher priority for tests
+            createdAt: new Date().toISOString(),
+            references: [note.id] // Create reference to the note being tested
+        };
+        this.state.graph.addNote(testNote);
+        await this.writeNoteToDB(testNote);
+        this.queueExecution(testNote); // Queue the test note for execution
         this.state.log(`Unit test requested for Note ${note.id}, test Note ${testId} created.`, 'info', {
             component: 'NoteRunner',
             noteId: note.id,
