@@ -95,6 +95,26 @@ const INITIAL_NOTES = [
                 "test_gen": "Generate unit test for: {code}",
                 "train": "Train {model} on: {data}",
                 "predict": "Predict with {model}: {input}"
+            },
+            tools: { // tools moved inside content
+                // Existing Tools
+                "code_gen": { type: "tool", name: "code_gen", desc: "Generate JS", execute: "langChain.llm" },
+                "file_write": { type: "tool", name: "file_write", desc: "Write IPFS", execute: "ipfs.add" },
+                "reflect": { type: "tool", name: "reflect", desc: "Self-analyze", execute: "langChain.reflect" },
+                "notify": { type: "tool", name: "notify", desc: "User alert", execute: "Express.push" },
+                "ui_gen": { type: "tool", name: "ui_gen", desc: "Generate UI", execute: "cytoscape.add" },
+                "search": { type: "tool", name: "search", desc: "Web search", execute: "langChain.serpapi" },
+                "summarize": { type: "tool", name: "summarize", desc: "Text summary", execute: "langChain.summarize" },
+                "know": { type: "tool", name: "know", desc: "Create Note", execute: "db.put" },
+                "sync": { type: "tool", name: "sync", desc: "Replicate Notes", execute: "ipfs.pubsub" },
+                "learn": { type: "tool", name: "learn", desc: "Train on data", execute: "langChain.vectorStore" },
+                "eval_expr": { type: "tool", name: "eval_expr", desc: "Evaluate expressions", execute: "evalExpr" },
+                "graph_search": { type: "tool", name: "graph_search", desc: "Search graph", execute: "graphSearch" },
+                "graph_traverse": { type: "tool", name: "graph_traverse", desc: "Traverse graph", execute: "graphTraverse" },
+                "graph_metrics": { type: "tool", name: "graph_metrics", desc: "Graph metrics", execute: "graphMetrics" },
+                // New Testing Tools - using IDs instead of inline definitions for seed note
+                "test_gen":  'tool-test_gen-id',
+                "test_run":  'tool-test_run-id',
             }
         },
         status: 'running',
