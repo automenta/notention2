@@ -81,8 +81,23 @@ const INITIAL_NOTES = [
     {
         id: 'seed-0',
         title: 'Netention Seed',
-        content: 'Demonstrate planning: summarize content and generate code from it',
-        status: 'pending',
+        content: {
+            type: "system",
+            desc: "Netention: Self-evolving knowledge/task fabric",
+            config: { maxMemory: 50, tickRate: 10, decayRate: 7 * 24 * 60 * 60 * 1000, tokenBudget: 10000, defaultPriority: 50, replicationPeers: 5 },
+            metamodel: { note: { id: "string", content: "any", graph: "array", state: "object" }, rules: ["know sub-Notes", "prune memory", "sync via IPFS", "test functionality", "learn dynamically"] },
+            prompts: {
+                "plan": "Generate a plan for: {desc}",
+                "optimize": "Refine this code: {src}",
+                "summarize": "Summarize: {text}",
+                "eval": "Evaluate expression: {expr}",
+                "graph": "Analyze graph: {nodes}",
+                "test_gen": "Generate unit test for: {code}",
+                "train": "Train {model} on: {data}",
+                "predict": "Predict with {model}: {input}"
+            }
+        },
+        status: 'running',
         priority: 100,
         logic: [
             {
