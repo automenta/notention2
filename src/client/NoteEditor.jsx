@@ -166,49 +166,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
                     editorProps={{ $blockScrolling: true }}
                     style={{ width: '100%', height: '200px' }}
                 />
-
             </div>
-             {/* Existing Logic Step UI - Consider removing or integrating with code editor */}
-             {/*
-            <div style={{ margin: '10px 0' }}>
-                <label style={{ marginRight: '10px' }}>Logic Steps:</label>
-                <ul style={{ listStyle: 'none', padding: 0 }}>
-                    {logic.map(step => (
-                        <li key={step.id} style={{ marginBottom: '5px' }}>
-                            {step.tool} - {JSON.stringify(step.input)} ({step.status})
-                            <button
-                                onClick={() => handleChange('logic', logic.filter(s => s.id !== step.id))}
-                                style={{ marginLeft: '10px', padding: '2px 8px', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px' }}
-                            >
-                                Remove
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                    <input
-                        type="text"
-                        value={toolInput.tool}
-                        onChange={e => setToolInput({ ...toolInput, tool: e.target.value })}
-                        placeholder="Tool Name"
-                        style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc', flex: 1 }}
-                    />
-                    <input
-                        type="text"
-                        value={toolInput.input}
-                        onChange={e => setToolInput({ ...toolInput, input: e.target.value })}
-                        placeholder='{"key": "value"}'
-                        style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc', flex: 2 }}
-                    />
-                    <button
-                        onClick={handleAddStep}
-                        style={{ padding: '5px 10px', backgroundColor: '#2196f3', color: 'white', border: 'none', borderRadius: '4px' }}
-                    >
-                        Add Step
-                    </button>
-                </div>
-            </div>
-            */}
             <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button
                     onClick={handleSave}
