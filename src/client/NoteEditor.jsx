@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import debounce from 'lodash/debounce';
 import ReactJson from 'react-json-view';
+import AceEditor from 'react-ace';
+import 'ace-builds/src-noconflict/mode-javascript';
+import 'ace-builds/src-noconflict/theme-github';
 
 export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
     const [title, setTitle] = useState(note?.title || '');
@@ -10,6 +13,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
     const [logic, setLogic] = useState(note?.logic || []);
     const [toolInput, setToolInput] = useState({ tool: '', input: '' });
     const [isSaving, setIsSaving] = useState(false);
+    const [logicCode, setLogicCode] = useState(''); // State for code editor
 
     useEffect(() => {
         if (note) {
@@ -18,6 +22,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
             setPriority(note.priority || 50);
             setReferences(note.references || []);
             setLogic(note.logic || []);
+            setLogicCode(JSON.stringify(note.logic, null, 2) || ''); // Initialize code editor with logic
         }
     }, [note]);
 
@@ -41,7 +46,17 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
         if (field === 'content') setContent(value);
         if (field === 'priority') setPriority(value);
         if (field === 'references') setReferences(value);
-        if (field === 'logic') setLogic(value);
+        if (field === 'logic') {
+            try {
+                const parsedLogic = JSON.parse(value);
+                setLogic(parsedLogic);
+                setLogicCode(value); // Update code editor value
+                value = parsedLogic; // For debouncedSave to use parsed logic object
+            } catch (e) {
+                console.error("Error parsing logic JSON:", e);
+                return; // Do not save if JSON is invalid
+            }
+        }
         debouncedSave(
             field === 'title' ? value : title,
             field === 'content' ? value : content,
@@ -61,6 +76,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
         setPriority(note.priority || 50);
         setReferences(note.references || []);
         setLogic(note.logic || []);
+        setLogicCode(JSON.stringify(note.logic, null, 2) || ''); // Reset code editor on cancel
         debouncedSave.cancel();
         setIsSaving(false);
     };
@@ -89,6 +105,12 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
         handleChange('content', value.updated_src);
     };
 
+    const handleLogicCodeChange = (value) => {
+        setLogicCode(value);
+        handleChange('logic', value); // Parse JSON and update logic state
+    };
+
+
     return (
         <div style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '8px', maxWidth: '800px', margin: '20px auto' }}>
             <input
@@ -98,7 +120,8 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
                 placeholder="Note Title"
                 style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '16px' }}
             />
-            <div style={{ marginBottom: '10px' }}>
+            <div style={{marginBottom: '10px'}}>
+                <label style={{marginRight: '10px'}}>Content:</label>
                 <ReactJson
                     src={content}
                     onEdit={handleContentChange}
@@ -134,11 +157,26 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
             </div>
             <div style={{ margin: '10px 0' }}>
                 <label style={{ marginRight: '10px' }}>Logic Steps:</label>
+                <AceEditor
+                    mode="javascript"
+                    theme="github"
+                    value={logicCode}
+                    onChange={handleLogicCodeChange}
+                    name="logic-editor"
+                    editorProps={{ $blockScrolling: true }}
+                    style={{ width: '100%', height: '200px' }}
+                />
+
+            </div>
+             {/* Existing Logic Step UI - Consider removing or integrating with code editor */}
+             {/*
+            <div style={{ margin: '10px 0' }}>
+                <label style={{ marginRight: '10px' }}>Logic Steps:</label>
                 <ul style={{ listStyle: 'none', padding: 0 }}>
                     {logic.map(step => (
                         <li key={step.id} style={{ marginBottom: '5px' }}>
                             {step.tool} - {JSON.stringify(step.input)} ({step.status})
-                            <button 
+                            <button
                                 onClick={() => handleChange('logic', logic.filter(s => s.id !== step.id))}
                                 style={{ marginLeft: '10px', padding: '2px 8px', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px' }}
                             >
@@ -162,7 +200,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
                         placeholder='{"key": "value"}'
                         style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc', flex: 2 }}
                     />
-                    <button 
+                    <button
                         onClick={handleAddStep}
                         style={{ padding: '5px 10px', backgroundColor: '#2196f3', color: 'white', border: 'none', borderRadius: '4px' }}
                     >
@@ -170,26 +208,27 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
                     </button>
                 </div>
             </div>
+            */}
             <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <button 
+                <button
                     onClick={handleSave}
                     style={{ padding: '8px 16px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
                     Save
                 </button>
-                <button 
+                <button
                     onClick={handleCancel}
                     style={{ padding: '8px 16px', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
                     Cancel
                 </button>
-                <button 
+                <button
                     onClick={handleRunNow}
                     style={{ padding: '8px 16px', backgroundColor: '#2196f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
                     Run Now
                 </button>
-                <button 
+                <button
                     onClick={handleRunTool}
                     style={{ padding: '8px 16px', backgroundColor: '#ff9800', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
