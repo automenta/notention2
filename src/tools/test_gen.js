@@ -1,5 +1,4 @@
 import {z} from 'zod';
-import crypto from 'crypto';
 
 const schema = z.object({
     code: z.string(),
@@ -13,18 +12,16 @@ export default {
     async invoke(input, context) {
         const {code, targetId} = schema.parse(input);
         const graph = context.graph;
-        const testCode = `test('${targetId} works', () => { expect((${code})(2, 3)).toBe(5); });`;
-        const testId = crypto.randomUUID();
+        const llm = context.llm;
 
-        await graph.addNote({
-            id: testId,
-            title: `Test for ${targetId}`,
-            content: testCode,
-            status: 'pending',
-        });
-        if (targetId) {
-            graph.addEdge(testId, targetId, 'tests');
+        const prompt = `Generate unit tests in Jest syntax for the following Javascript code:\n\n\`\`\`javascript\n${code}\n\`\`\`\n\nThe tests should be comprehensive and cover various scenarios, including edge cases and error handling. Focus on testing the core logic and functionality of the code.`;
+        const llmResult = await llm.invoke([{role: 'user', content: prompt}]);
+        const testCode = llmResult.text;
+
+        if (!testCode) {
+            throw new Error("Failed to generate test code.");
         }
+
         return testCode;
     }
 };
