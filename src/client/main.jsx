@@ -4,26 +4,11 @@ import NoteList from './NoteList.jsx';
 import NoteEditor from './NoteEditor.jsx';
 import cytoscape from 'cytoscape';
 
-const CONNECTING_STYLE = {
-    color: 'orange',
-    marginBottom: '10px'
-};
-
-const CONNECTED_STYLE = {
-    color: 'green',
-    marginBottom: '10px'
-};
-
-const DISCONNECTED_STYLE = {
-    color: 'red',
-    marginBottom: '10px'
-};
-
 function App() {
     const [notes, setNotes] = useState([]);
     const [selectedNoteId, setSelectedNoteId] = useState(null);
     const [ws, setWs] = useState(null);
-    const cyRef = useRef(null); // Ref for Cytoscape container
+    const cyRef = useRef(null);
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
     useEffect(() => {
@@ -50,7 +35,7 @@ function App() {
             console.log('WebSocket disconnected');
             setConnectionStatus('Disconnected');
             setTimeout(() => {
-                setWs(new WebSocket('ws://localhost:8080')); // Reconnect on close
+                setWs(new WebSocket('ws://localhost:8080'));
                 setConnectionStatus('Connecting...');
             }, 1000);
         };
@@ -61,13 +46,13 @@ function App() {
 
     useEffect(() => {
         if (notes.length > 0 && cyRef.current) {
-            initializeCytoscape(notes, cyRef.current);
+            initializeCytoscape(notes, cyRef.current, setSelectedNoteId); // Pass setSelectedNoteId
         }
     }, [notes]);
 
 
-    const initializeCytoscape = (notes, container) => {
-        cytoscape({
+    const initializeCytoscape = (notes, container, setSelectedNoteId) => { // Accept setSelectedNoteId
+        const cy = cytoscape({
             container: container,
             elements: notes.map(note => ({data: {id: note.id, label: note.title}}))
                 .concat(notes.flatMap(note => (note.references ?? []).map(ref => ({
@@ -77,10 +62,15 @@ function App() {
                     }
                 })))),
             style: [
-                {selector: 'node', style: {'label': 'data(label)', 'background-color': '#666', 'color': '#fff'}},
-                {selector: 'edge', style: {'width': 2, 'line-color': '#ccc', 'curve-style': 'bezier'}}
+                {selector: 'node', style: {'label': 'data(label)'}},
+                {selector: 'edge', style: {'width': 2, 'line-color': '#ccc'}}
             ],
             layout: {name: 'grid'}
+        });
+
+        cy.on('click', 'node', function(evt){ // Handle node click
+            var node = evt.target;
+            setSelectedNoteId(node.id()); // Update selectedNoteId in App
         });
     };
 
@@ -91,26 +81,13 @@ function App() {
         send({type: 'createNote', title: 'New Note'});
     };
 
-    let connectionStyle;
-    switch (connectionStatus) {
-        case 'Connected':
-            connectionStyle = CONNECTED_STYLE;
-            break;
-        case 'Error':
-        case 'Disconnected':
-            connectionStyle = DISCONNECTED_STYLE;
-            break;
-        default:
-            connectionStyle = CONNECTING_STYLE;
-    }
-
 
     return (
-        <div style={{padding: '20px', maxWidth: '800px', margin: '0 auto'}}>
-            <h1 style={{fontSize: '24px', marginBottom: '20px'}}>Netention</h1>
-            <p style={connectionStyle}>{connectionStatus}</p>
+        <div>
+            <h1>Netention</h1>
+            <p>{connectionStatus}</p>
 
-            <div style={{marginBottom: '20px'}}>
+            <div>
                 <button onClick={handleCreateNote}>+</button>
             </div>
             <NoteList
@@ -124,7 +101,7 @@ function App() {
                     onUpdate={(updates) => send({type: 'updateNote', ...updates})}
                 />
             )}
-            <div id="cy" style={{width: '100%', height: '300px', marginTop: '20px', border: '1px solid #ddd'}}
+            <div id="cy" style={{width: '100%', height: '300px', border: '1px solid #ddd'}}
                  ref={cyRef}></div>
         </div>
     );
