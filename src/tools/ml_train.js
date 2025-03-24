@@ -16,13 +16,20 @@ export default {
     async invoke(input, context) {
         const {modelType, data, targetId} = schema.parse(input);
         const modelId = crypto.randomUUID();
+        const graph = context.graph;
 
-        // Placeholder for actual ML training logic.
-        // In a real implementation, you would use a Javascript ML library here
+        // **Stubbed ML Training Logic:**
+        // In a real implementation, this would use a Javascript ML library
         // to train a model based on the 'modelType' and 'data'.
-        const model = `Stub ML Model: ${modelType} trained on ${data.length} data points.`;
+        // For now, we'll just create a placeholder model.
+        const model = {
+            type: modelType,
+            trainingDataLength: data.length,
+            // In a real implementation, store actual model parameters or a model object here
+            stubbed: true
+        };
 
-        await context.graph.addNote({
+        await graph.addNote({
             id: modelId,
             title: `${modelType} Model - ${modelId.substring(0, 8)}`,
             content: {
@@ -34,7 +41,7 @@ export default {
             status: 'completed', // Assume training completes successfully for this stub
             memory: [{
                 type: 'system',
-                content: `Trained a ${modelType} ML model with ${data.length} data points. Model ID: ${modelId}`,
+                content: `Trained a ${modelType} ML model (stubbed) with ${data.length} data points. Model ID: ${modelId}`,
                 timestamp: new Date().toISOString()
             }],
             references: targetId ? [targetId] : [], // Link to target Note if provided

@@ -13,7 +13,8 @@ export default {
     dependencies: ['zod'], // Add any ML-specific dependencies here
     async invoke(input, context) {
         const {modelId, input: predictionInput} = schema.parse(input);
-        const modelNote = context.graph.getNote(modelId);
+        const graph = context.graph;
+        const modelNote = graph.getNote(modelId);
 
         if (!modelNote) {
             return `Error: ML Model Note with ID '${modelId}' not found.`;
@@ -23,11 +24,17 @@ export default {
             return `Error: Note '${modelId}' is not an ML Model Note.`;
         }
 
-        // Placeholder for actual ML prediction logic.
-        // In a real implementation, you would use the 'modelNote.content.modelData'
+        // **Stubbed ML Prediction Logic:**
+        // In a real implementation, this would use the 'modelNote.content.modelData'
         // and the 'predictionInput' to perform a prediction using a Javascript ML library.
-        const prediction = `Stub Prediction: Model Type '${modelNote.content.modelType}' predicted on input: ${JSON.stringify(predictionInput)}`;
+        // For now, we'll just return a stubbed prediction.
+        const prediction = {
+            modelType: modelNote.content.modelType,
+            input: predictionInput,
+            prediction: `Stub Prediction: Model Type '${modelNote.content.modelType}' predicted on input: ${JSON.stringify(predictionInput)}`,
+            stubbed: true
+        };
 
-        return prediction; // Return the prediction result
+        return JSON.stringify(prediction, null, 2); // Return the prediction result as JSON string
     }
 };
