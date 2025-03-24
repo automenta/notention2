@@ -683,7 +683,79 @@ class NetentionServer {
             this.state.executionQueue.delete(noteId);
         }
     }
+
+    async handleFailure(note, error) {
+        this.state.log(`Note ${note.id} execution failed: ${error}`, 'error', {
+            component: 'NoteRunner',
+            noteId: note.id,
+            errorType: 'NoteExecutionError'
+        });
+
+        if (this.shouldRetry(error)) {
+            await this.retryExecution(note);
+        } else if (this.shouldRequestUnitTest(note, error)) {
+            await this.requestUnitTest(note);
+        } else {
+            note.status = 'failed'; // Set status to failed if no recovery
+            await this.writeNoteToDB(note);
+        }
+    }
+
+
+    shouldRetry(error) {
+        // Basic retry condition - can be expanded
+        return error.message.includes('timeout') || error.message.includes('rate limit');
+    }
+
+    async retryExecution(note) {
+        note.status = 'pending'; // Reset status to pending for retry
+        await this.writeNoteToDB(note);
+        this.queueExecution(note); // Re-queue for execution
+        this.state.log(`Note ${note.id} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: note.id});
+    }
+
+
+    shouldRequestUnitTest(note, error) {
+        // Request unit test if tool execution failed or code generation failed
+        return stepErrorTypes.includes(error.errorType) || note.logic.some(step => step.tool === 'code_gen' && step.status === 'failed');
+    }
+
+
+    async requestUnitTest(note) {
+        if (!note.tests) note.tests = [];
+        const testId = crypto.randomUUID();
+        note.tests.push(testId); // Assign a test ID to the note
+        note.status = 'pendingUnitTesting';
+        await this.writeNoteToDB(note);
+
+
+        const testNote = {
+            id: testId,
+            title: `Unit Test for ${note.title}`,
+            content: {
+                type: 'test',
+                targetNoteId: note.id // Reference the note to be tested
+            },
+            status: 'pending',
+            priority: 60, // Higher priority for tests
+            createdAt: new Date().toISOString(),
+            references: [note.id] // Create reference to the note being tested
+        };
+        this.state.graph.addNote(testNote);
+        await this.writeNoteToDB(testNote);
+        this.queueExecution(testNote); // Queue the test note for execution
+        this.state.log(`Unit test requested for Note ${note.id}, test Note ${testId} created.`, 'info', {
+            component: 'NoteRunner',
+            noteId: note.id,
+            testNoteId: testId
+        });
+    }
+
+
 }
+
+const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
+
 
 export const NoteSchema = NoteSchema;
 export default NetentionServer;
