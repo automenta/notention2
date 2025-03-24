@@ -35,3 +35,4 @@ export default function NoteEditor({note, onUpdate}) {
             <button onClick={handleSave}>Save</button>
         </div>
     );
+}
