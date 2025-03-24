@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import debounce from 'lodash/debounce';
+import ReactJson from 'react-json-view';
 
 export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
     const [title, setTitle] = useState(note?.title || '');
-    const [content, setContent] = useState(note?.content || '');
+    const [content, setContent] = useState(note?.content || {}); // Changed to object
     const [priority, setPriority] = useState(note?.priority || 50);
     const [references, setReferences] = useState(note?.references || []);
     const [logic, setLogic] = useState(note?.logic || []);
@@ -13,7 +14,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
     useEffect(() => {
         if (note) {
             setTitle(note.title);
-            setContent(note.content || '');
+            setContent(note.content || {}); // Changed to object
             setPriority(note.priority || 50);
             setReferences(note.references || []);
             setLogic(note.logic || []);
@@ -56,7 +57,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
 
     const handleCancel = () => {
         setTitle(note.title);
-        setContent(note.content || '');
+        setContent(note.content || {}); // Changed to object
         setPriority(note.priority || 50);
         setReferences(note.references || []);
         setLogic(note.logic || []);
@@ -84,6 +85,10 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
         onRunTool(note.id, toolInput.tool, JSON.parse(toolInput.input || '{}'));
     };
 
+    const handleContentChange = (value) => {
+        handleChange('content', value.updated_src);
+    };
+
     return (
         <div style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '8px', maxWidth: '800px', margin: '20px auto' }}>
             <input
@@ -93,12 +98,16 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool }) {
                 placeholder="Note Title"
                 style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '16px' }}
             />
-            <textarea
-                value={content}
-                onChange={e => handleChange('content', e.target.value)}
-                placeholder="Write your note here..."
-                style={{ width: '100%', height: '200px', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px', resize: 'vertical' }}
-            />
+            <div style={{ marginBottom: '10px' }}>
+                <ReactJson
+                    src={content}
+                    onEdit={handleContentChange}
+                    onAdd={handleContentChange}
+                    onDelete={handleContentChange}
+                    displayObjectSize={false}
+                    displayDataTypes={false}
+                />
+            </div>
             <div style={{ margin: '10px 0' }}>
                 <label style={{ marginRight: '10px' }}>Priority (0-100):</label>
                 <input
