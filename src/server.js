@@ -218,25 +218,19 @@ class NetentionServer {
                 step.input = this.replacePlaceholders(step.input, memoryMap);
 
                 switch (step.tool) {
-                    case 'collaborate':
-                        await this.handleCollaboration(note, step);
+                    case 'summarize':
+                        await this.handleSummarize(note, step);
                         break;
-                    case 'generateTool':
-                        await this.handleToolGeneration(note, step);
+                    case 'generateCode':
+                        await this.handleGenerateCode(note, step);
                         break;
-                    case 'knowNote':
-                        await this.handleKnowNote(note, step);
+                    case 'reflect': // New Tool - Reflect
+                        await this.handleReflect(note, step);
                         break;
-                    case 'analyze':
-                        await this.handleAnalytics(note, step);
-                        break;
-                    case 'fetchExternal':
-                        await this.handleFetchExternal(note, step);
-                        break;
-                    case 'test_gen': // New Tool
+                    case 'test_gen': // New Tool - Test Generation
                         await this.handleTestGeneration(note, step);
                         break;
-                    case 'test_run': // New Tool
+                    case 'test_run': // New Tool - Test Execution
                         await this.handleTestExecution(note, step);
                         break;
                     default:
@@ -247,7 +241,7 @@ class NetentionServer {
 
             await this._updateNoteStatusPostExecution(note);
             await this._runNoteTests(note);
-            await this.pruneMemory(note);
+            await self.pruneMemory(note);
             this.updateAnalytics(note, 'complete');
             return await this._finalizeNoteRun(note);
         } catch (error) {
@@ -355,7 +349,7 @@ class NetentionServer {
     async handleFetchExternal(note, step) {
         const {apiName, query} = step.input;
         const data = await this.state.llm.fetchExternalData(apiName, query);
-        note.memory.push({type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id});
+        note.memory.push({type: 'external', content: JSON.stringify(data)), timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await this.writeNoteToDB(note);
     }
@@ -750,8 +744,6 @@ class NetentionServer {
             testNoteId: testId
         });
     }
-
-
 }
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
