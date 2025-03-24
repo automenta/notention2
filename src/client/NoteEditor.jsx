@@ -1,12 +1,14 @@
 import React, {useEffect, useState} from 'react';
 
 export default function NoteEditor({note, onUpdate}) {
-    const [title, setTitle] = useState(note.title);
-    const [content, setContent] = useState(note.content || '');
+    const [title, setTitle] = useState(note?.title || '');
+    const [content, setContent] = useState(note?.content || '');
 
     useEffect(() => {
-        setTitle(note.title);
-        setContent(note.content || '');
+        if (note) {
+            setTitle(note.title);
+            setContent(note.content || '');
+        }
     }, [note]);
 
     const handleSave = () => {
@@ -33,4 +35,3 @@ export default function NoteEditor({note, onUpdate}) {
             <button onClick={handleSave}>Save</button>
         </div>
     );
-}
