@@ -54,7 +54,7 @@ function App() {
     const initializeCytoscape = (notes, container, setSelectedNoteId) => { // Accept setSelectedNoteId
         const cy = cytoscape({
             container: container,
-            elements: notes.map(note => ({data: {id: note.id, label: note.title}}))
+            elements: notes.map(note => ({data: {id: note.id, label: note.title, status: note.status}})) // Include status in node data
                 .concat(notes.flatMap(note => (note.references ?? []).map(ref => ({
                     data: {
                         source: note.id,
@@ -62,7 +62,23 @@ function App() {
                     }
                 })))),
             style: [
-                {selector: 'node', style: {'label': 'data(label)'}},
+                {
+                    selector: 'node',
+                    style: {
+                        'label': 'data(label)',
+                        'background-color': (ele) => { // Color based on status
+                            const status = ele.data('status');
+                            switch (status) {
+                                case 'pending': return 'orange';
+                                case 'running': return 'blue';
+                                case 'completed': return 'green';
+                                case 'failed': return 'red';
+                                case 'pendingUnitTesting': return 'purple';
+                                default: return '#666';
+                            }
+                        }
+                    }
+                },
                 {selector: 'edge', style: {'width': 2, 'line-color': '#ccc'}}
             ],
             layout: {name: 'grid'}
