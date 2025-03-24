@@ -8,7 +8,7 @@ const schema = z.object({
 
 export default {
     name: 'test_gen',
-    description: 'Generate unit tests for a given code snippet',
+    description: 'Generate unit tests for a given code snippet using Jest',
     schema,
     version: '1.0.0',
     dependencies: ['zod', '@langchain/google-genai'],
