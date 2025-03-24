@@ -13,12 +13,14 @@ export default {
     dependencies: ['zod'],
     async invoke(input, context) {
         const {tools: toolNames, inputs} = schema.parse(input);
-        const graph = context.graph;
+        const toolRegistry = context.tools;
         let result = inputs;
         for (const toolName of toolNames) {
-            const tool = graph.getNote(toolName);
-            if (!tool) return `Tool ${toolName} not found`;
-            result = await tool.invoke(result, context);
+            if (!toolRegistry.hasTool(toolName)) {
+                return `Tool ${toolName} not found`;
+            }
+            const tool = toolRegistry.getTool(toolName);
+            result = await tool.execute(result, context);
         }
         return result;
     }

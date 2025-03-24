@@ -25,6 +25,7 @@ export default {
             status: note.status,
             memory: note.memory,
             references: note.references,
+            logic: note.logic // Added logic to debug output
         }, null, 2);
     }
 };
