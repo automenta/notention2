@@ -46,12 +46,12 @@ function App() {
 
     useEffect(() => {
         if (notes.length > 0 && cyRef.current) {
-            initializeCytoscape(notes, cyRef.current, setSelectedNoteId); // Pass setSelectedNoteId
+            initializeCytoscape(notes, cyRef.current, setSelectedNoteId, handleCreateNoteFromGraph); // Pass handleCreateNoteFromGraph
         }
     }, [notes]);
 
 
-    const initializeCytoscape = (notes, container, setSelectedNoteId) => { // Accept setSelectedNoteId
+    const initializeCytoscape = (notes, container, setSelectedNoteId, handleCreateNoteFromGraph) => { // Accept handleCreateNoteFromGraph
         const cy = cytoscape({
             container: container,
             elements: notes.map(note => ({data: {id: note.id, label: note.title, status: note.status}})) // Include status in node data
@@ -88,6 +88,12 @@ function App() {
             var node = evt.target;
             setSelectedNoteId(node.id()); // Update selectedNoteId in App
         });
+
+        cy.on('click', (event) => { // Handle graph click
+            if (event.target === cy) { // Check if clicked on background
+                handleCreateNoteFromGraph(); // Call create note handler
+            }
+        });
     };
 
 
@@ -95,6 +101,11 @@ function App() {
 
     const handleCreateNote = () => {
         send({type: 'createNote', title: 'New Note'});
+    };
+
+    // New handler for creating note from graph click
+    const handleCreateNoteFromGraph = () => {
+        send({type: 'createNote', title: 'New Note from Graph'});
     };
 
 
