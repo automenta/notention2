@@ -8,7 +8,7 @@ const schema = z.object({
 
 export default {
     name: 'test_gen',
-    description: 'Generate unit tests for a given code snippet using Jest, aiming for comprehensive coverage including edge cases and error handling.',
+    description: 'Generate comprehensive unit tests for a given Javascript code snippet, focusing on robustness and coverage.',
     schema,
     version: '1.0.0',
     dependencies: ['zod', '@langchain/google-genai'],
@@ -28,34 +28,28 @@ export default {
             `;
         }
 
+        const prompt = `You are a highly skilled Javascript developer specializing in writing robust and comprehensive unit tests using Jest. 
+        Your task is to generate a complete suite of unit tests for the provided Javascript code. The goal is to achieve maximum test coverage, ensuring that all functionalities are thoroughly validated, including:
 
-        const prompt = `You are a world-class expert in Javascript and proficient in writing excellent unit tests using Jest. 
-        Your goal is to create a comprehensive suite of unit tests for the Javascript code provided below. 
-        Consider the context of the code within the Netention system, if provided. 
-        These tests should be robust, covering various scenarios, including:
+        - Core functionality: Verify the primary functions and features work as expected.
+        - Edge cases: Test boundary conditions, unusual inputs, and unexpected scenarios.
+        - Error handling: Ensure proper error handling and informative error messages.
+        - Asynchronous behavior: Test asynchronous operations, promises, and async/await.
+        - Integration points: If the code interacts with other modules or external APIs, test these integrations.
 
-        1.  **Basic Functionality**: Test the primary functions and features of the code to ensure they work as expected under normal conditions.
-        2.  **Edge Cases**: Identify and test boundary conditions, unusual inputs, or situations that might cause unexpected behavior.
-        3.  **Error Handling**: Verify that the code gracefully handles errors, exceptions, and invalid inputs, and provides informative error messages when necessary.
-        4.  **Asynchronous Operations**: If the code involves asynchronous operations (like Promises or async/await), ensure tests cover these aspects, including timeouts and error conditions.
-        5.  **State Management**: If the code manages state, test state transitions and ensure that the state is correctly updated throughout the code execution.
-        6.  **Integration Points**: If the code interacts with other modules, libraries, or external services, include integration tests to verify these interactions.
+        Consider the following context about the code's purpose and environment within the Netention system (if available):
 
-        Context about the Note being tested (if available):
         \`\`\`
         ${noteContext}
         \`\`\`
 
+        Write the tests using Jest syntax. The output should be ONLY the Javascript code for the tests, ready to be executed with Jest. 
+        Do not include any explanatory text, comments outside the test code, or any other extraneous information. 
+        The tests should be clear, readable, and maintainable, providing confidence in the code's correctness and reliability.
 
-        The tests MUST be written using Jest syntax and should be directly executable. Focus on creating tests that are:
+        If there are external dependencies or context required for the code to run (like browser APIs, Node.js modules, or specific environment variables), generate mock implementations or setup instructions within the test code to make the tests self-contained and runnable in isolation.
 
-        -   **Clear and Readable**: Tests should be easy to understand and maintain.
-        -   **Comprehensive**: Cover all significant aspects of the code.
-        -   **Independent**: Each test should be self-contained and not rely on the state of other tests.
-
-        Assume you are testing a module or class that will be used in a larger system. Aim for professional-quality unit tests that provide confidence in the code's correctness.
-
-        Output ONLY the Javascript code for the tests, and nothing else. Do not include any explanations or comments outside of the test code itself.
+        Ensure that the generated tests are independent and do not rely on external state or the execution order of other tests. Each test should set up its own environment and assert specific outcomes.
 
         \`\`\`javascript
         ${code}
