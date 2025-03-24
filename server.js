@@ -15,6 +15,7 @@ const CONFIG = {
     TESTS_DIR: './tests',
     PORT: 8080,
     RECONNECT_DELAY: 1000,
+    TOOL_TIMEOUT: 30000,
     BATCH_INTERVAL: 1000,
     MAX_PRIORITY: 100,
     QUEUE_INTERVAL: 100,
@@ -334,6 +335,19 @@ class NetentionServer {
     }
 
     async handleTestExecution(note, step) {
+        const {testId} = step.input;
+        try {
+            const results = await this.state.tools.executeTool('test_run', {testId}, {graph: this.state.graph, llm: this.state.llm});
+            note.memory.push({type: 'testRun', content: `Executed test ${testId}: ${results}`, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.writeNoteToDB(note);
+            return results;
+        } catch (error) {
+            step.status = 'failed';
+            note.memory.push({type: 'testRunError', content: `Test execution failed: ${error.message}`, timestamp: Date.now(), stepId: step.id});
+            await this.writeNoteToDB(note);
+            return `Test execution failed: ${error.message}`;
+        }
     }
 
 
