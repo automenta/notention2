@@ -665,6 +665,17 @@ class NetentionServer {
 
 
     async requestUnitTest(note) {
+        if (!note.tests) note.tests = [];
+        const testId = crypto.randomUUID();
+        note.tests.push(testId); // Assign a test ID to the note
+        note.status = 'pendingUnitTesting';
+        await this.writeNoteToDB(note);
+
+        this.state.log(`Unit test requested for Note ${note.id}, test Note ${testId} created.`, 'info', {
+            component: 'NoteRunner',
+            noteId: note.id,
+            testNoteId: testId
+        });
     }
 
 
