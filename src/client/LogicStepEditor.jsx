@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import ReactJson from 'react-json-view';
+import LogicStepItem from './LogicStepItem.jsx'; // Import LogicStepItem
 
 export default function LogicStepEditor({ logic, onChange, availableTools }) {
     const [draggingIndex, setDraggingIndex] = useState(null);
@@ -96,44 +97,20 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
             <label style={{ marginRight: '10px' }}>Logic Steps:</label>
             <ul style={{ padding: 0 }}>
                 {logic.map((step, index) => (
-                    <li
+                    <LogicStepItem
                         key={step.id}
-                        draggable="true"
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
+                        step={step}
+                        index={index}
+                        availableTools={availableTools}
+                        onStepChange={handleStepChange}
+                        onDeleteStep={handleDeleteStep}
+                        isDragging={isDragging}
+                        draggingIndex={draggingIndex}
+                        renderInputFields={renderInputFields}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
                         onDragEnd={handleDragEnd}
-                        style={{
-                            border: '1px solid #ccc',
-                            padding: '10px',
-                            marginBottom: '5px',
-                            borderRadius: '4px',
-                            backgroundColor: isDragging && draggingIndex === index ? '#f0f0f0' : 'white',
-                            cursor: 'grab',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                        }}
-                    >
-                        <div style={{ flexGrow: 1 }}>
-                            <div><strong>Step {index + 1}:</strong></div>
-                            <div>
-                                <label style={{ marginRight: '10px' }}>Tool:</label>
-                                <select
-                                    value={step.tool}
-                                    onChange={e => handleStepChange(index, 'tool', e.target.value)}
-                                >
-                                    {availableTools.map(tool => (
-                                        <option key={tool.name} value={tool.name}>{tool.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                {renderInputFields(step, index)}
-                            </div>
-                            <div>Status: {step.status}</div>
-                        </div>
-                        <button onClick={() => handleDeleteStep(index)} style={{ marginLeft: '10px' }}>Delete</button>
-                    </li>
+                    />
                 ))}
             </ul>
             <button onClick={handleAddStep}>Add Step</button>
