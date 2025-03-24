@@ -65,7 +65,6 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
         }
 
         return Object.entries(schema.properties).map(([paramName, paramSchema]) => {
-            const inputType = paramSchema.type === 'number' ? 'number' : 'text';
             const value = step.input[paramName] !== undefined ? step.input[paramName] : '';
 
             const handleInputChange = (paramValue) => {
@@ -73,34 +72,21 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
                 handleStepChange(index, 'input', updatedInput);
             };
 
-            if (paramSchema.type === 'object' || paramSchema.type === 'array') {
-                return (
-                    <div key={paramName} style={{ marginBottom: '10px' }}>
-                        <label style={{ marginRight: '10px' }}>{paramName}:</label>
-                        <ReactJson
-                            src={value || {}}
-                            onEdit={(val) => handleInputChange(val.updated_src)}
-                            onAdd={(val) => handleInputChange(val.updated_src)}
-                            onDelete={(val) => handleInputChange(val.updated_src)}
-                            displayObjectSize={false}
-                            displayDataTypes={false}
-                        />
-                    </div>
-                );
-            } else {
-                return (
-                    <div key={paramName} style={{ marginBottom: '10px' }}>
-                        <label style={{ marginRight: '10px' }}>{paramName}:</label>
-                        <input
-                            type={inputType}
-                            value={value}
-                            placeholder={paramSchema.description || paramName}
-                            onChange={e => handleInputChange(inputType === 'number' ? parseFloat(e.target.value) : e.target.value)}
-                            style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #ccc' }}
-                        />
-                    </div>
-                );
-            }
+
+            return (
+                <div key={paramName} style={{ marginBottom: '10px' }}>
+                    <label style={{ marginRight: '10px' }}>{paramName}:</label>
+                    <ReactJson
+                        src={value || null} // Use null for empty values
+                        onEdit={(val) => handleInputChange(val.updated_src)}
+                        onAdd={(val) => handleInputChange(val.updated_src)}
+                        onDelete={(val) => handleInputChange(val.updated_src)}
+                        displayObjectSize={false}
+                        displayDataTypes={false}
+                    />
+                </div>
+            );
+
         });
     };
 
