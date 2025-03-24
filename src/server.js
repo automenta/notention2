@@ -115,6 +115,10 @@ const INITIAL_NOTES = [
                 // New Testing Tools - using IDs instead of inline definitions for seed note
                 "test_gen":  'tool-test_gen-id',
                 "test_run":  'tool-test_run-id',
+                // New Fundamental Tools - using IDs as placeholders
+                "compose": 'tool-compose-id',
+                "schedule": 'tool-schedule-id',
+                "debug": 'tool-debug-id',
             }
         },
         status: 'running',
