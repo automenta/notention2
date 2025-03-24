@@ -4,25 +4,57 @@ import NoteList from './NoteList.jsx';
 import NoteEditor from './NoteEditor.jsx';
 import cytoscape from 'cytoscape';
 
+const CONNECTING_STYLE = {
+    color: 'orange',
+    marginBottom: '10px'
+};
+
+const CONNECTED_STYLE = {
+    color: 'green',
+    marginBottom: '10px'
+};
+
+const DISCONNECTED_STYLE = {
+    color: 'red',
+    marginBottom: '10px'
+};
+
 function App() {
     const [notes, setNotes] = useState([]);
     const [selectedNoteId, setSelectedNoteId] = useState(null);
     const [ws, setWs] = useState(null);
     const cyRef = useRef(null); // Ref for Cytoscape container
+    const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
     useEffect(() => {
         const websocket = new WebSocket('ws://localhost:8080');
-        websocket.onopen = () => console.log('WebSocket connected');
+
+        websocket.onopen = () => {
+            console.log('WebSocket connected');
+            setConnectionStatus('Connected');
+        };
+
         websocket.onmessage = (ev) => {
             const {type, data} = JSON.parse(ev.data);
             if (type === 'notes') setNotes(data);
             if (type === 'noteUpdate') setNotes((prev) =>
                 prev.map(n => n.id === data.id ? data : n).filter(n => n));
         };
-        websocket.onerror = () => console.error('WebSocket error');
-        websocket.onclose = () => setTimeout(() => {
-            setWs(new WebSocket('ws://localhost:8080')); // Reconnect on close
-        }, 1000);
+
+        websocket.onerror = () => {
+            console.error('WebSocket error');
+            setConnectionStatus('Error');
+        };
+
+        websocket.onclose = () => {
+            console.log('WebSocket disconnected');
+            setConnectionStatus('Disconnected');
+            setTimeout(() => {
+                setWs(new WebSocket('ws://localhost:8080')); // Reconnect on close
+                setConnectionStatus('Connecting...');
+            }, 1000);
+        };
+
         setWs(websocket);
         return () => websocket.close();
     }, []);
@@ -55,23 +87,31 @@ function App() {
 
     const send = (msg) => ws?.readyState === 1 && ws.send(JSON.stringify(msg));
 
+    const handleCreateNote = () => {
+        send({type: 'createNote', title: 'New Note'});
+    };
+
+    let connectionStyle;
+    switch (connectionStatus) {
+        case 'Connected':
+            connectionStyle = CONNECTED_STYLE;
+            break;
+        case 'Error':
+        case 'Disconnected':
+            connectionStyle = DISCONNECTED_STYLE;
+            break;
+        default:
+            connectionStyle = CONNECTING_STYLE;
+    }
+
+
     return (
         <div style={{padding: '20px', maxWidth: '800px', margin: '0 auto'}}>
             <h1 style={{fontSize: '24px', marginBottom: '20px'}}>Netention</h1>
-            {ws?.readyState !== 1 && <p style={{color: 'red', marginBottom: '10px'}}>Connecting...</p>}
+            <p style={connectionStyle}>{connectionStatus}</p>
+
             <div style={{marginBottom: '20px'}}>
-                <input
-                    type="text"
-                    placeholder="New Note Title"
-                    onKeyPress={(e) => {
-                        if (e.key === 'Enter' && e.target.value) {
-                            send({type: 'createNote', title: e.target.value});
-                            e.target.value = '';
-                        }
-                    }}
-                    style={{padding: '8px', width: '70%', marginRight: '10px'}}
-                />
-                <button onClick={() => send({type: 'createNote', title: 'New Note'})}>Add</button>
+                <button onClick={handleCreateNote}>+</button>
             </div>
             <NoteList
                 notes={notes}
@@ -82,8 +122,6 @@ function App() {
                 <NoteEditor
                     note={notes.find(n => n.id === selectedNoteId)}
                     onUpdate={(updates) => send({type: 'updateNote', ...updates})}
-                    // onUpdate={(updates) => console.log("Update Note:", updates)} // Debugging
-                    onRun={(id) => send({type: 'runNote', id})}
                 />
             )}
             <div id="cy" style={{width: '100%', height: '300px', marginTop: '20px', border: '1px solid #ddd'}}

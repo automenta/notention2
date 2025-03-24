@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import crypto from 'crypto';
+import ReactMarkdown from 'react-markdown';
 
 const SAVE_BUTTON_STYLE = (isSaving) => ({
     padding: '5px 10px',
@@ -10,14 +11,6 @@ const SAVE_BUTTON_STYLE = (isSaving) => ({
     borderRadius: '4px',
     cursor: isSaving ? 'not-allowed' : 'pointer'
 });
-
-const RUN_BUTTON_STYLE = {
-    padding: '5px 10px',
-    background: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px'
-};
 
 const RESULT_STYLE = {
     background: '#f9f9f9',
@@ -30,17 +23,26 @@ const RESULT_TITLE_STYLE = {
     fontSize: '16px'
 };
 
-const getRunStatusText = (status) => {
+const STATUS_STYLE = (status) => {
+    let color = 'gray';
     switch (status) {
         case 'running':
-            return 'Running...';
+            color = 'blue';
+            break;
         case 'completed':
-            return 'Completed';
+            color = 'green';
+            break;
         case 'failed':
-            return 'Failed!';
+            color = 'red';
+            break;
         default:
-            return '';
+            color = 'gray';
     }
+    return {
+        marginLeft: '10px',
+        color: color,
+        fontWeight: 'bold'
+    };
 };
 
 const createLogicForSummary = (content) => {
@@ -48,13 +50,12 @@ const createLogicForSummary = (content) => {
 };
 
 
-export default function NoteEditor({note, onUpdate, onRun}) {
+export default function NoteEditor({note, onUpdate}) {
     const [title, setTitle] = useState(note.title);
     const [content, setContent] = useState(note.content || '');
     const [priority, setPriority] = useState(note.priority || 50); // Default priority
     const [deadline, setDeadline] = useState(note.deadline || ''); // Default deadline
     const [isSaving, setIsSaving] = useState(false);
-    const [runStatus, setRunStatus] = useState(getRunStatusText(note.status));
 
     useEffect(() => {
         setTitle(note.title);
@@ -62,8 +63,6 @@ export default function NoteEditor({note, onUpdate, onRun}) {
         setPriority(note.priority || 50);
         setDeadline(note.deadline || '');
     }, [note]);
-
-    // ... (existing code)
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -77,7 +76,6 @@ export default function NoteEditor({note, onUpdate, onRun}) {
             logic
         });
         setIsSaving(false);
-        onRun(note.id);
     };
 
     return (
@@ -116,20 +114,14 @@ export default function NoteEditor({note, onUpdate, onRun}) {
                     disabled={isSaving}
                     style={SAVE_BUTTON_STYLE(isSaving)}
                 >
-                    {isSaving ? 'Saving...' : 'Save and Summarize'}
+                    {isSaving ? 'Saving...' : 'Save and Run'}
                 </button>
-                <button
-                    onClick={() => onRun(note.id)}
-                    style={RUN_BUTTON_STYLE}
-                >
-                    Re-run
-                </button>
-                {runStatus && <span style={{marginLeft: '10px'}}>{runStatus}</span>}
+                <span style={STATUS_STYLE(note.status)}>{note.status}</span>
             </div>
             {note.memory?.length > 0 && (
                 <div style={RESULT_STYLE}>
                     <h4 style={RESULT_TITLE_STYLE}>Result:</h4>
-                    <p>{note.memory[note.memory.length - 1].content}</p>
+                    <ReactMarkdown>{note.memory[note.memory.length - 1].content}</ReactMarkdown>
                 </div>
             )}
         </div>
