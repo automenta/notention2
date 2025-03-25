@@ -11,9 +11,9 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
     const [priority, setPriority] = useState(note?.priority || 50);
     const [references, setReferences] = useState(note?.references || []);
     const [logic, setLogic] = useState(note?.logic || []);
-    const [toolInput, setToolInput] = useState({tool: '', input: ''});
+    const [selectedTool, setSelectedTool] = useState(''); // State for selected tool
+    const [toolInput, setToolInput] = useState({}); // State for tool input, now an object
     const [isSaving, setIsSaving] = useState(false);
-    // const [availableTools, setAvailableTools] = useState([ ... removed hardcoded tools ... ]); // Removed availableTools state
 
     useEffect(() => {
         if (note) {
@@ -77,11 +77,20 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
     };
 
     const handleRunTool = () => {
-        onRunTool(note.id, toolInput.tool, JSON.parse(toolInput.input || '{}'));
+        onRunTool(note.id, selectedTool, toolInput); // Use selectedTool and toolInput object
     };
 
     const handleContentChange = (value) => {
         handleChange('content', value.updated_src);
+    };
+
+    const handleToolSelectChange = (event) => {
+        setSelectedTool(event.target.value);
+        setToolInput({}); // Reset input when tool changes
+    };
+
+    const handleToolInputChange = (inputValues) => {
+        setToolInput(inputValues);
     };
 
     const handleLogicChange = (newLogic) => {
@@ -148,8 +157,49 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
             </div>
             <div style={{margin: '10px 0'}}>
                 <LogicStepEditor logic={logic} onChange={handleLogicChange}
-                                 availableTools={availableTools}/> {/* Use LogicStepEditor with availableTools prop */}
+                                 availableTools={availableTools}/>
             </div>
+
+            <div style={{marginTop: '10px', marginBottom: '10px'}}>
+                <label style={{marginRight: '10px'}}>Run Tool:</label>
+                <select
+                    value={selectedTool}
+                    onChange={handleToolSelectChange}
+                    style={{padding: '8px', borderRadius: '4px', marginRight: '10px'}}
+                >
+                    <option value="">Select a tool</option>
+                    {availableTools.map(tool => (
+                        <option key={tool.name} value={tool.name}>{tool.name}</option>
+                    ))}
+                </select>
+            </div>
+
+            {selectedTool && (
+                <div style={{marginBottom: '20px', border: '1px solid #ccc', padding: '10px', borderRadius: '4px'}}>
+                    <StepInput
+                        step={{tool: selectedTool, input: toolInput}} // Pass tool and current input
+                        availableTools={availableTools}
+                        onStepChange={(index, field, value) => handleToolInputChange(value)} // Adapt onStepChange
+                        index={0} // Index is not relevant here as it's not in a list
+                    />
+                    <button
+                        onClick={handleRunTool}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#ff9800',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            marginTop: '10px'
+                        }}
+                    >
+                        Run {selectedTool}
+                    </button>
+                </div>
+            )}
+
+
             <div style={{marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center'}}>
                 <button
                     onClick={handleSave}
@@ -190,19 +240,7 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
                 >
                     Run Now
                 </button>
-                <button
-                    onClick={handleRunTool}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#ff9800',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Run Tool
-                </button>
+
                 {isSaving && <span style={{color: '#888', fontSize: '14px'}}>Saving...</span>}
                 {note && note.status && (
                     <div style={{
@@ -213,7 +251,7 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
                             note.status === 'running' ? '#e3f2fd' :
                                 note.status === 'completed' ? '#e8f5e9' :
                                     note.status === 'failed' ? '#ffebee' :
-                                        '#f0f0f0', // Default background color
+                                        '#f0f0f0',
                         border: '1px solid #ccc',
                         textAlign: 'center'
                     }}>
