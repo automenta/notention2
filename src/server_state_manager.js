@@ -25,28 +25,4 @@ export class ServerState {
         step.result = stepResult;
         await this.serverCore.writeNoteToDB(note);
     }
-
-    getConfig() {
-        return this.config;
-    }
-
-    getLogger() {
-        return this.logger;
-    }
-
-    getLLM() {
-        return this.llm;
-    }
-
-    getGraph() {
-        return this.graph;
-    }
-
-    getTools() {
-        return this.tools;
-    }
-
-    getMemory() {
-        return this.memory;
-    }
 }
