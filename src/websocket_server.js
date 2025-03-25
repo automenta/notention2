@@ -2,9 +2,13 @@ import {WebSocket, WebSocketServer} from 'ws';
 import crypto from 'crypto';
 
 export class WebSocketServerManager {
+    wss;
+    messageQueue;
+
     constructor(serverState) {
         this.state = serverState;
         this.wss = null;
+        this.messageQueue = []; // Initialize messageQueue here
     }
 
     start(httpServer) {
@@ -16,8 +20,8 @@ export class WebSocketServerManager {
         this.state.log('Client connected', 'info', {component: 'WebSocket'});
         this._sendInitialData(ws);
 
-        while (this.state.messageQueue.length) {
-            const {client, message} = this.state.messageQueue.shift();
+        while (this.messageQueue.length) {
+            const {client, message} = this.messageQueue.shift();
             if (!client || client.readyState === WebSocket.OPEN) {
                 (client || ws).send(message);
             }

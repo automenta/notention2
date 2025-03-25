@@ -9,8 +9,6 @@ export class ServerState {
     graph;
     tools;
     memory;
-    wss;
-    messageQueue;
     pendingWrites;
     updateBatch;
     batchTimeout;
@@ -21,8 +19,6 @@ export class ServerState {
         this.graph = new Graph();
         this.tools = new Tools();
         this.memory = new InMemoryChatMessageHistory();
-        this.wss = null;
-        this.messageQueue = [];
         this.pendingWrites = new Map();
         this.updateBatch = new Set();
         this.batchTimeout = null;

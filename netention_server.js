@@ -101,7 +101,7 @@ class NetentionServer {
         this.state.updateBatch.clear();
         this.state.batchTimeout = null;
         noteUpdates.forEach(note => {
-            this.websocketManager.broadcastNoteUpdate(note);
+            this.websocketManager.broadcastNoteUpdate(note); // Use websocketManager to broadcast
             const resolver = this.state.pendingWrites.get(note.id);
             if (resolver) resolver();
             this.state.pendingWrites.delete(note.id);

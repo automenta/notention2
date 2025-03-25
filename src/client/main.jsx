@@ -31,7 +31,7 @@ function App() {
             if (type === 'notes') setNotes(data);
             if (type === 'noteUpdate') setNotes((prev) =>
                 prev.map(n => n.id === data.id ? data : n).filter(n => n));
-            if (type === 'tools') setAvailableTools(data); // Handle 'tools' message
+            if (type === 'tools') setAvailableTools(data);
         };
 
         websocket.onerror = () => {
