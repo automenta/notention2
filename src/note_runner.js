@@ -152,30 +152,7 @@ with tool $
                     }
                 } catch (error) {
                     step.status = 'failed';
-                    const errorMsg = `
-Error
-executing
-step
-$
-{
-    step.id
-}
-of
-note
-$
-{
-    note.id
-}
-with tool $
-{
-    step.tool
-}
-:
-$
-{
-    error
-}
-`;
+                    const errorMsg = `Error executing step ${step.id} of note ${note.id} with tool ${step.tool}: ${error}`;
                     this.state.log(errorMsg, 'error', {
                         component: 'NoteRunner',
                         noteId: note.id,
@@ -196,7 +173,6 @@ $
                     await this.state.writeNoteToDB(note);
                     return this._handleFailure(note, {message: errorMsg, errorType: 'StepExecutionError'});
 
-                } finally {
                 }
                 this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
             }
@@ -216,14 +192,14 @@ $
 
     async _executeStep(note, step, memoryMap) {
         const tool = this.state.tools.getTool(step.tool);
-        if (!tool) return this._handleToolNotFoundError(note, step);
+        if (!tool) return this.errorHandler.handleToolNotFoundError(note, step);
         try {
             const result = await tool.execute(step.input, {graph: this.state.graph, llm: this.state.llm});
             memoryMap.set(step.id, result);
             note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
         } catch (error) {
-            this._handleToolStepError(note, step, error);
+            this.errorHandler.handleToolStepError(note, step, error);
         }
         await this.state.writeNoteToDB(note);
     }
@@ -231,12 +207,7 @@ $
 
     async _pruneMemory(note) {
         if (note.memory.length > 100) {
-            const summary = await this.state.llm.invoke([`
-$
-{
-    JSON.stringify(note.memory.slice(0, 50))
-}
-`]);
+            const summary = await this.state.llm.invoke([`Summarize: ${JSON.stringify(note.memory.slice(0, 50))}`]);
             note.memory = [
                 {type: 'summary', content: summary.text, timestamp: Date.now()},
                 ...note.memory.slice(-50)
@@ -265,155 +236,52 @@ $
         if (!CONFIG.AUTO_RUN_TESTS || !note.tests || !note.tests.length) return;
         for (const testFile of note.tests) {
             try {
-                const testModule = await import(`
-await testModule.default(note, this.state);
-this.state.log(`Tests for note ${note.id} passed.`, 'info', {
-    component: 'NoteRunner',
-    noteId: note.id,
-    testFile: testFile
-});
-} catch
-(error)
-{
-    this.state.log(`Tests failed for note ${note.id}: ${error}`, 'error', {
-        component: 'TestRunner',
-        noteId: note.id,
-        testFile: testFile,
-        error: error.message
-    });
-}
-}
-}
-
-async
-_finalizeNoteRun(note)
-{
-    this.state.log(`Note ${note.id} execution finalized.`, 'debug', {
-        component: 'NoteRunner',
-        noteId: note.id,
-        status: note.status
-    });
-    return note;
-}
-
-_handleNoteError(note, error)
-{
-    this.state.log(`Error running note ${note.id}: ${error}`, 'error', {
-        component: 'NoteRunner',
-        noteId: note.id,
-        errorType: 'NoteExecutionError',
-        error: error.message
-    });
-    note.status = 'failed';
-    note.error = error.message;
-    this.state.writeNoteToDB(note);
-    return note;
-}
-
-_handleToolNotFoundError(note, step)
-{
-    const errorMsg = `Tool ${step.tool} not found`;
-    this.state.log(errorMsg, 'error', {
-        component: 'NoteRunner',
-        noteId: note.id,
-        stepId: step.id,
-        toolName: step.tool,
-        errorType: 'ToolNotFoundError'
-    });
-    step.status = 'failed';
-    step.error = errorMsg;
-    note.status = 'failed';
-    this.state.writeNoteToDB(note);
-    return errorMsg;
-}
-
-_handleToolStepError(note, step, error)
-{
-    this.state.log(`Error executing tool ${step.tool} for note ${note.id}: ${error}`, 'error', {
-        component: 'NoteRunner',
-        noteId: note.id,
-        stepId: step.id,
-        toolName: step.tool,
-        errorType: 'ToolExecutionError',
-        error: error.message
-    });
-    step.status = 'failed';
-    step.error = error.message;
-    note.status = 'failed';
-    this.state.writeNoteToDB(note);
-    return `Tool execution failed: ${error.message}`;
-}
-
-_handleFailure(note, error)
-{
-    this.state.log(`Note ${note.id} execution failed: ${error}`, 'error', {
-        component: 'NoteRunner',
-        noteId: note.id,
-        errorType: 'NoteExecutionError'
-    });
-
-    if (this.shouldRetry(error)) {
-        this.retryExecution(note);
-    } else if (this.shouldRequestUnitTest(note, error)) {
-        this.requestUnitTest(note);
-    } else {
-        note.status = 'failed';
-        this.state.writeNoteToDB(note);
+                const testModule = await import(`file://${process.cwd()}/${CONFIG.TESTS_DIR}/${testFile}`);
+                await testModule.default(note, this.state);
+                this.state.log(`Tests for note ${note.id} passed.`, 'info', {
+                    component: 'NoteRunner',
+                    noteId: note.id,
+                    testFile: testFile
+                });
+            } catch (error) {
+                this.state.log(`Tests failed for note ${note.id}: ${error}`, 'error', {
+                    component: 'TestRunner',
+                    noteId: note.id,
+                    testFile: testFile,
+                    error: error.message
+                });
+            }
+        }
     }
-}
 
+    async _finalizeNoteRun(note) {
+        this.state.log(`Note ${note.id} execution finalized.`, 'debug', {
+            component: 'NoteRunner',
+            noteId: note.id,
+            status: note.status
+        });
+        return note;
+    }
 
-shouldRetry(error)
-{
-    return error.message.includes('timeout') || error.message.includes('rate limit');
-}
+    _handleFailure(note, error) {
+        this.errorHandler._handleFailure(note, error);
+    }
 
-retryExecution(note)
-{
-    note.status = 'pending';
-    this.state.writeNoteToDB(note);
-    this.state.queueExecution(note);
-    this.state.log(`Note ${note.id} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: note.id});
-}
+    shouldRetry(error) {
+        return this.errorHandler.shouldRetry(error);
+    }
 
+    retryExecution(note) {
+        this.errorHandler.retryExecution(note);
+    }
 
-shouldRequestUnitTest(note, error)
-{
-    return stepErrorTypes.includes(error.errorType) || note.logic.some(step => step.tool === 'code_gen' && step.status === 'failed');
-}
+    shouldRequestUnitTest(note, error) {
+        return this.errorHandler.shouldRequestUnitTest(note, error);
+    }
 
-
-async
-requestUnitTest(note)
-{
-    if (!note.tests) note.tests = [];
-    const testId = crypto.randomUUID();
-    note.tests.push(testId);
-    note.status = 'pendingUnitTesting';
-    await this.state.writeNoteToDB(note);
-
-
-    const testNote = {
-        id: testId,
-        title: `Unit Test for ${note.title}`,
-        content: {
-            type: 'test',
-            targetNoteId: note.id
-        },
-        status: 'pending',
-        priority: 60,
-        createdAt: new Date().toISOString(),
-        references: [note.id]
-    };
-    this.state.graph.addNote(testNote);
-    await this.state.writeNoteToDB(testNote);
-    this.state.queueExecution(testNote);
-    this.state.log(`Unit test requested for Note ${note.id}, test Note ${testId} created.`, 'info', {
-        component: 'NoteRunner',
-        noteId: note.id,
-        testNoteId: testId
-    });
-}
+    async requestUnitTest(note) {
+        this.errorHandler.requestUnitTest(note);
+    }
 }
 import crypto from 'crypto';
 import {ErrorHandler} from './error_handler.js'; // Import ErrorHandler
