@@ -265,7 +265,6 @@ class NetentionServer {
 
     initialize() {
         this.state.log("Starting initialization...", 'info', {component: 'Server'});
-        this.loadTools();
         this.loadNotesFromDB();
         this.state.llm.setApiKey('exampleApi', 'your-key-here');
         this.state.log("Server started successfully.", 'info', {component: 'Server'});
