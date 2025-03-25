@@ -188,23 +188,7 @@ function App() {
                 }
             `).update();
 
-        const mainNodes = notes.map(note => ({
-            group: 'nodes',
-            data: {
-                id: note.id,
-                label: note.title,
-                status: note.status,
-                noteData: note // Store entire note data
-            }
-        }));
-
-        const edges = notes.flatMap(note => (note.references ?? []).map(ref => ({
-            group: 'edges',
-            data: {
-                source: note.id,
-                target: ref
-            }
-        })));
+        const {nodes: mainNodes, edges} = createGraphElements(notes);
 
         cy.add(mainNodes.concat(edges));
 
@@ -277,8 +261,7 @@ function App() {
         return cy;
     };
 
-    const updateGraphSelection = (cy, notes, selectedNoteId) => {
-        if (!cy) return;
+    const createGraphElements = (notes) => {
         const mainNodes = notes.map(note => ({
             group: 'nodes',
             data: {
@@ -297,9 +280,17 @@ function App() {
             }
         })));
 
+        return {nodes: mainNodes, edges: edges};
+    };
+
+    const updateGraphSelection = (cy, notes, selectedNoteId) => {
+        if (!cy) return;
+
+        const {nodes: mainNodes, edges} = createGraphElements(notes);
+
         cy.elements().remove(); // Clear existing elements
 
-        // Add main notes and edges
+        // Add main nodes and edges
         cy.add(mainNodes.concat(edges));
 
         cy.nodes().removeClass('selected-node'); // Clear previous selection
