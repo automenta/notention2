@@ -1,4 +1,5 @@
 import {logNoteExecutionError, logToolExecutionError, logToolNotFoundError, logNoteRetryQueued, logUnitTestRequestQueued} from './utils.js';
+import { stepErrorTypes } from './note_step_handler.js';
 
 export class ErrorHandler {
     constructor(serverState) {
@@ -51,7 +52,6 @@ export class ErrorHandler {
 
 
     shouldRequestUnitTest(note, error) {
-        const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError']; // Assuming stepErrorTypes is defined elsewhere or needs to be passed
         return stepErrorTypes.includes(error.errorType) || note.logic.some(step => step.tool === 'code_gen' && step.status === 'failed');
     }
 }
