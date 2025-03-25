@@ -200,7 +200,11 @@ export class NoteRunner {
     }
 
     _handleFailure(note, error) {
-        this.errorHandler._handleFailure(note, error);
+        if (this.shouldRequestUnitTest(error)) {
+            this.requestUnitTest(note);
+        } else {
+            this.errorHandler._handleFailure(note, error);
+        }
     }
 
     shouldRetry(error) {
