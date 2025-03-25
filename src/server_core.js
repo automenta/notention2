@@ -1,9 +1,10 @@
 export class ServerCore {
-    constructor(state, queueManager, websocketManager, noteRunner) {
+    constructor(state, queueManager, websocketManager, noteRunner, noteStepHandler) {
         this.state = state;
         this.queueManager = queueManager;
         this.websocketManager = websocketManager;
         this.noteRunner = noteRunner;
+        this.noteStepHandler = noteStepHandler;
     }
 
     async writeNoteToDB(note) {
