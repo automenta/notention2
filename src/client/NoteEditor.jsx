@@ -204,6 +204,22 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
                     Run Tool
                 </button>
                 {isSaving && <span style={{color: '#888', fontSize: '14px'}}>Saving...</span>}
+                {note && note.status && (
+                    <div style={{
+                        marginTop: '10px',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        backgroundColor: note.status === 'pending' ? '#fffde7' :
+                            note.status === 'running' ? '#e3f2fd' :
+                                note.status === 'completed' ? '#e8f5e9' :
+                                    note.status === 'failed' ? '#ffebee' :
+                                        '#f0f0f0', // Default background color
+                        border: '1px solid #ccc',
+                        textAlign: 'center'
+                    }}>
+                        <strong>Status: {note.status}</strong>
+                    </div>
+                )}
             </div>
         </div>
     );
