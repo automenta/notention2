@@ -317,11 +317,28 @@ class NetentionServer {
 
     initialize() {
         this.state.log("Starting initialization...", 'info', {component: 'Server'});
-        this.loadNotesFromDB();
-        this.state.llm.setApiKey('exampleApi', 'your-key-here');
-        this.state.log("Server started successfully.", 'info', {component: 'Server'});
-        this.start();
-        this.initScheduler();
+        this.state.log("Loading tools...", 'info', {component: 'Server'});
+        return this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR)
+            .then(loadedTools => {
+                this.state.log(`Loaded ${loadedTools.length} tools.`, 'info', {
+                    component: 'ToolLoader',
+                    count: loadedTools.length
+                });
+                return this.loadNotesFromDB(); // Load notes after tools
+            })
+            .then(() => {
+                this.state.llm.setApiKey('exampleApi', 'your-key-here');
+                this.state.log("Server started successfully.", 'info', {component: 'Server'});
+                this.start();
+                this.initScheduler();
+            })
+            .catch(error => {
+                this.state.log(`Tool loading failed during server initialization: ${error}`, 'error', {
+                    component: 'ToolLoader',
+                    error: error.message
+                });
+                throw error; // Re-throw to prevent server from starting if tools fail to load
+            });
     }
 
 
