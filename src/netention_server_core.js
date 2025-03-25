@@ -101,12 +101,4 @@ class NetentionServerCore {
         broadcastNoteUpdate_impl(note)
         {
         }
-
-        replacePlaceholders(input, memoryMap)
-        {
-            if (typeof input === 'string') {
-                return input.replace(/\${(\w+)}/g, (_, stepId) => memoryMap.get(stepId) || '');
-            }
-            return input;
-        }
     }
