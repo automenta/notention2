@@ -104,6 +104,15 @@ export const INITIAL_NOTES = [
                 status: 'pending'
             },
             {
++                id: '13',
++                tool: 'diagnose_note', // Run diagnose_note tool on seed-0 itself
++                input: {noteId: 'seed-0'},
++                dependencies: ['12'],
++                status: 'pending'
++            },            {
+                 id: '12',
+                 tool: 'debug',
+                 input: {noteId: 'seed-0'},
                 id: '2',
                 tool: 'generateCode',
                 input: {description: 'Function to display summary: ${1}'},

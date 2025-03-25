@@ -46,7 +46,12 @@ export class ErrorHandler {
     }
 
     shouldRetry(error) {
-        return error.message.includes('timeout') || error.message.includes('rate limit');
+        // Retry transient errors like timeouts and rate limits, but not tool/note errors in general
+        if (error instanceof ToolExecutionError) {
+            return error.message.includes('timeout') || error.message.includes('rate limit');
+        } else if (error instanceof NoteExecutionError) {
+            return error.message.includes('timeout') || error.message.includes('rate limit');
+        }
     }
 
     retryExecution(note) {
