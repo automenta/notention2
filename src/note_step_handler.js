@@ -68,7 +68,7 @@ export class NoteStepHandler {
             step.status = 'completed';
             await this.state.serverCore.writeNoteToDB(note);
         } catch (error) {
-            await handleToolStepError(this.state, note, step, error);
+            this.errorHandler.handleToolStepError(note, step, error);
         }
     }
 
