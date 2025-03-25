@@ -33,7 +33,7 @@ class NetentionServer {
         this.websocketManager = new WebSocketServerManager(this.state);
         this.errorHandler = new ErrorHandler(this.state);
         this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler);
-        this.noteRunner = new NoteRunner(this.state, this.server, this.errorHandler);
+        this.noteRunner = new NoteRunner(this.state, this, this.errorHandler);
         this.noteHandler = new NoteHandler(this.state);
         this.toolLoader = new ToolLoader(this.state);
         this.noteLoader = new NoteLoader(this.state);

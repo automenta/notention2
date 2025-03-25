@@ -5,7 +5,7 @@ export class WebSocketServerManager {
     wss;
     messageQueue;
 
-    constructor(serverState, queueManager) {
+    constructor(serverState) {
         this.state = serverState;
         this.wss = null;
         this.messageQueue = [];
