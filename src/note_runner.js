@@ -63,7 +63,7 @@ export class NoteRunner {
                         errorName: error.name,
                         errorMessage: error.message
                     });
-                    await this.state.writeNoteToDB(note);
+                    await this.state.serverCore.writeNoteToDB(note);
                     return this._handleFailure(note, {message: errorMsg, errorType: 'StepExecutionError'});
 
                 }
