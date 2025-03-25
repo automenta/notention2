@@ -59,26 +59,7 @@ async function astarPathfinding(graph, startId, goalId) {
 }
 
 
-export default {
-    name: 'astar',
-    description: 'Find the shortest path between two notes using A* algorithm',
-    schema,
-    version: '1.0.0',
-    dependencies: ['zod', 'priority-queue-js'],
-    async invoke(input, context) {
-        const { startId, goalId } = schema.parse(input);
-        const graph = context.graph;
-
-        if (!graph.getNote(startId)) {
-            return `Error: Start Note with ID '${startId}' not found.`;
-        }
-        if (!graph.getNote(goalId)) {
-            return `Error: Goal Note with ID '${goalId}' not found.`;
-        }
-
-        return await astarPathfinding(graph, startId, goalId);
-    }
-};
+import PriorityQueue from 'priority-queue-js';
 import { withToolHandling } from '../tool_utils.js';
 
 function heuristic(startId, goalId) {

@@ -6,12 +6,16 @@ const schema = z.object({
     vectorStoreId: z.string().optional(),
 });
 
+async function invoke(input) {
+        const {query} = schema.parse(input);
+        return `Stub: RAG query: ${query}`;
+    }
+
 export default {
     name: 'rag',
     description: 'Retrieval-Augmented Generation interface',
     schema,
     version: '1.0.0',
     dependencies: ['zod', '@langchain/core'],
-    async invoke(input) {
-        const {query} = schema.parse(input);
-        return `Stub: RAG query: ${query}`;
+    invoke: withToolHandling({ name: 'rag', schema, invoke }),
+};

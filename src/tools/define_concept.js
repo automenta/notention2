@@ -6,13 +6,7 @@ const schema = z.object({
     metaNoteId: z.string().optional() // Make metaNoteId optional
 });
 
-export default {
-    name: 'define_concept',
-    description: 'Defines a core concept within Netention and stores its definition in the Meta-Note',
-    schema,
-    version: '1.0.0',
-    dependencies: ['zod'],
-    async invoke(input, context) {
+async function invoke(input, context) {
         const { concept_name, definition, metaNoteId: inputMetaNoteId } = schema.parse(input);
         const metaNoteId = inputMetaNoteId || 'seed-0'; // Default to 'seed-0' if not provided
         const graph = context.graph;
@@ -47,4 +41,12 @@ export default {
         context.logger.log(successMsg, 'info', { component: 'define_concept', conceptName: concept_name });
         return { status: 'success', message: successMsg, conceptName: concept_name };
     }
+
+export default {
+    name: 'define_concept',
+    description: 'Defines a core concept within Netention and stores its definition in the Meta-Note',
+    schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
+    invoke: withToolHandling({ name: 'define_concept', schema, invoke }),
 };

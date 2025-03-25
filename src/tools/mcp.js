@@ -11,6 +11,11 @@ async function invoke(input) {
     return `Stub: MCP for ${task}`;
 }
 
+async function invoke(input) {
+    const {task} = schema.parse(input);
+    return `Stub: MCP for ${task}`;
+}
+
 export default {
     name: 'mcp',
     description: 'Model Context Protocol interface',

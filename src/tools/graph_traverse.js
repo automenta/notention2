@@ -26,23 +26,6 @@ async function traverseGraph(graph, startId, mode) {
     return results;
 }
 
-export default {
-    name: 'graph_traverse',
-    description: 'Traverse graph (DFS/BFS)',
-    schema,
-    version: '1.0.0',
-    dependencies: ['zod'],
-    async invoke(input, context) {
-        const { startId, mode, callback } = schema.parse(input);
-        const graph = context.graph;
-
-        const results = await traverseGraph(graph, startId, mode);
-
-        return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
-    }
-};
-import { withToolHandling } from '../tool_utils.js';
-
 async function traverseGraph(graph, startId, mode) {
     const visited = new Set();
     const stackOrQueue = [startId];
