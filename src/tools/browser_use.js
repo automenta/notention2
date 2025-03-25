@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { withToolHandling } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     url: z.string().url(),
@@ -10,7 +10,7 @@ const schema = z.object({
 });
 
 async function invoke(input) {
-    const {url, action} = schema.parse(input);
+    const {url, action, selector} = schema.parse(input);
 
     if (action === 'open') {
         const puppeteer = await import('puppeteer');
@@ -48,11 +48,11 @@ async function invoke(input) {
     return `Browser action "${action}" on URL "${url}" is not implemented yet.`;
 }
 
-export default {
+export default defineTool({
     name: 'browser_use',
     description: 'Control a headless browser',
     schema,
     version: '1.0.0',
     dependencies: ['zod', 'puppeteer'],
-    invoke: withToolHandling({ name: 'browser_use', schema, invoke }),
-};
+    invoke: invoke,
+});

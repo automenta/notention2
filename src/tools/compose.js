@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { withToolHandling } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     toolChain: z.array(z.object({ // toolChain is now an array of tool configurations
@@ -31,11 +31,11 @@ async function invoke(input, context) {
     return executionResults; // Return results as an array of {toolName, result}
 }
 
-export default {
+export default defineTool({
     name: 'compose',
     description: 'Compose and execute a chain of tools',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'compose', schema, invoke }),
-};
+    invoke: invoke,
+});

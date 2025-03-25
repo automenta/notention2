@@ -1,13 +1,13 @@
 import {z} from 'zod';
 import PriorityQueue from 'priority-queue-js';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     startId: z.string(),
     goalId: z.string()
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
 function heuristic(startId, goalId) {
     // Simple heuristic: Manhattan distance (example, adapt as needed)
@@ -62,8 +62,8 @@ async function astarPathfinding(graph, startId, goalId) {
 }
 
 
-async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
-    const { startId, goalId } = invoke(input); // Parse input here for consistency
+async function invoke(input, context) { // Rename original invoke to invokeImpl
+    const { startId, goalId } = invokeImpl(input); // Parse input here for consistency
     const graph = context.graph;
 
     if (!graph.getNote(startId)) {
@@ -77,11 +77,11 @@ async function invokeImpl(input, context) { // Rename original invoke to invokeI
 }
 
 
-export default {
+export default defineTool({
     name: 'astar',
     description: 'Find the shortest path between two notes using A* algorithm',
     schema,
     version: '1.0.0',
     dependencies: ['zod', 'priority-queue-js'],
-    invoke: withToolHandling({ name: 'astar', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
-};
+    invoke: invoke, // Use invokeImpl in withToolHandling
+});

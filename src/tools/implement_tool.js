@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import { defineTool } from '../tool_utils.js';
 import {writeFile} from 'node:fs/promises';
 import path from 'path';
 import {CONFIG} from '../config.js';
@@ -23,42 +24,6 @@ const schema = z.object({
         dependencies: z.array(z.string()).optional()
     })
 });
-
-export default {
-    name: 'implement_tool',
-    description: 'Implements a new tool with schema, dependencies, and code validation, writing to a file',
-    schema,
-    version: '1.3.0', // Version bump for code validation
-    dependencies: ['zod', 'fs', 'path', 'vm'],
-    async invoke(input, context) {
-        const {tool_definition} = schema.parse(input);
-        const {name, description, code, schemaDef, dependencies} = tool_definition;
-
-        if (!name || !description || !code) {
-            return "Error: Tool definition must include name, description, and code.";
-        }
-
-        const filename = `${name}.js`;
-        const filepath = path.join(CONFIG.TOOLS_BUILTIN_DIR, filename);
-
-        const parsedSchemaDef = schemaDef ? schemaDef.trim() : '{}';
-        const schemaCode = `const schema = z.object(${parsedSchemaDef});`;
-
-        const toolCode = `
-import { z } from 'zod';
-${schemaCode}
-
-export default {
-    name: '${name}',
-    description: '${description}',
-    schema,
-    version: '1.0.0',
-    dependencies: ${JSON.stringify(dependencies || [])},
-    async invoke(input, context) {
-        ${code}
-    }
-};
-import { withToolHandling } from '../tool_utils.js';
 
 async function invoke(input, context) {
     const {tool_definition} = schema.parse(input);
@@ -152,14 +117,14 @@ export default {
     }
 }
 
-export default {
+export default defineTool({
     name: 'implement_tool',
     description: 'Implements a new tool with schema, dependencies, and code validation, writing to a file',
     schema,
     version: '1.3.0', // Version bump for code validation
     dependencies: ['zod', 'fs', 'path', 'vm'],
-    invoke: withToolHandling({ name: 'implement_tool', schema, invoke }),
-};
+    invoke: invoke,
+});
 `;
 
         try {

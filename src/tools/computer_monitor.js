@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 const si = require('systeminformation');
 
 const schema = z.object({
@@ -7,10 +7,10 @@ const schema = z.object({
     interval: z.number().min(1).optional(),
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
 async function invoke(input) {
-    const {metric, interval = 5} = invoke(input); // Parse input here for consistency
+    const {metric, interval = 5} = invokeImpl(input); // Parse input here for consistency
     let data;
 
     try {
@@ -37,10 +37,10 @@ async function invoke(input) {
     }
 }
 
-export default {
+export default defineTool({
     name: 'computer_monitor',
     description: 'Monitor computer stats',
     schema,
     dependencies: ['zod', 'systeminformation'],
-    invoke: withToolHandling({ name: 'computer_monitor', schema, invoke }),
-};
+    invoke: invoke,
+});

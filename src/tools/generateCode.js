@@ -1,12 +1,13 @@
 import {z} from 'zod';
-import { withToolHandling } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
+
 const schema = z.object({
     description: z.string(),
     execute: z.boolean().optional(),
 });
 
 async function invoke(input, context) {
-    const { description, execute = false } = input;
+    const { description, execute = false } = schema.parse(input);
     const llm = context.llm;
     const code = await llm.invoke([`Generate JS code: ${description}`]);
     if (execute) {
@@ -17,11 +18,11 @@ async function invoke(input, context) {
     return code.content;
 }
 
-export default {
+export default defineTool({
     name: 'generateCode',
     description: 'Generate JS code',
     schema,
     version: '1.0.0',
     dependencies: ['zod', 'node:fs/promises', 'node:path', 'vm'],
-    invoke: withToolHandling({ name: 'generateCode', schema, invoke }),
-};
+    invoke: invoke,
+});

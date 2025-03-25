@@ -1,15 +1,15 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     startId: z.string(),
     query: z.string()
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
-async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
-    const { startId, query } = invoke(input); // Parse input here for consistency
+async function invoke(input, context) { // Rename original invoke to invokeImpl
+    const { startId, query } = invokeImpl(input); // Parse input here for consistency
     const graph = context.graph;
     const visited = new Set();
     const queue = [startId];
@@ -30,9 +30,9 @@ async function invokeImpl(input, context) { // Rename original invoke to invokeI
     return results;
 }
 
-export default {
+export default defineTool({
     name: 'graph_search',
     description: 'Search graph by query',
     schema,
-    invoke: withToolHandling({ name: 'graph_search', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
-};
+    invoke: invoke, // Use invokeImpl in withToolHandling
+});

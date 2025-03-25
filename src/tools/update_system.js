@@ -1,14 +1,14 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     update_instructions: z.string()
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
-async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
-    const {update_instructions} = invoke(input); // Parse input here for consistency
+async function invoke(input, context) { // Rename original invoke to invokeImpl
+    const {update_instructions} = invokeImpl(input); // Parse input here for consistency
 
     context.log(`Update System Tool invoked with instructions: ${update_instructions}`, 'info', {
         component: 'update_system',
@@ -19,11 +19,11 @@ async function invokeImpl(input, context) { // Rename original invoke to invokeI
 }
 
 
-export default {
+export default defineTool({
     name: 'update_system',
     description: 'Update the Netention system based on provided instructions',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'update_system', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
-};
+    invoke: invoke, // Use invokeImpl in withToolHandling
+});

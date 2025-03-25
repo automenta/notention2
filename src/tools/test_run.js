@@ -1,14 +1,14 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     testId: z.string()
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
 async function invoke(input, context) {
-    const { testId } = schema.parse(input);
+    const { testId } = invokeImpl(input);
     const graph = context.graph;
     const testNote = graph.getNote(testId);
 
@@ -50,11 +50,11 @@ async function invoke(input, context) {
     }
 }
 
-export default {
+export default defineTool({
     name: 'test_run',
     description: 'Run unit tests for a specified test Note',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'test_run', schema, invoke }),
-};
+    invoke: invoke,
+});

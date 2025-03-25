@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { withToolHandling } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 import evalExprTool from './eval_expr.js';
 import composeTool from './compose.js';
 
@@ -28,11 +28,11 @@ async function invoke(input, context) {
     }
 }
 
-export default {
+export default defineTool({
     name: 'if_else',
     description: 'Conditional execution of tool branches based on an expression',
     schema,
     version: '1.0.0',
     dependencies: ['zod', './eval_expr.js', './compose.js'],
-    invoke: withToolHandling({ name: 'if_else', schema, invoke }),
-};
+    invoke: invoke,
+});

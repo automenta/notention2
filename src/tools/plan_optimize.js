@@ -1,14 +1,14 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     planId: z.string()
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
-async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
-    const {planId} = invoke(input); // Parse input here for consistency
+async function invoke(input, context) { // Rename original invoke to invokeImpl
+    const {planId} = invokeImpl(input); // Parse input here for consistency
     const graph = context.graph;
     const planNote = graph.getNote(planId);
 
@@ -25,11 +25,11 @@ async function invokeImpl(input, context) { // Rename original invoke to invokeI
 }
 
 
-export default {
+export default defineTool({
     name: 'plan_optimize',
     description: 'Optimize a given plan Note using various strategies',
     schema,
     version: '1.0.0',
     dependencies: ['zod'], // Add dependencies if needed (e.g., for ML tools)
-    invoke: withToolHandling({ name: 'plan_optimize', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
-};
+    invoke: invoke, // Use invokeImpl in withToolHandling
+});

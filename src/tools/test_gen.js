@@ -1,33 +1,28 @@
 import {z} from 'zod';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     code: z.string(),
     targetId: z.string()
 });
 
-export default {
-    name: 'test_gen',
-    description: 'Generate comprehensive unit tests for a given Javascript code snippet, focusing on robustness and coverage.',
-    schema,
-    version: '1.0.0',
-    dependencies: ['zod', '@langchain/google-genai'],
-    async invoke(input, context) {
-        const { code, targetId } = schema.parse(input);
-        const llm = context.llm;
-        const graph = context.graph;
-        const targetNote = graph.getNote(targetId);
+async function invoke(input, context) {
+    const { code, targetId } = schema.parse(input);
+    const llm = context.llm;
+    const graph = context.graph;
+    const targetNote = graph.getNote(targetId);
 
-        let noteContext = "";
-        if (targetNote) {
-            noteContext = `
+    let noteContext = "";
+    if (targetNote) {
+        noteContext = `
             Note Title: ${targetNote.title}
             Note Content: ${JSON.stringify(targetNote.content, null, 2)}
             Note Logic: ${JSON.stringify(targetNote.logic, null, 2)}
             Note Memory (last 5 entries): ${JSON.stringify(targetNote.memory.slice(-5), null, 2)}
             `;
-        }
+    }
 
-        const prompt = `You are a highly skilled Javascript developer specializing in writing robust and comprehensive unit tests using Jest. 
+    const prompt = `You are a highly skilled Javascript developer specializing in writing robust and comprehensive unit tests using Jest.
         Your task is to generate a complete suite of unit tests for the provided Javascript code. The goal is to achieve maximum test coverage, ensuring that all functionalities are thoroughly validated, including:
 
         - Core functionality: Verify the primary functions and features work as expected.
@@ -42,8 +37,8 @@ export default {
         ${noteContext}
         \`\`\`
 
-        Write the tests using Jest syntax. The output should be ONLY the Javascript code for the tests, ready to be executed with Jest. 
-        Do not include any explanatory text, comments outside the test code, or any other extraneous information. 
+        Write the tests using Jest syntax. The output should be ONLY the Javascript code for the tests, ready to be executed with Jest.
+        Do not include any explanatory text, comments outside the test code, or any other extraneous information.
         The tests should be clear, readable, and maintainable, providing confidence in the code's correctness and reliability.
 
         If there are external dependencies or context required for the code to run (like browser APIs, Node.js modules, or specific environment variables), generate mock implementations or setup instructions within the test code to make the tests self-contained and runnable in isolation.
@@ -55,18 +50,26 @@ export default {
         \`\`\`
         `;
 
-        try {
-            const llmResult = await llm.invoke([{ role: 'user', content: prompt }]);
-            const testCode = llmResult.text;
+    try {
+        const llmResult = await llm.invoke([{ role: 'user', content: prompt }]);
+        const testCode = llmResult.text;
 
-            if (!testCode) {
-                throw new Error("Failed to generate test code from LLM.");
-            }
-
-            return testCode;
-        } catch (error) {
-            console.error("Error generating test code:", error);
-            return `Error generating test code: ${error.message}`;
+        if (!testCode) {
+            throw new Error("Failed to generate test code from LLM.");
         }
+
+        return testCode;
+    } catch (error) {
+        console.error("Error generating test code:", error);
+        return `Error generating test code: ${error.message}`;
     }
-};
+}
+
+export default defineTool({
+    name: 'test_gen',
+    description: 'Generate comprehensive unit tests for a given Javascript code snippet, focusing on robustness and coverage.',
+    schema,
+    version: '1.0.0',
+    dependencies: ['zod', '@langchain/google-genai'],
+    invoke: invoke,
+});

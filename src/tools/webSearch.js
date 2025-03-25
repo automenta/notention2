@@ -1,15 +1,15 @@
 import z from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     query: z.string(),
     apiKey: z.string().optional(),
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
-async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
-    const {query, apiKey} = invoke(input); // Parse input here for consistency
+async function invoke(input, context) { // Rename original invoke to invokeImpl
+    const {query, apiKey} = invokeImpl(input); // Parse input here for consistency
     const apiKeyToUse = apiKey || context?.apiKey || ''; // Use input apiKey, or context apiKey, or empty string
     const apiUrl = `https://api.example.com/search?q=${encodeURIComponent(query)}${apiKeyToUse ? `&key=${apiKeyToUse}` : ''}`; // Placeholder API URL
 
@@ -27,11 +27,11 @@ async function invokeImpl(input, context) { // Rename original invoke to invokeI
 }
 
 
-export default {
+export default defineTool({
     name: 'webSearch',
     description: 'Search the web',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'webSearch', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
-};
+    invoke: invoke, // Use invokeImpl in withToolHandling
+});

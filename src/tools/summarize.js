@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import { defineTool } from '../tool_utils.js';
 import {ChatGoogleGenerativeAI} from "@langchain/google-genai";
 import {PromptTemplate} from "@langchain/core/prompts";
 import {LLMChain} from "langchain/chains";
@@ -17,7 +18,6 @@ const promptTemplate = PromptTemplate.fromTemplate(
 
 const chain = new LLMChain({llm: llm, prompt: promptTemplate});
 
-import { withToolHandling } from '../tool_utils.js';
 
 async function invoke(input) {
     const { text, length = 'medium', style = 'paragraph' } = schema.parse(input);
@@ -25,11 +25,11 @@ async function invoke(input) {
     return result.text || 'No summary generated';
 }
 
-export default {
+export default defineTool({
     name: 'summarize',
     description: 'Summarize text',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'summarize', schema, invoke }),
-};
+    invoke: invoke,
+});

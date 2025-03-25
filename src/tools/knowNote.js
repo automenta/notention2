@@ -1,17 +1,17 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     title: z.string(),
     goal: z.string()
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
 
-export default {
+export default defineTool({
     name: 'knowNote',
     description: 'Create a new note with a goal',
     schema,
-    invoke: withToolHandling({ name: 'knowNote', schema, invoke })
-};
+    invoke: invokeImpl,
+});

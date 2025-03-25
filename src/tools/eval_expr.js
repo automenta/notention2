@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     expr: z.string(),
@@ -16,11 +17,11 @@ async function invoke(input) {
     }
 }
 
-export default {
+export default defineTool({
     name: 'eval_expr',
     description: 'Evaluate math/string expressions',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'eval_expr', schema, invoke }),
-};
+    invoke: invoke,
+});

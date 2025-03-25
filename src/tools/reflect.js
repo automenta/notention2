@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { withToolHandling } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     noteId: z.string()
@@ -28,11 +28,11 @@ async function invoke(input, context) {
     return `Reflection on Note '${note.title}' (ID: ${noteId}):\n${noteSummary.text}`;
 }
 
-export default {
+export default defineTool({
     name: 'reflect',
     description: 'Reflect on a note and summarize its content and logic',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'reflect', schema, invoke }),
-};
+    invoke: invoke,
+});

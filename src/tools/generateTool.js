@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     name: z.string(),
@@ -7,12 +7,12 @@ const schema = z.object({
     code: z.string()
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
 
-export default {
+export default defineTool({
     name: 'generateTool',
     description: 'Generate a new tool at runtime',
     schema,
-    invoke: withToolHandling({ name: 'generateTool', schema, invoke })
-};
+    invoke: invokeImpl,
+});

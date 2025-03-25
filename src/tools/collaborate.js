@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { withToolHandling } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     noteIds: z.array(z.string())
@@ -18,9 +18,9 @@ async function invoke(input, context) {
     return collabResult.text;
 }
 
-export default {
+export default defineTool({
     name: 'collaborate',
     description: 'Collaborate with other notes',
     schema,
-    invoke: withToolHandling({ name: 'collaborate', schema, invoke }),
-};
+    invoke: invoke,
+});

@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import crypto from 'crypto';
-import { withToolHandling } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     modelType: z.enum(['dtree', 'classifier', 'pca', 'cluster']), // Example model types
@@ -46,11 +46,11 @@ async function invoke(input, context) {
     return modelId; // Return the ID of the newly created model Note
 }
 
-export default {
+export default defineTool({
     name: 'ml_train',
     description: 'Train a machine learning model (decision tree, classifier, pca, cluster)',
     schema,
     version: '1.0.0',
     dependencies: ['zod', 'crypto'], // Add any ML-specific dependencies here
-    invoke: withToolHandling({ name: 'ml_train', schema, invoke }),
-};
+    invoke: invoke,
+});

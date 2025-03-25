@@ -1,15 +1,15 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     modelId: z.string(),
     input: z.any() // Define input schema based on the model type
 });
 
-const invoke = createSimpleInvoke(schema);
+const invokeImpl = createSimpleInvoke(schema);
 
 async function invoke(input, context) {
-    const { modelId, input: predictionInput } = schema.parse(input);
+    const { modelId, input: predictionInput } = invokeImpl(input);
     const graph = context.graph;
     const modelNote = graph.getNote(modelId);
 
@@ -35,11 +35,11 @@ async function invoke(input, context) {
     return JSON.stringify(prediction, null, 2); // Return the prediction result as JSON string
 }
 
-export default {
+export default defineTool({
     name: 'ml_predict',
     description: 'Use a trained ML model to make a prediction',
     schema,
     version: '1.0.0',
     dependencies: ['zod'], // Add any ML-specific dependencies here
-    invoke: withToolHandling({ name: 'ml_predict', schema, invoke }),
-};
+    invoke: invoke,
+});
