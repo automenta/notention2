@@ -147,11 +147,6 @@ class NetentionServer {
         return this.noteRunner.runNote(note);
     }
 
-
-    replacePlaceholders(input, memoryMap) {
-        return this.state.replacePlaceholders(input, memoryMap);
-    }
-
     broadcastNoteUpdate(note) {
         return this.websocketManager.broadcastNoteUpdate(note);
     }
