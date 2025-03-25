@@ -15,6 +15,7 @@ function App() {
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
     const [edgeDrawingMode, setEdgeDrawingMode] = useState(false);
     const [sourceNode, setSourceNode] = useState(null);
+    const [tempEdge, setTempEdge] = useState(null); // State for temporary edge
     const [availableTools, setAvailableTools] = useState([]); // State to hold available tools
 
 
@@ -101,7 +102,15 @@ function App() {
                         'height': 80
                     }
                 },
-                {selector: 'edge', style: {'width': 2, 'line-color': '#ccc'}}
+                {selector: 'edge', style: {'width': 2, 'line-color': '#ccc'}},
+                {
+                    selector: '.temp-edge',
+                    style: {
+                        'line-color': 'blue',
+                        'line-style': 'dashed',
+                        'width': 2
+                    }
+                }
             ],
             layout: {name: 'grid'}
         });
@@ -131,7 +140,17 @@ function App() {
 
         cy.on('drag', 'node', function (evt) {
             if (edgeDrawingMode && sourceNode) {
-                // visual feedback during drag if needed
+                const targetPos = evt.position;
+                if (!tempEdge) {
+                    // Create temporary edge
+                    const tempEdge = cy.add({
+                        group: 'edges',
+                        data: {id: 'temp-edge', source: sourceNode.id(), target: 'temp-target'},
+                        classes: 'temp-edge'
+                    });
+                    setTempEdge(tempEdge);
+                }
+                tempEdge.targetEndpoint({x: targetPos.x, y: targetPos.y});
             }
         });
 
@@ -142,6 +161,18 @@ function App() {
                     handleCreateEdge(sourceNode.id(), targetNode.id());
                 }
                 setSourceNode(null);
+                if (tempEdge) {
+                    cy.remove(tempEdge);
+                    setTempEdge(null);
+                }
+            }
+        });
+
+        cy.on('mouseout', function (event) {
+            if (edgeDrawingMode && sourceNode && tempEdge) {
+                cy.remove(tempEdge);
+                setTempEdge(null);
+                setSourceNode(null); // Reset source node as well
             }
         });
     };
