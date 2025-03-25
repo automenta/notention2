@@ -10,18 +10,32 @@ import {NoteLoader} from './note_loader.js';
 import { NoteRunner } from './note_runner.js';
 import { NoteHandler } from './note_handler.js';
 import { NoteStepHandler } from './note_step_handler.js';
+import { ServerState } from './server_state_manager.js';
+import { ExecutionQueue } from './execution_queue_manager.js';
+import { WebSocketServerManager } from './websocket_handler.js';
 import { ErrorHandler } from './error_handler.js';
 
 class NetentionServer {
+    state;
+    queueManager;
+    websocketManager;
+    errorHandler;
+    noteStepHandler;
+    noteRunner;
+    noteHandler;
+    batchTimeout;
+
     constructor() {
         this.state = new ServerState();
-        this.queueManager = new ExecutionQueue(this.state); // Instantiate ExecutionQueue
+        this.queueManager = new ExecutionQueue(this.state);
         this.websocketManager = new WebSocketServerManager(this.state, this.queueManager);
-        this.errorHandler = new ErrorHandler(this.state); // Instantiate ErrorHandler
-        this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler); // Pass ErrorHandler
-        this.noteRunner = new NoteRunner(this.state, this.noteStepHandler, this.errorHandler, this); // Pass NetentionServer instance
+        this.errorHandler = new ErrorHandler(this.state);
+        this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler);
+        this.noteRunner = new NoteRunner(this.state, this.noteStepHandler, this.errorHandler, this);
         this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager);
+        this.batchTimeout = null; // Initialize batchTimeout here
     }
+
 
     log(message, level = 'info', context = {}) {
         if (level === 'debug' && !CONFIG.DEBUG_LOGGING) {
@@ -72,7 +86,7 @@ class NetentionServer {
     async _loadTools() {
         this.log("Loading tools...", 'info', {component: 'ToolLoader'});
         try {
-            const loadedTools = await this.toolLoader.loadTools(CONFIG.TOOLS_BUILTIN_DIR); // Pass tools directory
+            const loadedTools = await this.toolLoader.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
             this.log(`Loaded ${loadedTools.length} tools.`, 'info', {
                 component: 'ToolLoader',
                 count: loadedTools.length
@@ -121,24 +135,24 @@ class NetentionServer {
 
     async writeNoteToDB(note) {
         this.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
-        this.state.updateBatch.add(note.id); // Access via state
-        if (!this.batchTimeout) { // Keep batchTimeout in NetentionServer
+        this.state.updateBatch.add(note.id);
+        if (!this.batchTimeout) {
             this.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
         }
-        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve)); // Access via state
+        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve));
     }
 
     async flushBatchedUpdates() {
-        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => { // Access via state
+        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
             return this.state.graph.getNote(noteId);
         });
-        this.state.updateBatch.clear(); // Access via state
-        this.batchTimeout = null; // Keep batchTimeout in NetentionServer
+        this.state.updateBatch.clear();
+        this.batchTimeout = null;
         noteUpdates.forEach(note => {
-            this.websocketManager.broadcastNoteUpdate(note); // Use websocketManager to broadcast
-            const resolver = this.state.pendingWrites.get(note.id); // Access via state
+            this.websocketManager.broadcastNoteUpdate(note);
+            const resolver = this.state.pendingWrites.get(note.id);
             if (resolver) resolver();
-            this.state.pendingWrites.delete(note.id); // Access via state
+            this.state.pendingWrites.delete(note.id);
         });
     }
 
