@@ -1,6 +1,5 @@
 import {WebSocket, WebSocketServer} from 'ws';
-import crypto from 'crypto';
-import { logWebSocketConnect, logWebSocketDisconnect } from './utils.js';
+import {logWebSocketConnect, logWebSocketDisconnect} from './utils.js';
 
 export class WebSocketServerManager {
     wss;

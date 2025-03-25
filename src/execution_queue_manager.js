@@ -1,4 +1,4 @@
-import { logQueueProcessingError } from './utils.js';
+import {logQueueProcessingError} from './utils.js';
 
 export class ExecutionQueue {
     executionQueue;

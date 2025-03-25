@@ -1,7 +1,5 @@
 import {z} from 'zod';
-
-import {z} from 'zod';
-import {exec, spawn} from 'child_process';
+import {exec} from 'child_process';
 import util from 'util';
 import os from 'os';
 

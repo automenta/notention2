@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import {CONFIG} from './config.js';
 
 class NetentionServerCore {
 
@@ -10,6 +10,12 @@ class NetentionServerCore {
     noteRunner;
     noteHandler;
     batchTimeout;
+    NetentionServerCore
+    prototype
+    dispatchWebSocketMessage = NetentionServerCore.prototype.dispatchWebSocketMessage;
+    export
+    default
+    NetentionServerCore;
 
     constructor(state, queueManager, websocketManager, errorHandler, noteStepHandler, noteRunner, noteHandler) {
         this.state = state;
@@ -25,10 +31,12 @@ class NetentionServerCore {
     log(message, level = 'info', context = {}) {
         this.state.log(message, level, context);
     }
+.
 
     timeoutPromise(promise, ms) {
         return this.timeoutPromise(promise, ms);
     }
+.
 
     async dispatchWebSocketMessage(parsedMessage) {
         if (parsedMessage.type === 'createNote') {
@@ -63,28 +71,31 @@ class NetentionServerCore {
     async flushBatchedUpdates_impl() {
 
 
-    async runNote(note) {
-        return this.runNote_impl(note);
-    }
-
-    async runNote_impl(note) {
-    }
-
-    broadcastNoteUpdate(note) {
-        return this.broadcastNoteUpdate_impl(note);
-    }
-
-    broadcastNoteUpdate_impl(note) {
-    }
-
-    replacePlaceholders(input, memoryMap) {
-        if (typeof input === 'string') {
-            return input.replace(/\${(\w+)}/g, (_, stepId) => memoryMap.get(stepId) || '');
+        async
+        runNote(note)
+        {
+            return this.runNote_impl(note);
         }
-        return input;
+
+        async
+        runNote_impl(note)
+        {
+        }
+
+        broadcastNoteUpdate(note)
+        {
+            return this.broadcastNoteUpdate_impl(note);
+        }
+
+        broadcastNoteUpdate_impl(note)
+        {
+        }
+
+        replacePlaceholders(input, memoryMap)
+        {
+            if (typeof input === 'string') {
+                return input.replace(/\${(\w+)}/g, (_, stepId) => memoryMap.get(stepId) || '');
+            }
+            return input;
+        }
     }
-}
-NetentionServerCore.prototype.dispatchWebSocketMessage = NetentionServerCore.prototype.dispatchWebSocketMessage;
-
-
-export default NetentionServerCore;

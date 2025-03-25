@@ -336,7 +336,7 @@ function App() {
 
         // Update graph on selectedNoteId change
         useEffect(() => {
-                updateGraphSelection(selectedNoteId);
+            updateGraphSelection(selectedNoteId);
         }, [selectedNoteId]);
     };
 

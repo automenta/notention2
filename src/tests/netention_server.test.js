@@ -1,17 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import NetentionServer from '../netention_server.js';
-import { ServerState } from '../server_state_manager.js';
-import { ExecutionQueue } from '../execution_queue_manager.js';
-import { WebSocketServerManager } from '../websocket_handler.js';
-import { ErrorHandler } from '../error_handler.js';
-import { NoteRunner } from '../note_runner.js';
-import { NoteStepHandler } from '../note_step_handler.js';
-import { NoteHandler } from '../note_handler.js';
+import {ServerState} from '../server_state_manager.js';
+import {ExecutionQueue} from '../execution_queue_manager.js';
+import {WebSocketServerManager} from '../websocket_handler.js';
+import {ErrorHandler} from '../error_handler.js';
+import {NoteRunner} from '../note_runner.js';
+import {NoteStepHandler} from '../note_step_handler.js';
+import {NoteHandler} from '../note_handler.js';
 
 vi.mock('../server_state_manager.js', () => ({
     ServerState: vi.fn(() => ({
         log: vi.fn(),
-        llm: { setApiKey: vi.fn() }
+        llm: {setApiKey: vi.fn()}
     }))
 }));
 vi.mock('../execution_queue_manager.js', () => ({

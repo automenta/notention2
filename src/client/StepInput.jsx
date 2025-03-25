@@ -83,8 +83,7 @@ export default function StepInput({step, index, availableTools, onStepChange}) {
                         </select>
                     </div>
                 );
-            }
-            else {
+            } else {
                 return (
                     <div key={paramName} style={{marginBottom: '10px'}}>
                         <label style={{marginRight: '10px'}}>{paramName}:</label>

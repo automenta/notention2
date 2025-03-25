@@ -137,7 +137,12 @@ export class NoteRunner {
 
     async _pruneMemory(note) {
         if (note.memory.length > 100) {
-            const summary = await this.state.llm.invoke([`Summarize: ${JSON.stringify(note.memory.slice(0, 50))}`]);
+            const summary = await this.state.llm.invoke([`
+$
+{
+    JSON.stringify(note.memory.slice(0, 50))
+}
+`]);
             note.memory = [
                 {type: 'summary', content: summary.text, timestamp: Date.now()},
                 ...note.memory.slice(-50)
@@ -167,45 +172,55 @@ export class NoteRunner {
         if (!CONFIG.AUTO_RUN_TESTS || !note.tests || !note.tests.length) return;
         for (const testFile of note.tests) {
             try {
-                const testModule = await import(`file://${process.cwd()}/${CONFIG.TESTS_DIR}/${testFile}`);
-                await testModule.default(note, this.state);
-                this.state.log(`Tests for note ${note.id} passed.`, 'info', {
-                    component: 'NoteRunner',
-                    noteId: note.id,
-                    testFile: testFile
-                });
-            } catch (error) {
-                logTestFail(this.state, note.id, testFile, error);
-            }
-        }
-    }
+                const testModule = await import(`
+await testModule.default(note, this.state);
+this.state.log(`Tests for note ${note.id} passed.`, 'info', {
+    component: 'NoteRunner',
+    noteId: note.id,
+    testFile: testFile
+});
+} catch
+(error)
+{
+    logTestFail(this.state, note.id, testFile, error);
+}
+}
+}
 
-    async _finalizeNoteRun(note) {
-        logNoteFinalized(this.state, note.id, note.status);
-        return note;
-    }
+async
+_finalizeNoteRun(note)
+{
+    logNoteFinalized(this.state, note.id, note.status);
+    return note;
+}
 
-    _handleFailure(note, error) {
-        if (this.shouldRequestUnitTest(error)) {
-            this.requestUnitTest(note);
-        } else {
-            this.errorHandler._handleFailure(note, error);
-        }
+_handleFailure(note, error)
+{
+    if (this.shouldRequestUnitTest(error)) {
+        this.requestUnitTest(note);
+    } else {
+        this.errorHandler._handleFailure(note, error);
     }
+}
 
-    shouldRetry(error) {
-        return this.errorHandler.shouldRetry(error);
-    }
+shouldRetry(error)
+{
+    return this.errorHandler.shouldRetry(error);
+}
 
-    retryExecution(note) {
-        this.errorHandler.retryExecution(note);
-    }
+retryExecution(note)
+{
+    this.errorHandler.retryExecution(note);
+}
 
-    shouldRequestUnitTest(note, error) {
-        return this.errorHandler.shouldRequestUnitTest(note, error);
-    }
+shouldRequestUnitTest(note, error)
+{
+    return this.errorHandler.shouldRequestUnitTest(note, error);
+}
 
-    async requestUnitTest(note) {
-        this.errorHandler.requestUnitTest(note);
-    }
+async
+requestUnitTest(note)
+{
+    this.errorHandler.requestUnitTest(note);
+}
 }

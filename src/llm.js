@@ -1,11 +1,14 @@
 import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
 
-import { CONFIG } from './config.js';
-import { timeoutPromise } from './utils.js'; // Import timeoutPromise
+import {CONFIG} from './config.js';
 
 export class LLM {
     constructor() {
-        this.llm = new ChatGoogleGenerativeAI({ model: CONFIG.LLM_MODEL, temperature: CONFIG.LLM_TEMPERATURE, maxRetries: CONFIG.LLM_MAX_RETRIES });
+        this.llm = new ChatGoogleGenerativeAI({
+            model: CONFIG.LLM_MODEL,
+            temperature: CONFIG.LLM_TEMPERATURE,
+            maxRetries: CONFIG.LLM_MAX_RETRIES
+        });
         this.promptCache = new Map();
         this.collabHistory = new Map();
         this.apiKeys = new Map();
