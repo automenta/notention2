@@ -64,8 +64,10 @@ class NetentionServerCore {
 
 
     async runNote(note) {
-        return this.serverCore.runNote(note);
+        return this.runNote_impl(note);
     }
+
+    async runNote_impl(note) {
 
     broadcastNoteUpdate(note) {
         return this.serverCore.broadcastNoteUpdate(note);
