@@ -38,19 +38,7 @@ export class NoteRunner {
                 const stepId = readyQueue.shift();
                 const step = stepsById.get(stepId);
                 if (!step) {
-                    this.state.log(`
-Step
-$
-{
-    stepId
-}
-not
-found in note
-$
-{
-    note.id
-}
-`, 'warn', { component: 'NoteRunner', noteId: note.id, stepId: stepId });
+                    this.state.log(`Step ${stepId} not found in note ${note.id}`, 'warn', { component: 'NoteRunner', noteId: note.id, stepId: stepId });
                     continue;
                 }
 
