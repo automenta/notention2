@@ -1,11 +1,14 @@
 import {z} from 'zod';
+import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     noteId: z.string()
 });
 
-async function invoke(input, context) {
-    const {noteId} = schema.parse(input);
+const invoke = createSimpleInvoke(schema);
+
+async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
+    const {noteId} = invoke(input); // Parse input here for consistency
     const note = context.graph.getNote(noteId);
 
     if (!note) {
@@ -30,11 +33,12 @@ async function invoke(input, context) {
     return JSON.stringify(debugInfo, null, 2);
 }
 
+
 export default {
     name: 'debug',
     description: 'Output detailed debug information about a Note',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'debug', schema, invoke }),
+    invoke: withToolHandling({ name: 'debug', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
 };

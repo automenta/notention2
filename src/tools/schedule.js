@@ -1,12 +1,15 @@
 import {z} from 'zod';
+import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     noteId: z.string(),
     time: z.string() // You might want to use a more specific format for time/date
 });
 
-async function invoke(input, context) {
-    const { noteId, time } = schema.parse(input);
+const invoke = createSimpleInvoke(schema);
+
+async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
+    const { noteId, time } = invoke(input); // Parse input here for consistency
     const graph = context.graph;
     const note = graph.getNote(noteId);
 
@@ -45,11 +48,12 @@ async function invoke(input, context) {
     return `Note '${noteId}' scheduled to run at '${time}'.`;
 }
 
+
 export default {
     name: 'schedule',
     description: 'Schedule a Note to run at a specific time',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'schedule', schema, invoke }),
+    invoke: withToolHandling({ name: 'schedule', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
 };

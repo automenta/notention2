@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     startId: z.string(),
@@ -6,25 +7,7 @@ const schema = z.object({
     callback: z.string().optional()
 });
 
-async function traverseGraph(graph, startId, mode) {
-    const visited = new Set();
-    const stackOrQueue = [startId];
-    const results = [];
-
-    while (stackOrQueue.length) {
-        const id = mode === 'dfs' ? stackOrQueue.pop() : stackOrQueue.shift();
-        if (visited.has(id)) continue;
-        visited.add(id);
-
-        const note = graph.getNote(id);
-        if (note) {
-            results.push({id, title: note.title});
-            stackOrQueue.push(...graph.getReferences(id));
-        }
-    }
-
-    return results;
-}
+const invoke = createSimpleInvoke(schema);
 
 async function traverseGraph(graph, startId, mode) {
     const visited = new Set();
@@ -46,8 +29,9 @@ async function traverseGraph(graph, startId, mode) {
     return results;
 }
 
-async function invoke(input, context) {
-    const { startId, mode, callback } = schema.parse(input);
+
+async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
+    const { startId, mode, callback } = invoke(input); // Parse input here for consistency
     const graph = context.graph;
 
     const results = await traverseGraph(graph, startId, mode);
@@ -55,11 +39,12 @@ async function invoke(input, context) {
     return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
 }
 
+
 export default {
     name: 'graph_traverse',
     description: 'Traverse graph (DFS/BFS)',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'graph_traverse', schema, invoke }),
+    invoke: withToolHandling({ name: 'graph_traverse', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
 };

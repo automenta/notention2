@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     query: z.string(),
@@ -6,10 +7,7 @@ const schema = z.object({
     vectorStoreId: z.string().optional(),
 });
 
-async function invoke(input) {
-        const {query} = schema.parse(input);
-        return `Stub: RAG query: ${query}`;
-    }
+const invoke = createSimpleInvoke(schema);
 
 export default {
     name: 'rag',
