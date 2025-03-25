@@ -1,9 +1,6 @@
 import crypto from 'crypto';
 import {z} from 'zod';
 import {executeToolStep} from './tool_handler.js';
-import {handleToolStepError} from './utils.js';
-
-const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 export class NoteStepHandler {
     errorHandler;
