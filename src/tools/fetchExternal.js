@@ -1,18 +1,17 @@
 import {z} from 'zod';
+import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     apiName: z.string(),
     query: z.string()
 });
 
-async function invoke(input, context) {
-    const {apiName, query} = schema.parse(input);
-    return {apiName, query};
-}
+const invoke = createSimpleInvoke(schema);
+
 
 export default {
     name: 'fetchExternal',
     description: 'Fetch data from an external API',
     schema,
-    invoke: withToolHandling({ name: 'fetchExternal', schema, invoke }),
+    invoke: withToolHandling({ name: 'fetchExternal', schema, invoke })
 };

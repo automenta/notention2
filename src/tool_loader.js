@@ -38,3 +38,10 @@ export function getToolSchema(availableTools, toolName) {
     const tool = availableTools.find(t => t.name === toolName);
     return tool?.schema;
 }
+
+export function createSimpleInvoke(schema) {
+    return async function invoke(input) {
+        const parsedInput = schema.parse(input);
+        return parsedInput;
+    };
+}

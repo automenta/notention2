@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
 
 const schema = z.object({
     name: z.string(),
@@ -6,14 +7,12 @@ const schema = z.object({
     code: z.string()
 });
 
-async function invoke(input, context) {
-    const {name, desc, code} = schema.parse(input);
-    return {name, desc, code};
-}
+const invoke = createSimpleInvoke(schema);
+
 
 export default {
     name: 'generateTool',
     description: 'Generate a new tool at runtime',
     schema,
-    invoke: withToolHandling({ name: 'generateTool', schema, invoke }),
+    invoke: withToolHandling({ name: 'generateTool', schema, invoke })
 };
