@@ -1,6 +1,24 @@
 import crypto from 'crypto';
 import { z } from 'zod';
 
+async function executeToolStep(state, note, step, toolName, memoryMap, errorHandler) {
+    try {
+        const result = await state.tools.executeTool(toolName, step.input, {
+            graph: state.graph,
+            llm: state.llm
+        });
+        memoryMap.set(step.id, result);
+        note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await state.serverCore.writeNoteToDB(note);
+        return result;
+    } catch (error) {
+        step.status = 'failed';
+        errorHandler.handleToolStepError(note, step, error);
+        return `Tool execution failed: ${error.message}`;
+    }
+}
+
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 async function executeToolStep(state, note, step, toolName, input, memoryMap, errorHandler) {
