@@ -2,7 +2,7 @@ import {InMemoryChatMessageHistory} from '@langchain/core/chat_history';
 import {Graph} from './graph.js';
 import {Tools} from './tools.js';
 import {LLM} from './llm.js';
-import { Logger } from './logger.js';
+import {Logger} from './logger.js';
 
 export class ServerState {
     llm;

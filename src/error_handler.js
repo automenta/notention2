@@ -1,5 +1,5 @@
-import {logNoteExecutionError, logToolExecutionError, logToolNotFoundError, logNoteRetryQueued, logUnitTestRequestQueued} from './utils.js';
-import { stepErrorTypes } from './note_step_handler.js';
+import {logNoteExecutionError, logNoteRetryQueued, logToolExecutionError, logToolNotFoundError} from './utils.js';
+import {stepErrorTypes} from './note_step_handler.js';
 
 export class ErrorHandler {
     constructor(serverState) {

@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import {CONFIG} from './config.js';
 
 export class Logger {
     constructor(debugEnabled = CONFIG.DEBUG_LOGGING) {

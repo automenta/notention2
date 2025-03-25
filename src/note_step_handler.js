@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { z } from 'zod';
+import {z} from 'zod';
 
 async function executeToolStep(state, note, step, toolName, memoryMap, errorHandler) {
     try {
@@ -105,9 +105,19 @@ export class NoteStepHandler {
     async handleToolGeneration(note, step, memoryMap) {
         const {name, desc, code} = step.input;
         try {
-            const toolDef = {name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code)};
+            const toolDef = {
+                name,
+                description: desc,
+                schema: z.object({}),
+                invoke: new Function('input', 'context', code)
+            };
             this.state.tools.addTool(toolDef);
-            note.memory.push({type: 'toolGen', content: `Generated tool ${name}`, timestamp: Date.now(), stepId: step.id});
+            note.memory.push({
+                type: 'toolGen',
+                content: `Generated tool ${name}`,
+                timestamp: Date.now(),
+                stepId: step.id
+            });
             step.status = 'completed';
             await this.state.serverCore.writeNoteToDB(note);
         } catch (error) {

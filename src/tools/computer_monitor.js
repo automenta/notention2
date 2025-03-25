@@ -9,7 +9,7 @@ export default {
     name: 'computer_monitor',
     description: 'Monitor computer stats',
     schema,
-dependencies: ['zod', 'systeminformation'],
+    dependencies: ['zod', 'systeminformation'],
     async invoke(input) {
         const {metric, interval = 5} = schema.parse(input); // Default interval to 5 seconds
         let data;

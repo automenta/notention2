@@ -85,7 +85,12 @@ export class NoteRunner {
 
     async _pruneMemory(note) {
         if (note.memory.length > 100) {
-            const summary = await this.state.llm.invoke([`Summarize: ${JSON.stringify(note.memory.slice(-50))}`]); // Invoke LLM to summarize memory
+            const summary = await this.state.llm.invoke([`
+$
+{
+    JSON.stringify(note.memory.slice(-50))
+}
+`]); // Invoke LLM to summarize memory
             note.memory = [
                 {type: 'summary', content: summary.text, timestamp: Date.now()},
                 ...note.memory.slice(-50)
@@ -117,7 +122,13 @@ export class NoteRunner {
             try {
                 const testModule = await import(new URL(path.join(process.cwd(), CONFIG.TESTS_DIR, testFile), import.meta.url).href);
                 await testModule.default(note, this.state);
-                this.state.logger.log(`Tests for note ${note.id} passed.`, 'info', {
+                this.state.logger.log(`
+Tests
+for note $
+{
+    note.id
+}
+passed.`, 'info', {
                     component: 'NoteRunner',
                     noteId: note.id,
                     testFile: testFile

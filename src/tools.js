@@ -9,7 +9,7 @@ export class Tool {
         this.version = version;
         this.dependencies = dependencies;
     }
-    
+
 
     async execute(input, context) {
         try {
@@ -18,69 +18,74 @@ export class Tool {
         } catch (error) {
             console.error(`Input validation error for tool '${this.name}': ${error.errors}`);
             throw new Error(`Tool input validation failed: ${error.errors.map(e => e.message).join(', ')}`);
-    addTool(tool) {
-        this.tools.set(tool.name, tool);
-    }
+            addTool(tool)
+            {
+                this.tools.set(tool.name, tool);
+            }
 
-    async loadTools() {
-        this.tools = new Map(); // Clear existing tools before reloading
-        const files = await readdir('./tools');
-        for (const file of files) {
-            if (file.endsWith('.js')) { // Only load .js files
-                await this._loadToolFromFile('./tools', file);
+            async
+            loadTools()
+            {
+                this.tools = new Map(); // Clear existing tools before reloading
+                const files = await readdir('./tools');
+                for (const file of files) {
+                    if (file.endsWith('.js')) { // Only load .js files
+                        await this._loadToolFromFile('./tools', file);
+                    }
+                }
+                return this.getTools();
+            }
+
+            async
+            _loadToolFromFile(path, file)
+            {
+                try {
+                    const module = await import(`file://${process.cwd()}/${path}/${file}`);
+                    const toolDef = module.default;
+                    const tool = new Tool(toolDef);
+                    this.addTool(tool);
+                } catch (e) {
+                    console.error(`Error loading tool ${file} from ${path}: ${e}`);
+                }
             }
         }
-        return this.getTools();
-    }
 
-    async _loadToolFromFile(path, file) {
-        try {
-            const module = await import(`file://${process.cwd()}/${path}/${file}`);
-            const toolDef = module.default;
-            const tool = new Tool(toolDef);
-            this.addTool(tool);
-        } catch (e) {
-            console.error(`Error loading tool ${file} from ${path}: ${e}`);
-        }
-    }
-}
+        export class Tools {
+            constructor() {
+                this.tools = new Map();
+            }
 
-export class Tools {
-    constructor() {
-        this.tools = new Map();
-    }
+            async loadTools(path) {
+                this.tools = new Map(); // Clear existing tools before reloading
+                const files = await readdir(path);
+                for (const file of files) {
+                    if (file.endsWith('.js')) { // Only load .js files
+                        await this._loadToolFromFile(path, file);
+                    }
+                }
+                return this.getTools();
+            }
 
-    async loadTools(path) {
-        this.tools = new Map(); // Clear existing tools before reloading
-        const files = await readdir(path);
-        for (const file of files) {
-            if (file.endsWith('.js')) { // Only load .js files
-                await this._loadToolFromFile(path, file);
+            async _loadToolFromFile(path, file) {
+                try {
+                    const module = await import(`file://${process.cwd()}/${path}/${file}`);
+                    const toolDef = module.default;
+                    const tool = new Tool(toolDef);
+                    this.addTool(tool);
+                } catch (e) {
+                    console.error(`Error loading tool ${file} from ${path}: ${e}`);
+                }
+            }
+
+            getTool(name) {
+                return this.tools.get(name);
+            }
+
+            hasTool(name) {
+                return this.tools.has(name);
+            }
+
+            getTools() {
+                return Array.from(this.tools.values());
             }
         }
-        return this.getTools();
-    }
-
-    async _loadToolFromFile(path, file) {
-        try {
-            const module = await import(`file://${process.cwd()}/${path}/${file}`);
-            const toolDef = module.default;
-            const tool = new Tool(toolDef);
-            this.addTool(tool);
-        } catch (e) {
-            console.error(`Error loading tool ${file} from ${path}: ${e}`);
-        }
-    }
-
-    getTool(name) {
-        return this.tools.get(name);
-    }
-
-    hasTool(name) {
-        return this.tools.has(name);
-    }
-
-    getTools() {
-        return Array.from(this.tools.values());
-    }
-}
