@@ -1,6 +1,5 @@
 import {CONFIG} from './config.js';
 import {File} from './file.js';
-import {loadToolsFromDirectory} from './tool_utils.js';
 
 class NetentionServerCore {
 
@@ -13,6 +12,7 @@ class NetentionServerCore {
     noteHandler;
     batchTimeout;
     toolLoader;
+    messageHandlers;
 
 
     constructor(state, queueManager, websocketManager, errorHandler, noteStepHandler, noteRunner, noteHandler) {
@@ -26,8 +26,11 @@ class NetentionServerCore {
         this.batchTimeout = null;
         this.fileManager = new File(CONFIG.DB_PATH); // Instantiate File manager
         this.toolLoader = {loadTools: this.state.tools.loadTools.bind(this.state.tools)};
-        this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
-        this.loadNotesFromDB(); // Load notes from DB on initialization
+        this.messageHandlers = {
+            'createNote': this.noteHandler.handleCreateNote.bind(this.noteHandler),
+            'updateNote': this.noteHandler.handleUpdateNote.bind(this.noteHandler),
+            'deleteNote': this.noteHandler.handleDeleteNote.bind(this.noteHandler),
+        };
     }
 
     async loadNotesFromDB() {
@@ -46,19 +49,12 @@ class NetentionServerCore {
             });
             throw error; // Re-throw to prevent server from starting with no notes
         }
-        await Promise.all(noteUpdates.map(note => this.fileManager.saveNote(note)));
     }
 
-
     async dispatchWebSocketMessage(parsedMessage) {
-        if (parsedMessage.type === 'createNote') {
-            await this.noteHandler.handleCreateNote(parsedMessage);
-        } else if (parsedMessage.type === 'updateNote') {
-            await this.noteHandler.handleUpdateNote(parsedMessage);
-        } else if (parsedMessage.type === 'deleteNote') {
-            await this.noteHandler.handleDeleteNote(parsedMessage);
-        } else if (parsedMessage.type === 'createEdge') {
-            await this.noteHandler.handleCreateEdge(parsedMessage);
+        const handler = this.messageHandlers[parsedMessage.type];
+        if (handler) {
+            await handler(parsedMessage);
         } else {
             this.state.logger.log(`Unknown message type: ${parsedMessage.type}`, 'warn', {
                 component: 'WebSocket',
