@@ -71,6 +71,8 @@ export class ExecutionQueue {
                 errorType: 'QueueProcessingError',
                 errorMessage: error.message
             });
+            // Increment queue retry count
+            note.queueRetryCount = (note.queueRetryCount || 0) + 1;
             this.queueExecution(note); // Re-queue the note
         } finally {
             this.executionQueue.delete(noteId);
@@ -84,6 +86,7 @@ export class ExecutionQueue {
                 queueRetryCount: note.queueRetryCount
             });
             // Optionally add to a dead-letter queue or take other actions for notes that consistently fail queue processing
+            // For now, after max retries, the note will just be removed from the execution queue and not retried further in processQueue
         }
     }
 
