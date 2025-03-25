@@ -1,8 +1,5 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG } from './config.js';
-
-import { WebSocketServer, WebSocket } from 'ws';
-import { CONFIG } from './config.js';
 import crypto from 'crypto';
 
 export class WebSocketServerManager {

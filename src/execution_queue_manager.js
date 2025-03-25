@@ -6,7 +6,7 @@ export class ExecutionQueueManager {
     }
 
     async initScheduler() {
-        this.state.scheduler = setInterval(() => this.optimizeSchedule.bind(this), 5000);
+        this.state.scheduler = setInterval(() => this.optimizeSchedule(), 5000);
     }
 
     async optimizeSchedule() {
