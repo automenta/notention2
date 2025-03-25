@@ -75,7 +75,8 @@ export const INITIAL_NOTES = [
                 "compose": 'tool-compose-id',
                 "schedule": 'tool-schedule-id',
                 "debug": 'tool-debug-id',
-                "define_concept": 'tool-define-concept-id' // Placeholder for define_concept tool
+                "define_concept": 'tool-define-concept-id', // Placeholder for define_concept tool
+                "update_system": 'tool-update-system-id' // Placeholder for update_system tool
             }
         },
         status: 'running',
