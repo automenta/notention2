@@ -25,19 +25,6 @@ export class ServerState {
         this.scheduler = null;
     }
 
-    log(message, level = 'info', context = {}) {
-        if (level === 'debug' && !CONFIG.DEBUG_LOGGING) {
-            return;
-        }
-        const logEntry = {
-            timestamp: new Date().toISOString(),
-            level: level,
-            message: message,
-            ...context
-        };
-        console[level](JSON.stringify(logEntry));
-    }
-
     timeoutPromise(promise, ms) {
         return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
     }
