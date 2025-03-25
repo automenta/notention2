@@ -38,7 +38,7 @@ export default function LogicStepItem({
                 position: 'relative'
             }}
         >
-            <div style={{flexGrow: 1, position: 'relative'}}> {/* Make inner div relative for absolute positioning of connector */}
+            <div style={{flexGrow: 1, position: 'relative'}}>
                 <div><strong>Step {index + 1}:</strong></div>
                 <StepToolSelect
                     step={step}
@@ -52,18 +52,24 @@ export default function LogicStepItem({
                     onStepChange={onStepChange}
                     index={index}
                 />
-                <div>Status: {step.status}</div>
+                <div>
+                    Status: {step.status}
+                    {step.status === 'running' && (
+                        <div className="step-loading-indicator">
+                            <div className="spinner"></div>
+                        </div>
+                    )}
+                </div>
             </div>
             <div className="step-connector-anchor" style={{
                 position: 'absolute',
-                right: '-10px', // Adjust as needed
+                right: '-10px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '20px', // Width for visibility and click area if needed
-                height: '20px', // Height for visibility and click area if needed
-                // backgroundColor: 'red', // For debugging, remove later
-                zIndex: 10, // Ensure it's above other elements
-                pointerEvents: 'none' // Make it non-interactive
+                width: '20px',
+                height: '20px',
+                zIndex: 10,
+                pointerEvents: 'none'
             }}></div>
             <button onClick={() => onDeleteStep(index)} style={{marginLeft: '10px'}}>Delete</button>
         </li>

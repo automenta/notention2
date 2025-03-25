@@ -204,8 +204,34 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                 }
 
                 .step-running {
-                    border: 2px solid blue; /* Highlight running step */
-                    box-shadow: 0 0 5px blue; /* Add a subtle shadow */
+                    border: 2px solid blue;
+                    box-shadow: 0 0 5px blue;
+                }
+
+                .step-loading-indicator {
+                    display: inline-block;
+                    width: 15px;
+                    height: 15px;
+                    margin-left: 5px;
+                    vertical-align: middle;
+                }
+
+                .spinner {
+                    border: 2px solid rgba(0, 0, 0, 0.1);
+                    border-left-color: #007bff;
+                    border-radius: 50%;
+                    width: 12px;
+                    height: 12px;
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin {
+                    0% {
+                        transform: rotate(0deg);
+                    }
+                    100% {
+                        transform: rotate(360deg);
+                    }
                 }
 
 
