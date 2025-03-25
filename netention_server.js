@@ -52,7 +52,7 @@ import { timeoutPromise, replacePlaceholders } from './utils.js'; // Import time
 
 
     log(message, level = 'info', context = {}) {
-        this.serverCore.log(message, level, context);
+        this.state.log(message, level, context);
     }
 
     // async dispatchWebSocketMessage(parsedMessage) { // Moved to NetentionServerCore
