@@ -3,14 +3,15 @@ import { createViteServer } from "vitest/node";
 import * as http from "node:http";
 
 import { ServerState } from './server_state.js';
-import WebSocketHandler from './websocket_handler.js';
-import { ExecutionQueueManager } from './execution_queue_manager.js'; // Import ExecutionQueueManager
+import { ExecutionQueueManager } from './execution_queue_manager.js';
+import { WebSocketServerManager } from './websocket_server.js'; // Import WebSocketServerManager
 
 
 class NetentionServer {
     constructor() {
         this.state = new ServerState();
-        this.queueManager = new ExecutionQueueManager(this.state); // Instantiate ExecutionQueueManager
+        this.queueManager = new ExecutionQueueManager(this.state);
+        this.websocketServerManager = new WebSocketServerManager(this.state); // Instantiate WebSocketServerManager
     }
 
 
@@ -136,25 +137,21 @@ class NetentionServer {
                 });
                 throw error; // Re-throw to prevent server from starting if tools fail to load
             });
-    }
-
-
     async start() {
         const vite = await createViteServer({
             root: "client",
             plugins: [react()],
-            server: {middlewareMode: true},
+            server: { middlewareMode: true },
         });
 
         const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
-        const wsHandler = new WebSocketHandler(this.state);
-        wsHandler.start(httpServer);
+        this.websocketServerManager.start(httpServer); // Start WebSocket server via WebSocketServerManager
 
         httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', {
             component: 'Server',
             port: CONFIG.PORT
         }));
-        setInterval(() => this.queueManager.processQueue(), CONFIG.QUEUE_INTERVAL); // Use queueManager's processQueue
+        setInterval(() => this.queueManager.processQueue(), CONFIG.QUEUE_INTERVAL);
     }
 
 
@@ -183,17 +180,10 @@ class NetentionServer {
         this.state.updateBatch.clear();
         this.state.batchTimeout = null;
         noteUpdates.forEach(note => {
-            if (this.state.wss) {
-                this.state.wss.clients.forEach(client => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({ type: 'noteUpdate', data: note }));
-                    }
-                });
-            }
+            this.websocketServerManager.broadcastNoteUpdate(note); // Use WebSocketServerManager to broadcast
             const resolver = this.state.pendingWrites.get(note.id);
             if (resolver) resolver();
             this.state.pendingWrites.delete(note.id);
-
         });
     }
 }
