@@ -24,19 +24,18 @@ export default {
         }
 
         const sandbox = {
-            expect: global.expect, // Use global expect from vitest environment
-            describe: global.describe, // Use global describe
-            it: global.it, // Use global it
-            vi: global.vi, // Use global vi
-            test: global.test, // Use global test
+            expect: global.expect,
+            describe: global.describe,
+            it: global.it,
+            vi: global.vi,
+            test: global.test,
             console,
+            results: [] // Initialize results array in sandbox
         };
 
-        let results = [];
-        const testFn = new Function('test', 'describe', 'expect', 'it', 'vi', 'results', 'console', `
+        const testFn = new Function('test', 'describe', 'expect', 'it', 'vi', 'console', 'results', `
             return new Promise(async (resolve, reject) => {
                 try {
-                    
                     ${testNote.content.code}
                     resolve(results);
                 } catch (error) {
@@ -46,8 +45,8 @@ export default {
         `);
 
         try {
-            const testResults = await testFn(global.test, global.describe, sandbox.expect, global.it, sandbox.vi, results, sandbox.console);
-            return JSON.stringify({status: 'completed', results: testResults}, null, 2);
+            await testFn(global.test, global.describe, sandbox.expect, global.it, global.vi, sandbox.console, sandbox.results);
+            return JSON.stringify({status: 'completed', results: sandbox.results}, null, 2); // Return sandbox.results
         } catch (error) {
             console.error(`Test execution error in Note ${testId}:`, error);
             return JSON.stringify({status: 'failed', error: error.message}, null, 2);
