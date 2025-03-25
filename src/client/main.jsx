@@ -88,7 +88,7 @@ function App() {
                         },
                         'shape': (ele) => {
                             const status = ele.data('status');
-                            if (ele.data('isStep')) return 'round-rectangle'; // Different shape for steps
+                            if (ele.data('isStep')) return 'round-rectangle';
                             switch (status) {
                                 case 'running':
                                     return 'diamond';
@@ -96,7 +96,7 @@ function App() {
                                     return 'ellipse';
                             }
                         },
-                        'width': ele => ele.data('isStep') ? 60 : 80, // Smaller width for steps
+                        'width': ele => ele.data('isStep') ? 60 : 80,
                         'height': ele => ele.data('isStep') ? 40 : 80, // Smaller height for steps
                         'font-size': ele => ele.data('isStep') ? '0.8em' : '1em',
                         'text-valign': 'center',
@@ -131,6 +131,26 @@ function App() {
             ],
             layout: {name: 'grid'}
         });
+
+        // Define the pulsing animation
+        cy.style().selector('node[status = "running"]')
+            .css({
+                'animation-play-state': 'running',
+                'animation-name': 'pulse-bg',
+                'animation-duration': '1s',
+                'animation-timing-function': 'ease-in-out',
+                'animation-direction': 'alternate',
+                'animation-iteration-count': 'infinite'
+            })
+            .update();
+
+        cy.style().stylesheet()
+            .append(`
+                @keyframes pulse-bg {
+                    0% { background-color: blue; }
+                    100% { background-color: #87CEFA; } /* Light Sky Blue */
+                }
+            `).update();
 
         const mainNodes = notes.map(note => ({
             group: 'nodes',
