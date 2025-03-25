@@ -10,9 +10,14 @@ export class Tool {
         this.dependencies = dependencies;
     }
 
-    async execute(input, context) { // Added context
-        const validatedInput = this.schema.parse(input);
-        return await this.invoke(validatedInput, context); // Pass context to invoke
+    async execute(input, context) {
+        try {
+            const validatedInput = this.schema.parse(input);
+            return await this.invoke(validatedInput, context); // Pass context to invoke
+        } catch (error) {
+            console.error(`Input validation error for tool '${this.name}': ${error.errors}`);
+            throw new Error(`Tool input validation failed: ${error.errors.map(e => e.message).join(', ')}`);
+        }
     }
 }
 
