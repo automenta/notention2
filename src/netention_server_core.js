@@ -76,8 +76,4 @@ class NetentionServerCore {
     }
 
     async flushBatchedUpdates() {
-        return this.flushBatchedUpdates_impl();
-    }
-
-    async flushBatchedUpdates_impl() {
     }
