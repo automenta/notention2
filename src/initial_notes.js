@@ -1,4 +1,22 @@
 export const INITIAL_NOTES = [
++    {
++        id: 'system-diagnosis-0',
++        title: 'System Diagnosis',
++        content: {
++            type: "system",
++            desc: "Run initial system diagnostics to check core components."
++        },
++        status: 'pending',
++        priority: 100, // High priority to run early
++        logic: [
++            { id: 'sd-1', tool: 'diagnose_note', input: { noteId: 'seed-0' } }, // Diagnose seed-0 as a key component
++            { id: 'sd-2', tool: 'debug', input: { noteId: 'seed-0' }, dependencies: ['sd-1'] } // Debug seed-0 after diagnosis
++            // Add more system-level checks here in the future
++        ]
++    },
+     {
+         id: 'dev-1',
+         title: 'Core Loop',
     {
         id: 'dev-1',
         title: 'Core Loop',
