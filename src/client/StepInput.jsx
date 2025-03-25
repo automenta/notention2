@@ -22,19 +22,38 @@ export default function StepInput({step, index, availableTools, onStepChange}) {
                 onStepChange(index, 'input', updatedInput);
             };
 
-            return (
-                <div key={paramName} style={{marginBottom: '10px'}}>
-                    <label style={{marginRight: '10px'}}>{paramName}:</label>
-                    <ReactJson
-                        src={value || null} // Use null for empty values
-                        onEdit={(val) => handleInputChange(val.updated_src)}
-                        onAdd={(val) => handleInputChange(val.updated_src)}
-                        onDelete={(val) => handleInputChange(val.updated_src)}
-                        displayObjectSize={false}
-                        displayDataTypes={false}
-                    />
-                </div>
-            );
+            const inputType = paramSchema.type;
+
+            const handleInputChangeText = (event) => {
+                handleInputChange(event.target.value);
+            };
+
+            if (inputType === 'string') {
+                return (
+                    <div key={paramName} style={{marginBottom: '10px'}}>
+                        <label style={{marginRight: '10px'}}>{paramName}:</label>
+                        <textarea
+                            value={value || ''}
+                            onChange={handleInputChangeText}
+                            style={{width: '100%', minHeight: '50px'}}
+                        />
+                    </div>
+                );
+            } else {
+                return (
+                    <div key={paramName} style={{marginBottom: '10px'}}>
+                        <label style={{marginRight: '10px'}}>{paramName}:</label>
+                        <ReactJson
+                            src={value || null} // Use null for empty values
+                            onEdit={(val) => handleInputChange(val.updated_src)}
+                            onAdd={(val) => handleInputChange(val.updated_src)}
+                            onDelete={(val) => handleInputChange(val.updated_src)}
+                            displayObjectSize={false}
+                            displayDataTypes={false}
+                        />
+                    </div>
+                );
+            }
         });
     };
 
