@@ -2,7 +2,8 @@ import {z} from 'zod';
 
 const schema = z.object({
     concept_name: z.string(),
-    definition: z.string()
+    definition: z.string(),
+    metaNoteId: z.string().optional() // Make metaNoteId optional
 });
 
 export default {
@@ -12,8 +13,8 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const {concept_name, definition} = schema.parse(input);
-        const metaNoteId = 'seed-0'; // Assuming 'seed-0' is the ID of the Meta-Note
+        const {concept_name, definition, metaNoteId: inputMetaNoteId} = schema.parse(input);
+        const metaNoteId = inputMetaNoteId || 'seed-0'; // Default to 'seed-0' if not provided
         const metaNote = context.graph.getNote(metaNoteId);
 
         if (!metaNote) {
