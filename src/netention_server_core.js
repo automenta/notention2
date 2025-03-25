@@ -1,4 +1,17 @@
+import {ServerState} from './server_state_manager.js';
+import {ExecutionQueue} from './execution_queue_manager.js';
+import {WebSocketServerManager} from './websocket_server.js';
+import {NoteHandler} from './note_handler.js';
+import {NoteRunner} from './note_runner.js';
+import {ErrorHandler} from './error_handler.js';
+import react from '@vitejs/plugin-react';
+import {createViteServer} from "vitest/node";
+import * as http from "node:http";
 import {CONFIG} from './config.js';
+import {ToolLoader} from './tool_loader.js';
+import {NoteLoader} from './note_loader.js';
+import {NoteStepHandler} from './note_step_handler.js';
+import {INITIAL_NOTES} from './initial_notes.js';
 import { File } from './file.js';
 
 class NetentionServerCore {
