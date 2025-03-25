@@ -83,10 +83,12 @@ class NetentionServer {
     }
 
 
-    async _loadNotesFromDB() {
-        this.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
+   async _loadNotesFromDB() {
+       // Note loading is now handled by NetentionServerCore
+       // This method is intentionally left empty as the logic has moved
+       this.log("Note loading delegated to NetentionServerCore.", 'info', {component: 'NoteLoader'});
         try {
-            const loadedNotesCount = await this.noteLoader.loadNotes(INITIAL_NOTES);
+            const loadedNotesCount = 0; // Indicate no notes loaded directly here
             this.log(`Loaded ${loadedNotesCount} notes from DB.`, 'info', {
                 component: 'NoteLoader',
                 count: loadedNotesCount

@@ -26,6 +26,7 @@ class NetentionServerCore {
         this.noteRunner = noteRunner;
         this.noteHandler = noteHandler;
         this.batchTimeout = null;
+        this.loadNotesFromDB(); // Load notes from DB on initialization
     }
 
     log(message, level = 'info', context = {}) {
