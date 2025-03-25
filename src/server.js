@@ -12,7 +12,7 @@ const queueManager = new ExecutionQueue(state);
 const websocketManager = new WebSocketServerManager(state);
 const errorHandler = new ErrorHandler(state);
 const noteStepHandler = new NoteStepHandler(state, errorHandler);
-const noteRunner = new NoteRunner(state, null, errorHandler);
+const noteRunner = new NoteRunner(state, errorHandler);
 const noteHandler = new NoteHandler(state);
 
 const serverCore = new NetentionServerCore(

@@ -185,7 +185,7 @@ export class NoteRunner {
 
     shouldRequestUnitTest(note, error) {
         // Request unit test if tool execution failed or code generation failed
-        return stepErrorTypes.includes(error.errorType) || note.logic.some(step => step.tool === 'code_gen' && step.status === 'failed');
+        return note.logic.some(step => step.tool === 'code_gen' && step.status === 'failed');
     }
 
     async requestUnitTest(note) {
