@@ -7,12 +7,8 @@ const schema = z.object({
 
 async function invoke(input, context) { // Rename original invoke to invokeImpl
     const {targetId} = schema.parse(input); // Parse input here for consistency
-    try {
-        context.logToolStart();
-        return `Analyzing ${targetId}`;
-    } catch (error) {
-        context.handleToolError(error);
-    }
+    context.logToolStart();
+    return `Analyzing ${targetId}`;
 }
 
 
