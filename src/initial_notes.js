@@ -102,5 +102,28 @@ export const INITIAL_NOTES = [
                 status: 'pending'
             }
         ]
+    },
+    {
+        id: 'demo-plan-1',
+        title: 'Demo Plan: Summarize and Generate Code',
+        content: 'Demonstrates a simple plan to summarize text and generate code.',
+        status: 'pending',
+        priority: 60,
+        logic: [
+            {
+                id: 'step-1',
+                tool: 'summarize',
+                input: { text: 'The quick brown rabbit jumps over the lazy frogs with no effort.' },
+                dependencies: [],
+                status: 'pending'
+            },
+            {
+                id: 'step-2',
+                tool: 'generateCode',
+                input: { description: 'Display a summary of the text: ${step-1}' },
+                dependencies: ['step-1'],
+                status: 'pending'
+            }
+        ]
     }
 ];
