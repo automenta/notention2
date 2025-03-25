@@ -241,8 +241,18 @@ function App() {
             </div>
 
             <div>
-                <button onClick={handleCreateNote} disabled={connectionStatus !== 'Connected'}>+ Note</button>
-                <button onClick={() => setEdgeDrawingMode(!edgeDrawingMode)} disabled={connectionStatus !== 'Connected'}>
+                <button
+                    onClick={handleCreateNote}
+                    disabled={connectionStatus !== 'Connected'}
+                    title="Create a new note"
+                >
+                    + Note
+                </button>
+                <button
+                    onClick={() => setEdgeDrawingMode(!edgeDrawingMode)}
+                    disabled={connectionStatus !== 'Connected'}
+                    title={edgeDrawingMode ? 'Disable edge drawing mode' : 'Enable edge drawing mode'}
+                >
                     {edgeDrawingMode ? 'Disable Edge Draw' : 'Enable Edge Draw'}
                 </button>
             </div>
