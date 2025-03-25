@@ -27,34 +27,5 @@ export default defineTool({
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    try {
-        context.logToolStart();
-        const {startId} = schema.parse(input); // Parse input here for consistency
-        const graph = context.graph;
-        const note = graph.getNote(startId);
-
-        if(
-!note
-)
-{
-    return `Node ${startId} not found`;
-}
-
-const degree = graph.getReferences(startId).length;
-return {degree, nodes: graph.getSize()};
-} catch
-(error)
-{
-    context.handleToolError(error);
-}
-}
-
-
-export default defineTool({
-    name: 'graph_metrics',
-    description: 'Compute graph metrics',
-    schema,
-    version: '1.0.0',
-    dependencies: ['zod'],
     invoke: invoke,
 });
