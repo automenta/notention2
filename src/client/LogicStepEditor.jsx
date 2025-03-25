@@ -54,14 +54,9 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
         onChange(updatedLogic);
     };
 
-    const getToolSchema = (toolName) => {
-        const tool = availableTools.find(t => t.name === toolName);
-        return tool?.schema;
-    };
-
     const renderInputFields = (step, index) => {
-        const schema = getToolSchema(step.tool);
-        if (!schema || !schema.properties) {
+        const schema = getToolSchema(availableTools, step.tool);
+        if (!schema) {
             return <div>No schema available for this tool.</div>;
         }
 

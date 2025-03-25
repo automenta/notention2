@@ -66,11 +66,12 @@ export default function StepInput({step, index, availableTools, onStepChange}) {
                     </div>
                 );
             } else if (paramSchema.enum) {
+                value = value || paramSchema.enum[0];
                 return (
                     <div key={paramName} style={{marginBottom: '10px'}}>
                         <label style={{marginRight: '10px'}}>{paramName}:</label>
                         <select
-                            value={value || paramSchema.enum[0]}
+                            value={value}
                             onChange={(e) => handleInputChange(e.target.value)}
                         >
                             {paramSchema.enum.map(enumValue => (
