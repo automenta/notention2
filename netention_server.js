@@ -10,11 +10,8 @@ import {NoteLoader} from './note_loader.js';
 import { NoteRunner } from './note_runner.js';
 import { NoteHandler } from './note_handler.js';
 import { NoteStepHandler } from './note_step_handler.js';
-import NetentionServerCore from './netention_server_core.js';
 import { ErrorHandler } from './error_handler.js';
 import { timeoutPromise, replacePlaceholders } from './utils.js'; // Import timeoutPromise, replacePlaceholders
-    noteLoader;
-    state;
     queueManager;
     websocketManager;
     errorHandler;
