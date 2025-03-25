@@ -10,7 +10,7 @@ export function replacePlaceholders(input, memoryMap) {
 }
 
 export function logToolStart(state, noteId, stepId, toolName) {
-    state.log(`Executing step ${stepId} of note ${noteId} with tool ${toolName}`, 'debug', {
+    state.logger.log(`Executing step ${stepId} of note ${noteId} with tool ${toolName}`, 'debug', {
         component: 'NoteRunner',
         noteId: noteId,
         stepId: stepId,
@@ -38,7 +38,7 @@ export function logQueueProcessingError(state, noteId, error) {
         component: 'ExecutionQueue',
         noteId: noteId,
         errorType: 'NoteProcessingError',
-        errorMessage: error.message,
+        error: error.message,
         errorStack: error.stack
     });
 }
