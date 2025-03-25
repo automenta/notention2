@@ -169,6 +169,14 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                     background-color: #ffebee; /* Light red for failed */
                 }
 
+                .logic-step-item .dependency-connector {
+                    position: absolute;
+                    left: 0px; /* Adjust as needed */
+                    top: 0;
+                    height: 100%;
+                    border-left: 2px dashed #ccc;
+                }
+
 
                 ul {
                     position: relative; /* Needed for absolute positioning of pseudo-element */

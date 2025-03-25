@@ -33,7 +33,8 @@ export default function LogicStepItem({
                 cursor: 'grab',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                position: 'relative' // For positioning dependency connectors
             }}
         >
             <div style={{flexGrow: 1}}>
@@ -53,6 +54,9 @@ export default function LogicStepItem({
                 <div>Status: {step.status}</div>
             </div>
             <button onClick={() => onDeleteStep(index)} style={{marginLeft: '10px'}}>Delete</button>
+            {step.dependencies && step.dependencies.length > 0 && (
+                <div className="dependency-connector"></div>
+            )}
         </li>
     );
 }
