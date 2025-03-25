@@ -55,32 +55,20 @@ function App() {
 
     useEffect(() => {
         if (notes.length > 0 && cyRef.current) {
-            initializeCytoscape(notes, cyRef.current, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph, handleCreateEdge); // Pass handleCreateEdge
+            initializeCytoscape(notes, cyRef.current, selectedNoteId, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph, handleCreateEdge);
         }
-    }, [notes]);
+    }, [notes, selectedNoteId]);
 
 
-    const initializeCytoscape = (notes, container, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph, handleCreateEdge) => { // Accept handleCreateEdge
+    const initializeCytoscape = (notes, container, selectedNoteId, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph, handleCreateEdge) => {
         const cy = cytoscape({
             container: container,
-            elements: notes.map(note => ({
-                data: {
-                    id: note.id,
-                    label: note.title,
-                    status: note.status
-                }
-            })) // Include status in node data
-                .concat(notes.flatMap(note => (note.references ?? []).map(ref => ({
-                    data: {
-                        source: note.id,
-                        target: ref
-                    }
-                })))),
+            elements: [], // Initialize empty and add elements dynamically
             style: [
                 {
                     selector: 'node',
                     style: {
-                        'label': (ele) => `${ele.data('label')} (${ele.data('status')})`, // Include status in label
+                        'label': (ele) => `${ele.data('label')}`,
                         'background-color': (ele) => {
                             const status = ele.data('status');
                             switch (status) {
@@ -98,17 +86,21 @@ function App() {
                                     return '#666';
                             }
                         },
-                        'shape': (ele) => { // Shape based on status
+                        'shape': (ele) => {
                             const status = ele.data('status');
+                            if (ele.data('isStep')) return 'round-rectangle'; // Different shape for steps
                             switch (status) {
                                 case 'running':
                                     return 'diamond';
                                 default:
-                                    return 'ellipse'; // Default shape
+                                    return 'ellipse';
                             }
                         },
-                        'width': 80,
-                        'height': 80
+                        'width': ele => ele.data('isStep') ? 60 : 80, // Smaller width for steps
+                        'height': ele => ele.data('isStep') ? 40 : 80, // Smaller height for steps
+                        'font-size': ele => ele.data('isStep') ? '0.8em' : '1em',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
                     }
                 },
                 {selector: 'edge', style: {'width': 2, 'line-color': '#ccc'}},
@@ -132,20 +124,42 @@ function App() {
             layout: {name: 'grid'}
         });
 
-        cy.on('click', 'node', function (evt) { // Handle node click
-            var node = evt.target;
-            setSelectedNoteId(node.id()); // Update selectedNoteId in App
+        const mainNodes = notes.map(note => ({
+            group: 'nodes',
+            data: {
+                id: note.id,
+                label: note.title,
+                status: note.status,
+                noteData: note // Store entire note data
+            }
+        }));
+
+        const edges = notes.flatMap(note => (note.references ?? []).map(ref => ({
+            group: 'edges',
+            data: {
+                source: note.id,
+                target: ref
+            }
+        })));
+
+        cy.add(mainNodes.concat(edges));
+
+        cy.on('click', 'node', function (evt) {
+            const node = evt.target;
+            setSelectedNoteId(node.id());
         });
 
-        cy.on('cxttap', 'node', function (evt) { // Handle context tap (right click) on node
-            var node = evt.target;
-            handleDeleteNodeFromGraph(node.id()); // Call delete node handler
+        cy.on('cxttap', 'node', function (evt) {
+            const node = evt.target;
+            if (!node.data('isStep')) { // Prevent deleting step nodes directly
+                handleDeleteNodeFromGraph(node.id());
+            }
         });
 
 
-        cy.on('dblclick', (event) => { // Handle graph double click
-            if (event.target === cy) { // Check if clicked on background
-                handleCreateNoteFromGraph(event.position); // Call create note handler, pass position
+        cy.on('dblclick', (event) => {
+            if (event.target === cy) {
+                handleCreateNoteFromGraph(event.position);
             }
         });
 
@@ -153,7 +167,7 @@ function App() {
             if (edgeDrawingMode) {
                 setSourceNode(evt.target);
             } else {
-                evt.target.addClass('dragging-node'); // Add class on drag start
+                evt.target.addClass('dragging-node');
             }
         });
 
@@ -161,7 +175,6 @@ function App() {
             if (edgeDrawingMode && sourceNode) {
                 const targetPos = evt.position;
                 if (!tempEdge) {
-                    // Create temporary edge
                     const tempEdge = cy.add({
                         group: 'edges',
                         data: {id: 'temp-edge', source: sourceNode.id(), target: 'temp-target'},
@@ -185,7 +198,7 @@ function App() {
                     setTempEdge(null);
                 }
             } else {
-                evt.target.removeClass('dragging-node'); // Remove class on drag stop
+                evt.target.removeClass('dragging-node');
             }
         });
 
@@ -193,9 +206,71 @@ function App() {
             if (edgeDrawingMode && sourceNode && tempEdge) {
                 cy.remove(tempEdge);
                 setTempEdge(null);
-                setSourceNode(null); // Reset source node as well
+                setSourceNode(null);
             }
         });
+
+        // Function to update graph based on selectedNoteId
+        const updateGraphSelection = (selectedNoteId) => {
+            cy.elements().remove(); // Clear existing elements
+
+            // Add main notes and edges
+            cy.add(mainNodes.concat(edges));
+
+            if (selectedNoteId) {
+                const selectedNote = notes.find(note => note.id === selectedNoteId);
+                if (selectedNote && selectedNote.logic) {
+                    const stepNodes = selectedNote.logic.map((step, index) => ({
+                        group: 'nodes',
+                        data: {
+                            id: step.id,
+                            label: `Step ${index + 1}: ${step.tool}`,
+                            status: step.status,
+                            isStep: true,
+                            parent: selectedNoteId // Make step nodes children of selected note
+                        }
+                    }));
+                    const stepEdges = selectedNote.logic.map((step, index) => {
+                        if (index > 0) {
+                            return {
+                                group: 'edges',
+                                data: {
+                                    source: selectedNote.logic[index - 1].id,
+                                    target: step.id
+                                }
+                            };
+                        }
+                        return null;
+                    }).filter(edge => edge); // Filter out nulls
+
+                    cy.add(stepNodes);
+                    cy.add(stepEdges);
+
+
+                    // Apply layout for step nodes - force directed layout for steps within the selected node
+                    cy.layout({
+                        name: 'cose',
+                        animate: false,
+                        //boundingBox: cy.getElementById(selectedNoteId).boundingBox(), // Layout only steps
+                        padding: 10,
+                        parent: cy.getElementById(selectedNoteId) // Apply layout to children of selected node
+                    }).run();
+
+
+                    cy.fit(); // Fit graph to content after adding steps
+                }
+            } else {
+                cy.layout({name: 'grid'}).run(); // Default layout when no note selected
+                cy.fit(); // Fit graph to content
+            }
+        };
+
+        updateGraphSelection(selectedNoteId); // Initial graph update
+
+        // Update graph on selectedNoteId change
+        useEffect(() => {
+                updateGraphSelection(selectedNoteId);
+        }, [selectedNoteId]);
     };
 
 
