@@ -445,6 +445,5 @@ export class NoteRunner {
         });
     }
 }
-const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 export default NoteRunner;
