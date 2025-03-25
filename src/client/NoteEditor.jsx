@@ -1,18 +1,19 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 import ReactJson from 'react-json-view';
-import LogicStepEditor from './LogicStepEditor.jsx'; // Import LogicStepEditor
+import LogicStepEditor from './LogicStepEditor.jsx';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
+import { NoteEditorStyles } from './NoteEditorStyles.js'; // Import the styles
 
-export default function NoteEditor({note, onUpdate, notes = [], onRunTool, availableTools}) { // Expect availableTools as prop
+export default function NoteEditor({ note, onUpdate, notes = [], onRunTool, availableTools }) {
     const [title, setTitle] = useState(note?.title || '');
     const [content, setContent] = useState(note?.content || {});
     const [priority, setPriority] = useState(note?.priority || 50);
     const [references, setReferences] = useState(note?.references || []);
     const [logic, setLogic] = useState(note?.logic || []);
-    const [selectedTool, setSelectedTool] = useState(''); // State for selected tool
-    const [toolInput, setToolInput] = useState({}); // State for tool input, now an object
+    const [selectedTool, setSelectedTool] = useState('');
+    const [toolInput, setToolInput] = useState({});
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
@@ -41,13 +42,24 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
     );
 
     const handleChange = (field, value) => {
-        if (field === 'title') setTitle(value);
-        if (field === 'content') setContent(value);
-        if (field === 'priority') setPriority(value);
-        if (field === 'references') setReferences(value);
-        if (field === 'logic') {
-            setLogic(value);
-            value = value;
+        switch (field) {
+            case 'title':
+                setTitle(value);
+                break;
+            case 'content':
+                setContent(value);
+                break;
+            case 'priority':
+                setPriority(value);
+                break;
+            case 'references':
+                setReferences(value);
+                break;
+            case 'logic':
+                setLogic(value);
+                break;
+            default:
+                console.warn(`Unhandled field: ${field}`);
         }
         debouncedSave(
             field === 'title' ? value : title,
@@ -73,11 +85,11 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
     };
 
     const handleRunNow = () => {
-        onUpdate({id: note.id, status: 'pending'});
+        onUpdate({ id: note.id, status: 'pending' });
     };
 
     const handleRunTool = () => {
-        onRunTool(note.id, selectedTool, toolInput); // Use selectedTool and toolInput object
+        onRunTool(note.id, selectedTool, toolInput);
     };
 
     const handleContentChange = (value) => {
@@ -97,31 +109,17 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
         handleChange('logic', newLogic);
     };
 
-
     return (
-        <div style={{
-            padding: '20px',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            maxWidth: '800px',
-            margin: '20px auto'
-        }}>
+        <div style={NoteEditorStyles.container}>
             <input
                 type="text"
                 value={title}
                 onChange={e => handleChange('title', e.target.value)}
                 placeholder="Note Title"
-                style={{
-                    width: '100%',
-                    padding: '10px',
-                    marginBottom: '10px',
-                    borderRadius: '4px',
-                    border: '1px solid #ccc',
-                    fontSize: '16px'
-                }}
+                style={NoteEditorStyles.input}
             />
-            <div style={{marginBottom: '10px'}}>
-                <label style={{marginRight: '10px'}}>Content:</label>
+            <div style={NoteEditorStyles.section}>
+                <label style={NoteEditorStyles.label}>Content:</label>
                 <ReactJson
                     src={content}
                     onEdit={handleContentChange}
@@ -131,41 +129,40 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
                     displayDataTypes={false}
                 />
             </div>
-            <div style={{margin: '10px 0'}}>
-                <label style={{marginRight: '10px'}}>Priority (0-100):</label>
+            <div style={NoteEditorStyles.section}>
+                <label style={NoteEditorStyles.label}>Priority (0-100):</label>
                 <input
                     type="number"
                     min="0"
                     max="100"
                     value={priority}
                     onChange={e => handleChange('priority', parseInt(e.target.value) || 50)}
-                    style={{width: '60px', padding: '5px', borderRadius: '4px', border: '1px solid #ccc'}}
+                    style={NoteEditorStyles.numberInput}
                 />
             </div>
-            <div style={{margin: '10px 0'}}>
-                <label style={{marginRight: '10px'}}>References:</label>
+            <div style={NoteEditorStyles.section}>
+                <label style={NoteEditorStyles.label}>References:</label>
                 <select
                     multiple
                     value={references}
                     onChange={e => handleChange('references', Array.from(e.target.selectedOptions, option => option.value))}
-                    style={{width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #ccc'}}
+                    style={NoteEditorStyles.select}
                 >
                     {notes.filter(n => n.id !== note.id).map(n => (
                         <option key={n.id} value={n.id}>{n.title}</option>
                     ))}
                 </select>
             </div>
-            <div style={{margin: '10px 0'}}>
-                <LogicStepEditor logic={logic} onChange={handleLogicChange}
-                                 availableTools={availableTools}/>
+            <div style={NoteEditorStyles.section}>
+                <LogicStepEditor logic={logic} onChange={handleLogicChange} availableTools={availableTools} />
             </div>
 
-            <div style={{marginTop: '10px', marginBottom: '10px'}}>
-                <label style={{marginRight: '10px'}}>Run Tool:</label>
+            <div style={NoteEditorStyles.section}>
+                <label style={NoteEditorStyles.label}>Run Tool:</label>
                 <select
                     value={selectedTool}
                     onChange={handleToolSelectChange}
-                    style={{padding: '8px', borderRadius: '4px', marginRight: '10px'}}
+                    style={NoteEditorStyles.select}
                 >
                     <option value="">Select a tool</option>
                     {availableTools.map(tool => (
@@ -175,73 +172,34 @@ export default function NoteEditor({note, onUpdate, notes = [], onRunTool, avail
             </div>
 
             {selectedTool && (
-                <div style={{marginBottom: '20px', border: '1px solid #ccc', padding: '10px', borderRadius: '4px'}}>
+                <div style={NoteEditorStyles.toolSection}>
                     <StepInput
-                        step={{tool: selectedTool, input: toolInput}} // Pass tool and current input
+                        step={{ tool: selectedTool, input: toolInput }}
                         availableTools={availableTools}
-                        onStepChange={(index, field, value) => handleToolInputChange(value)} // Adapt onStepChange
-                        index={0} // Index is not relevant here as it's not in a list
+                        onStepChange={(index, field, value) => handleToolInputChange(value)}
+                        index={0}
                     />
                     <button
                         onClick={handleRunTool}
-                        style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#ff9800',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            marginTop: '10px'
-                        }}
+                        style={NoteEditorStyles.runToolButton}
                     >
                         Run {selectedTool}
                     </button>
                 </div>
             )}
 
-
-            <div style={{marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center'}}>
-                <button
-                    onClick={handleSave}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
+            <div style={NoteEditorStyles.buttonGroup}>
+                <button onClick={handleSave} style={NoteEditorStyles.saveButton}>
                     Save
                 </button>
-                <button
-                    onClick={handleCancel}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
+                <button onClick={handleCancel} style={NoteEditorStyles.cancelButton}>
                     Cancel
                 </button>
-                <button
-                    onClick={handleRunNow}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#2196f3',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
+                <button onClick={handleRunNow} style={NoteEditorStyles.runNowButton}>
                     Run Now
                 </button>
 
-                {isSaving && <span style={{color: '#888', fontSize: '14px'}}>Saving...</span>}
+                {isSaving && <span style={NoteEditorStyles.saving}>Saving...</span>}
                 {note && note.status && (
                     <div className={`note-status-display ${note.status}`}>
                         <strong>Status: {note.status}</strong>

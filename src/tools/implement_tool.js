@@ -69,7 +69,7 @@ export default {
             if (!validationResult.isValid) {
                 const errorMsg = `Tool code validation error for '${name}': ${validationResult.error}`;
                 console.error(errorMsg);
-                context.logger.log(errorMsg, 'error', {
+                context.logger.error(errorMsg, {
                     component: 'implement_tool',
                     toolName: name,
                     errorType: 'CodeValidationError',
@@ -86,26 +86,27 @@ export default {
                     }
                 };
             }
-            context.logger.log(`Tool code validated successfully for '${name}'.`, 'debug', {
+            context.logger.debug(`Tool code validated successfully for '${name}'.`, {
                 component: 'implement_tool',
                 toolName: name
             });
 
             await writeFile(filepath, toolCode);
-            await context.state.toolLoader.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
+        await context.state.toolLoader.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
 
             const successMsg = `Tool '${name}' implemented, validated, and registered. Code written to '${filepath}'.`;
-            context.logger.log(successMsg, 'info', {component: 'implement_tool', toolName: name, filepath: filepath});
+            context.logger.info(successMsg, {component: 'implement_tool', toolName: name, filepath: filepath});
             return {status: 'success', message: successMsg, filepath: filepath};
 
         } catch (error) { // Catch other errors during tool implementation (e.g., file write errors)
-            const errorMsg = `Error implementing tool '${name}': ${error.message}`;
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorMsg = `Error implementing tool '${name}': ${errorMessage}`;
             console.error(errorMsg, error);
-            context.logger.log(errorMsg, 'error', {
+            context.logger.error(errorMsg, {
                 component: 'implement_tool',
                 toolName: name,
                 errorType: 'ToolImplementationError',
-                errorMessage: error.message,
+                errorMessage: errorMessage,
                 filepath: filepath
             });
             return {
@@ -113,7 +114,7 @@ export default {
                 message: errorMsg,
                 errorDetails: {
                     type: 'ToolImplementationError',
-                    errorMessage: error.message,
+                    errorMessage: errorMessage,
                     filepath: filepath
                 }
             };
