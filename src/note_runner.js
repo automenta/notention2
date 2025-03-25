@@ -31,16 +31,16 @@ export class NoteRunner {
                 const step = stepsById.get(stepId);
                 if (!step) {
                     this.state.log(`Step ${stepId} not found in note ${note.id}`, 'warn', { component: 'NoteRunner', noteId: note.id, stepId: stepId });
-                    continue; // Skip to next step if this one is not found
+                    continue;
                 }
 
                 if (step.status !== 'pending') {
                     this.state.log(`Step ${stepId} in note ${note.id} is not pending, skipping. Status: ${step.status}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: stepId, stepStatus: step.status });
-                    continue; // Skip if step is not pending
+                    continue;
                 }
 
 
-                step.status = 'running'; // Mark step as running *before* execution
+                step.status = 'running';
                 this.state.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool });
                 step.input = this.state.replacePlaceholders(step.input, memoryMap);
 
