@@ -48,28 +48,6 @@ class NetentionServerCore {
                 error: error.message
             });
             throw error; // Re-throw to prevent server from starting with no notes
-        }
-    }
-
-    async dispatchWebSocketMessage(parsedMessage) {
-        const handler = this.messageHandlers[parsedMessage.type];
-        if (handler) {
-            await handler(parsedMessage);
-        } else {
-            this.state.logger.log(`Unknown message type: ${parsedMessage.type}`, 'warn', {
-                component: 'WebSocket',
-                messageType: parsedMessage.type
-            });
-        }
-    }
-
-    async writeNoteToDB(note) {
-        this.state.logger.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
-        this.state.updateBatch.add(note.id);
-        if (!this.batchTimeout) {
-            this.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
-        }
-        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve));
     }
 
     async flushBatchedUpdates() {
