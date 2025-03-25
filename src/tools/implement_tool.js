@@ -36,11 +36,15 @@ export default {
             const newTool = new Tool(newToolDef);
             context.tools.addTool(newTool);
 
-            return `Tool '${name}' implemented and added to the tool registry.`;
+            const successMsg = `Tool '${name}' implemented and added to the tool registry.`;
+            context.log(successMsg, 'info', { component: 'implement_tool', toolName: name });
+            return successMsg;
 
         } catch (error) {
-            console.error(`Error implementing tool '${name}':`, error);
-            return `Error implementing tool '${name}': ${error.message}`;
+            const errorMsg = `Error implementing tool '${name}': ${error.message}`;
+            console.error(errorMsg, error);
+            context.log(errorMsg, 'error', { component: 'implement_tool', toolName: name, error: error.message });
+            return errorMsg;
         }
     }
 };
