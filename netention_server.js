@@ -49,10 +49,6 @@ import { timeoutPromise } from './utils.js'; // Import timeoutPromise
         this.serverCore.log(message, level, context);
     }
 
-    // timeoutPromise(promise, ms) { // Removed duplicated function
-    //     return this.timeoutPromise(promise, ms);
-    // }
-
     // async dispatchWebSocketMessage(parsedMessage) { // Moved to NetentionServerCore
     //     await this.serverCore.dispatchWebSocketMessage(parsedMessage);
     // }
