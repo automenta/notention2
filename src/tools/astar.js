@@ -64,14 +64,19 @@ async function invoke(input, context) { // Rename original invoke to invokeImpl
     const { startId, goalId } = schema.parse(input); // Parse input here for consistency
     const graph = context.graph;
 
-    if (!graph.getNote(startId)) {
-        return `Error: Start Note with ID '${startId}' not found.`;
-    }
-    if (!graph.getNote(goalId)) {
-        return `Error: Goal Note with ID '${goalId}' not found.`;
-    }
+    try {
+        context.logToolStart();
+        if (!graph.getNote(startId)) {
+            return `Error: Start Note with ID '${startId}' not found.`;
+        }
+        if (!graph.getNote(goalId)) {
+            return `Error: Goal Note with ID '${goalId}' not found.`;
+        }
 
-    return await astarPathfinding(graph, startId, goalId);
+        return await astarPathfinding(graph, startId, goalId);
+    } catch (error) {
+        context.handleToolError(error);
+    }
 }
 
 
