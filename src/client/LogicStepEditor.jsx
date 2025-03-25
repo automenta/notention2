@@ -1,6 +1,8 @@
 import React, {useState} from 'react';
 import ReactJson from 'react-json-view';
 import LogicStepItem from './LogicStepItem.jsx'; // Import LogicStepItem
+import {getToolSchema} from './tool_utils';
+import ToolInputRenderer from './ToolInputRenderer.jsx';
 
 export default function LogicStepEditor({logic, onChange, availableTools}) {
     const [draggingIndex, setDraggingIndex] = useState(null);
@@ -54,38 +56,19 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
         onChange(updatedLogic);
     };
 
-    const renderInputFields = (step, index) => {
-        const schema = getToolSchema(availableTools, step.tool);
-        if (!schema) {
-            return <div>No schema available for this tool.</div>;
+    const getStepDepth = (stepId, logic) => {
+        let depth = 0;
+        let currentStep = logic.find(step => step.id === stepId);
+        if (!currentStep || !currentStep.dependencies || currentStep.dependencies.length === 0) {
+            return depth;
         }
 
-        return Object.entries(schema.properties).map(([paramName, paramSchema]) => {
-            const value = step.input[paramName] !== undefined ? step.input[paramName] : '';
-
-            const handleInputChange = (paramValue) => {
-                const updatedInput = {...step.input, [paramName]: paramValue};
-                handleStepChange(index, 'input', updatedInput);
-            };
-
-
-            return (
-                <div key={paramName} style={{marginBottom: '10px'}}>
-                    <label style={{marginRight: '10px'}}>{paramName}:</label>
-                    <ReactJson
-                        src={value || null} // Use null for empty values
-                        onEdit={(val) => handleInputChange(val.updated_src)}
-                        onAdd={(val) => handleInputChange(val.updated_src)}
-                        onDelete={(val) => handleInputChange(val.updated_src)}
-                        displayObjectSize={false}
-                        displayDataTypes={false}
-                    />
-                </div>
-            );
-
-        });
+        let maxDependencyDepth = 0;
+        for (const depId of currentStep.dependencies) {
+            maxDependencyDepth = Math.max(maxDependencyDepth, getStepDepth(depId, logic) + 1);
+        }
+        return maxDependencyDepth;
     };
-
 
     return (
         <div>
@@ -101,41 +84,37 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                         onDeleteStep={handleDeleteStep}
                         isDragging={isDragging}
                         draggingIndex={draggingIndex}
-                        renderInputFields={renderInputFields}
+                        depth={getStepDepth(step.id, logic)}
+                        renderInputFields={(step, index) => {
+                            const schema = getToolSchema(availableTools, step.tool);
+                            const handleInputChange = (paramName, paramValue) => {
+                                const updatedInput = {...step.input, [paramName]: paramValue};
+                                handleStepChange(index, 'input', updatedInput);
+                            };
+
+                            return (
+                                <ToolInputRenderer
+                                    key={index}
+                                    schema={schema}
+                                    input={step.input}
+                                    onInputChange={handleInputChange}
+                                />
+                            );
+                        }}
                         onDragStart={handleDragStart}
                         onDragOver={handleDragOver}
                         onDragEnd={handleDragEnd}
-                        depth={getStepDepth(step.id, logic)} // Calculate depth
                     />
                 ))}
             </ul>
             <button onClick={handleAddStep}>Add Step</button>
-            {/* Utility function to calculate step depth */}
-            {/* Consider moving this function outside the component if used elsewhere */}
-            {/* or making it a separate utility module */}
-            <script>
-                {`
-                function getStepDepth(stepId, logic) {
-                    let depth = 0;
-                    let currentStep = logic.find(step => step.id === stepId);
-                    if (!currentStep || !currentStep.dependencies || currentStep.dependencies.length === 0) {
-                        return depth;
-                    }
-
-                    let maxDependencyDepth = 0;
-                    for (const depId of currentStep.dependencies) {
-                        maxDependencyDepth = Math.max(maxDependencyDepth, getStepDepth(depId, logic) + 1);
-                    }
-                    return maxDependencyDepth;
-                }
-                `}
-            </script>
             <style jsx>{`
                 .logic-step-item.dragging {
                     opacity: 0.5;
                     border: 2px dashed #999;
                     background-color: #fafafa;
                 }
+
                 .logic-step-item:not(:last-child)::after {
                     content: '';
                     position: absolute;
@@ -224,6 +203,7 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                     0% {
                         transform: rotate(0deg);
                     }
+
                     100% {
                         transform: rotate(360deg);
                     }
@@ -234,6 +214,7 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                     position: relative; /* Needed for absolute positioning of pseudo-element */
                     padding-left: 20px; /* Adjust to align with the connector line */
                 }
+
                 li {
                     position: relative; /* To position the pseudo-element connector */
                 }
