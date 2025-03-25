@@ -1,23 +1,29 @@
 import {z} from 'zod';
 
 const schema = z.object({
+import {z} from 'zod';
+import { withToolHandling } from '../tool_utils.js';
+
+const schema = z.object({
     noteIds: z.array(z.string())
 });
+
+async function invoke(input, context) {
+    const { noteIds } = schema.parse(input);
+    const graph = context.graph;
+    const notes = noteIds.map(id => graph.getNote(id)).filter(Boolean);
+    if (!notes.length) return 'No valid notes found';
+    const llm = context.llm;
+    const collabResult = await llm.invoke(
+        [`Combine insights from: ${notes.map(n => n.title).join(', ')}`],
+        noteIds
+    );
+    return collabResult.text;
+}
 
 export default {
     name: 'collaborate',
     description: 'Collaborate with other notes',
     schema,
-    async invoke(input, context) {
-        const { noteIds } = schema.parse(input);
-        const graph = context.graph;
-        const notes = noteIds.map(id => graph.getNote(id)).filter(Boolean);
-        if (!notes.length) return 'No valid notes found';
-        const llm = context.llm;
-        const collabResult = await llm.invoke(
-            [`Combine insights from: ${notes.map(n => n.title).join(', ')}`],
-            noteIds
-        );
-        return collabResult.text;
-    }
+    invoke: withToolHandling({ name: 'collaborate', schema, invoke }),
 };
