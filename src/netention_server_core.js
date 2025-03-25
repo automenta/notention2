@@ -68,9 +68,13 @@ class NetentionServerCore {
     }
 
     async runNote_impl(note) {
+    }
 
     broadcastNoteUpdate(note) {
-        return this.serverCore.broadcastNoteUpdate(note);
+        return this.broadcastNoteUpdate_impl(note);
+    }
+
+    broadcastNoteUpdate_impl(note) {
     }
 
     replacePlaceholders(input, memoryMap) {
