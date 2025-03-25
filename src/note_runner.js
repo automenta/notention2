@@ -1,4 +1,3 @@
-```javascript
 import {CONFIG} from './config.js';
 import path from 'path'; // ADDED
 import {
