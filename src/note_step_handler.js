@@ -1,12 +1,16 @@
 import crypto from 'crypto';
 import { z } from 'zod';
 import { CONFIG } from './config.js';
+import { ErrorHandler } from './error_handler.js'; // Import ErrorHandler
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 export class NoteStepHandler {
-    constructor(serverState) {
+    errorHandler; // Declare ErrorHandler
+
+    constructor(serverState, errorHandler) {
         this.state = serverState;
+        this.errorHandler = errorHandler; // Instantiate ErrorHandler
     }
 
     async handleTestGeneration(note, step) {
@@ -119,7 +123,7 @@ export class NoteStepHandler {
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
         } catch (error) {
-            this._handleToolStepError(note, step, error);
+            this.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
         }
     }
 
@@ -130,7 +134,7 @@ export class NoteStepHandler {
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
         } catch (error) {
-            this._handleToolStepError(note, step, error);
+            this.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
         }
     }
 
@@ -141,55 +145,31 @@ export class NoteStepHandler {
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
         } catch (error) {
-            this._handleToolStepError(note, step, error);
+            this.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
         }
     }
 
 
     async _executeStep(note, step, memoryMap) {
         const tool = this.state.tools.getTool(step.tool);
-        if (!tool) return this._handleToolNotFoundError(note, step);
+        if (!tool) return this.errorHandler.handleToolNotFoundError(note, step); // Use ErrorHandler
         try {
             const result = await tool.execute(step.input, {graph: this.state.graph, llm: this.state.llm});
             memoryMap.set(step.id, result);
             note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
         } catch (error) {
-            this._handleToolStepError(note, step, error);
+            this.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
         }
         await this.state.writeNoteToDB(note);
     }
 
 
     _handleToolStepError(note, step, error) {
-        this.state.log(`Error executing tool ${step.tool} for note ${note.id}: ${error}`, 'error', {
-            component: 'NoteRunner',
-            noteId: note.id,
-            stepId: step.id,
-            toolName: step.tool,
-            errorType: 'ToolExecutionError',
-            error: error.message
-        });
-        step.status = 'failed';
-        step.error = error.message;
-        note.status = 'failed';
-        this.state.writeNoteToDB(note);
-        return `Tool execution failed: ${error.message}`;
+        return this.errorHandler.handleToolStepError(note, step, error); // Delegate to ErrorHandler
     }
 
     _handleToolNotFoundError(note, step) {
-        const errorMsg = `Tool ${step.tool} not found`;
-        this.state.log(errorMsg, 'error', {
-            component: 'NoteRunner',
-            noteId: note.id,
-            stepId: step.id,
-            toolName: step.tool,
-            errorType: 'ToolNotFoundError'
-        });
-        step.status = 'failed';
-        step.error = errorMsg;
-        note.status = 'failed';
-        this.state.writeNoteToDB(note);
-        return errorMsg;
+        return this.errorHandler.handleToolNotFoundError(note, step); // Delegate to ErrorHandler
     }
 }

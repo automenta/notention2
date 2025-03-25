@@ -113,7 +113,7 @@ export class NoteRunner {
             this.state.updateAnalytics(note, 'complete');
             return await this._finalizeNoteRun(note);
         } catch (error) {
-            return this._handleNoteError(note, error);
+            return this.errorHandler.handleNoteError(note, error); // Use ErrorHandler
         } finally {
             this.state.executionQueue.delete(note.id);
         }
@@ -122,7 +122,10 @@ export class NoteRunner {
     async _handleTestGeneration(note, step) {
         const {code, targetId} = step.input;
         try {
-            const testCode = await this.state.tools.executeTool('test_gen', {code, targetId}, {graph: this.state.graph, llm: this.state.llm});
+            const testCode = await this.state.tools.executeTool('test_gen', {code, targetId}, {
+                graph: this.state.graph,
+                llm: this.state.llm
+            });
             const testNoteId = crypto.randomUUID();
             const testNote = {
                 id: testNoteId,

@@ -6,12 +6,16 @@ import { NoteStepHandler } from './note_step_handler.js'; // Import NoteStepHand
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
+import { ErrorHandler } from './error_handler.js'; // Import ErrorHandler
+
 export class NoteRunner {
-    noteStepHandler; // Declare NoteStepHandler
+    noteStepHandler;
+    errorHandler; // Declare ErrorHandler
 
     constructor(serverState, noteStepHandler) {
         this.state = serverState;
-        this.noteStepHandler = noteStepHandler; // Instantiate NoteStepHandler
+        this.noteStepHandler = noteStepHandler;
+        this.errorHandler = new ErrorHandler(serverState); // Instantiate ErrorHandler
     }
 
     async runNote(note) {
