@@ -80,25 +80,4 @@ class NetentionServerCore {
     }
 
     async flushBatchedUpdates_impl() {
-
-
-        async
-        runNote(note)
-        {
-            return this.runNote_impl(note);
-        }
-
-        async
-        runNote_impl(note)
-        {
-        }
-
-        broadcastNoteUpdate(note)
-        {
-            return this.broadcastNoteUpdate_impl(note);
-        }
-
-        broadcastNoteUpdate_impl(note)
-        {
-        }
     }
