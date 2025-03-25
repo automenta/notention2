@@ -120,20 +120,37 @@ import { timeoutPromise, replacePlaceholders } from './utils.js'; // Import time
 
 
     async writeNoteToDB(note) {
-        return this.serverCore.writeNoteToDB(note);
+        this.state.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
+        this.state.updateBatch.add(note.id);
+        if (!this.batchTimeout) {
+            this.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
+        }
+        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve));
     }
 
     async flushBatchedUpdates() {
-        return this.serverCore.flushBatchedUpdates();
+        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
+            return this.state.graph.getNote(noteId);
+        });
+        this.state.updateBatch.clear();
+        this.batchTimeout = null;
+        noteUpdates.forEach(note => {
+            this.websocketManager.broadcastNoteUpdate(note);
+            const resolve = this.state.pendingWrites.get(note.id);
+            if (resolve) {
+                resolve(note);
+                this.state.pendingWrites.delete(note.id);
+            }
+        });
     }
 
 
     async runNote(note) {
-        return this.serverCore.runNote(note);
+        return await this.noteRunner.runNote(note);
     }
 
     broadcastNoteUpdate(note) {
-        return this.serverCore.broadcastNoteUpdate(note);
+        this.websocketManager.broadcastNoteUpdate(note);
     }
 }
 

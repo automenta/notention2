@@ -70,7 +70,10 @@ class NetentionServerCore {
     }
 
     replacePlaceholders(input, memoryMap) {
-        return this.serverCore.replacePlaceholders(input, memoryMap);
+        if (typeof input === 'string') {
+            return input.replace(/\${(\w+)}/g, (_, stepId) => memoryMap.get(stepId) || '');
+        }
+        return input;
     }
 }
 NetentionServerCore.prototype.dispatchWebSocketMessage = NetentionServerCore.prototype.dispatchWebSocketMessage;
