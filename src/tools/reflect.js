@@ -35,4 +35,4 @@ export default defineTool({
     version: '1.0.0',
     dependencies: ['zod'],
     invoke: invoke,
-});
+})()
