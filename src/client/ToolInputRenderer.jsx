@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactJson from 'react-json-view';
 
-export default function ToolInputRenderer({schema, input, onInputChange}) {
+export default function ToolInputRenderer({ schema, input, onInputChange }) {
     if (!schema || !schema.properties) {
         return <div>No schema available for this tool.</div>;
     }
@@ -29,19 +29,19 @@ export default function ToolInputRenderer({schema, input, onInputChange}) {
 
         if (inputType === 'string') {
             return (
-                <div key={paramName} style={{marginBottom: '10px'}}>
-                    <label style={{marginRight: '10px'}}>{paramName}:</label>
+                <div key={paramName} style={{ marginBottom: '10px' }}>
+                    <label style={{ marginRight: '10px' }}>{paramName}:</label>
                     <textarea
                         value={value || ''}
                         onChange={handleInputChangeText}
-                        style={{width: '100%', minHeight: '50px'}}
+                        style={{ width: '100%', minHeight: '50px' }}
                     />
                 </div>
             );
         } else if (inputType === 'number') {
             return (
-                <div key={paramName} style={{marginBottom: '10px'}}>
-                    <label style={{marginRight: '10px'}}>{paramName}:</label>
+                <div key={paramName} style={{ marginBottom: '10px' }}>
+                    <label style={{ marginRight: '10px' }}>{paramName}:</label>
                     <input
                         type="number"
                         value={value || 0}
@@ -51,8 +51,8 @@ export default function ToolInputRenderer({schema, input, onInputChange}) {
             );
         } else if (inputType === 'boolean') {
             return (
-                <div key={paramName} style={{marginBottom: '10px'}}>
-                    <label style={{marginRight: '10px'}}>{paramName}:</label>
+                <div key={paramName} style={{ marginBottom: '10px' }}>
+                    <label style={{ marginRight: '10px' }}>{paramName}:</label>
                     <input
                         type="checkbox"
                         checked={value || false}
@@ -62,8 +62,8 @@ export default function ToolInputRenderer({schema, input, onInputChange}) {
             );
         } else if (paramSchema.enum) {
             return (
-                <div key={paramName} style={{marginBottom: '10px'}}>
-                    <label style={{marginRight: '10px'}}>{paramName}:</label>
+                <div key={paramName} style={{ marginBottom: '10px' }}>
+                    <label style={{ marginRight: '10px' }}>{paramName}:</label>
                     <select
                         value={value || paramSchema.enum[0]}
                         onChange={(e) => handleInputChange(e.target.value)}
@@ -76,8 +76,8 @@ export default function ToolInputRenderer({schema, input, onInputChange}) {
             );
         } else {
             return (
-                <div key={paramName} style={{marginBottom: '10px'}}>
-                    <label style={{marginRight: '10px'}}>{paramName}:</label>
+                <div key={paramName} style={{ marginBottom: '10px' }}>
+                    <label style={{ marginRight: '10px' }}>{paramName}:</label>
                     <ReactJson
                         src={value || null}
                         onEdit={(val) => handleInputChange(val.updated_src)}
