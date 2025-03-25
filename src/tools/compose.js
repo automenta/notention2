@@ -1,8 +1,8 @@
 import {z} from 'zod';
 
 const schema = z.object({
-    dependencyGraph: z.record(z.array(z.string())), // Dependency graph of tools
-    inputs: z.record(z.any()) // Inputs for each tool, keyed by tool name
+    dependencyGraph: z.record(z.array(z.string())),
+    toolInputs: z.record(z.any()) // Inputs for each tool, keyed by tool name
 });
 
 export default {
@@ -12,11 +12,11 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const {dependencyGraph, inputs} = schema.parse(input);
+        const {dependencyGraph, toolInputs} = schema.parse(input);
         const executionResults = {};
         const completedTools = new Set();
         const toolNames = Object.keys(dependencyGraph);
-        const toolsToExecute = [...toolNames]; // Start with all tools
+        const toolsToExecute = [...toolNames];
 
         while (toolsToExecute.length > 0) {
             let executedToolInThisIteration = false; // Track if any tool was executed
@@ -35,11 +35,11 @@ export default {
                     }
 
                     try {
-                        const stepInput = inputs[toolName] || {}; // Get specific input for this tool
+                        const stepInput = toolInputs[toolName] || {}; // Get specific input for this tool
                         const result = await tool.execute(stepInput, context);
                         executionResults[toolName] = result;
                         completedTools.add(toolName);
-                        toolsToExecute.splice(i, 1); // Remove from execution list
+                        toolsToExecute.splice(i, 1);
                         i--; // Adjust index after splice
                         executedToolInThisIteration = true; // Mark tool execution in this iteration
                         break; // Break to restart the loop from the beginning of toolsToExecute
