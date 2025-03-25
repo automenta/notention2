@@ -28,7 +28,4 @@ export class ServerState {
         this.batchTimeout = null;
         this.scheduler = null;
     }
-    log(message, level = 'info', context = {}) {
-        this.logger.log(message, level, context);
-    }
 }
