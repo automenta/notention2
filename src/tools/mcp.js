@@ -7,9 +7,14 @@ const schema = z.object({
 });
 
 //https://modelcontextprotocol.io
-async function invoke(input) { // Rename original invoke to invokeImpl
+async function invoke(input, context) { // Rename original invoke to invokeImpl
     const {task} = schema.parse(input); // Parse input here for consistency
-    return `Stub: MCP for ${task}`;
+    try {
+        context.logToolStart();
+        return `Stub: MCP for ${task}`;
+    } catch (error) {
+        context.handleToolError(error);
+    }
 }
 
 
