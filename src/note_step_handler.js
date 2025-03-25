@@ -10,8 +10,8 @@ export class NoteStepHandler {
     async handleStep(note, step, memoryMap) {
         try {
             const result = await executeToolStep(this.state, note, step, step.tool, memoryMap, this.errorHandler);
-            note.memory.push({ type: 'tool', content: result, timestamp: Date.now(), stepId: step.id });
-            await this.state.markStepAsCompleted(note, step, result);
+            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
+            await this.state.markStepAsCompleted(note, step, `Tool '${step.tool}' executed.`);
 
             // Tool-specific post-processing
             switch (step.tool) {
