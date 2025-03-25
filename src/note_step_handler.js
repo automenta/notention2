@@ -10,19 +10,19 @@ export class NoteStepHandler {
     async handleStep(note, step, memoryMap) {
         try {
             const result = await executeToolStep(this.state, note, step, step.tool, memoryMap, this.errorHandler);
-            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
-            await this.state.markStepAsCompleted(note, step, `Tool '${step.tool}' executed.`);
+            const stepResult = `Tool '${step.tool}' executed.`;
+            note.memory.push({type: step.tool, content: result, timestamp: Date.now(), stepId: step.id});
+            await this.state.markStepAsCompleted(note, step, stepResult);
 
-            // Tool-specific post-processing
             switch (step.tool) {
                 case 'test_gen':
                     await this.handleTestGeneration(note, step, result);
                     break;
                 case 'knowNote':
-                    await this.handleKnowNote(note, step, result);
+                    await this.handleKnowNote(note, step);
                     break;
                 case 'fetchExternal':
-                    await this.handleFetchExternal(note, step, result);
+                    await this.handleFetchExternal(note, step);
                     break;
                 case 'collaborate':
                     await this.handleCollaboration(note, step);
@@ -35,7 +35,7 @@ export class NoteStepHandler {
         } catch (error) {
             step.status = 'failed';
             this.errorHandler.handleToolStepError(note, step, error);
-            throw error; // Re-throw to be caught by NoteRunner
+            throw error;
         }
     }
 
@@ -62,7 +62,7 @@ export class NoteStepHandler {
         this.state.queueManager.queueExecution(testNote);
     }
 
-    async handleKnowNote(note, step, newNoteDetails) {
+    async handleKnowNote(note, step) {
         const { title, goal } = step.input;
         const newNoteId = crypto.randomUUID();
         const newNote = {
@@ -76,15 +76,18 @@ export class NoteStepHandler {
         };
         const graph = this.state.getGraph();
         graph.addNote(newNote);
-        note.memory.push({ type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id });
-        await this.state.markStepAsCompleted(note, step, `Knew ${newNoteId}`);
+        const stepResult = `Knew ${newNoteId}`;
+        note.memory.push({ type: 'know', content: stepResult, timestamp: Date.now(), stepId: step.id });
+        await this.state.markStepAsCompleted(note, step, stepResult);
         this.state.queueManager.queueExecution(newNote);
     }
 
-    async handleFetchExternal(note, step, data) {
+    async handleFetchExternal(note, step) {
         const { apiName, query } = step.input;
+        const data = await this.state.getLLM().fetchExternalData(apiName, query);
+        const stepResult = `Fetched data from ${apiName}`;
         note.memory.push({ type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id });
-        await this.state.markStepAsCompleted(note, step, JSON.stringify(data));
+        await this.state.markStepAsCompleted(note, step, stepResult);
     }
 
     async handleCollaboration(note, step) {
@@ -94,7 +97,8 @@ export class NoteStepHandler {
             [`Collaborate on "${note.title}" with notes: ${noteIds.join(', ')}`],
             noteIds
         );
+        const stepResult = `Collaborated with notes ${noteIds.join(', ')}`;
         note.memory.push({ type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id });
-        await this.state.markStepAsCompleted(note, step, collabResult.text);
+        await this.state.markStepAsCompleted(note, step, stepResult);
     }
 }
