@@ -31,87 +31,25 @@ export class NoteRunner {
             const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
             const readyQueue = note.logic.filter(step => !step.dependencies.length && step.status === 'pending').map(s => s.id);
 
-            this.state.log(`
-Running
-note
-$
-{
-    note.id
-}
-,
-$
-{
-    readyQueue.length
-}
-steps
-ready`, 'debug', { component: 'NoteRunner', noteId: note.id, readyQueueLength: readyQueue.length });
+            this.state.log(`Running note ${note.id}, ${readyQueue.length} steps ready`, 'debug', { component: 'NoteRunner', noteId: note.id, readyQueueLength: readyQueue.length });
 
 
             while (readyQueue.length) {
                 const stepId = readyQueue.shift();
                 const step = stepsById.get(stepId);
                 if (!step) {
-                    this.state.log(`
-Step
-$
-{
-    stepId
-}
-not
-found in note
-$
-{
-    note.id
-}
-`, 'warn', { component: 'NoteRunner', noteId: note.id, stepId: stepId });
+                    this.state.log(`Step ${stepId} not found in note ${note.id}`, 'warn', { component: 'NoteRunner', noteId: note.id, stepId: stepId });
                     continue;
                 }
 
                 if (step.status !== 'pending') {
-                    this.state.log(`
-Step
-$
-{
-    stepId
-}
-in
-note
-$
-{
-    note.id
-}
-is
-not
-pending, skipping.Status
-:
-$
-{
-    step.status
-}
-`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: stepId, stepStatus: step.status });
+                    this.state.log(`Step ${stepId} in note ${note.id} is not pending, skipping. Status: ${step.status}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: stepId, stepStatus: step.status });
                     continue;
                 }
 
 
                 step.status = 'running';
-                this.state.log(`
-Executing
-step
-$
-{
-    step.id
-}
-of
-note
-$
-{
-    note.id
-}
-with tool $
-{
-    step.tool
-}
-`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool });
+                this.state.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool });
                 step.input = this.state.replacePlaceholders(step.input, memoryMap);
 
 
@@ -152,30 +90,7 @@ with tool $
                     }
                 } catch (error) {
                     step.status = 'failed';
-                    const errorMsg = `
-Error
-executing
-step
-$
-{
-    step.id
-}
-of
-note
-$
-{
-    note.id
-}
-with tool $
-{
-    step.tool
-}
-:
-$
-{
-    error
-}
-`;
+                    const errorMsg = `Error executing step ${step.id} of note ${note.id} with tool ${step.tool}: ${error}`;
                     this.state.log(errorMsg, 'error', {
                         component: 'NoteRunner',
                         noteId: note.id,
