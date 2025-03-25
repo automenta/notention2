@@ -3,7 +3,6 @@ import {Graph} from './graph.js';
 import {Tools} from './tools.js';
 import {LLM} from './llm.js';
 import {CONFIG} from './config.js';
-import {WebSocketServer} from 'ws';
 
 export class ServerState {
     constructor() {

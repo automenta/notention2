@@ -1,37 +1,17 @@
 import {WebSocketServer} from 'ws';
 import {InMemoryChatMessageHistory} from '@langchain/core/chat_history';
-import {z} from 'zod';
 import react from '@vitejs/plugin-react';
 import {createViteServer} from "vitest/node";
 import * as http from "node:http";
-import {Graph} from './graph.js';
 import crypto from 'crypto';
+
+import {Graph} from './graph.js';
 import {Tools} from './tools.js';
-import {LLM} from './llm.js'; // Import LLM
+import {LLM} from './llm.js';
 import { CONFIG } from './config.js'; // Import CONFIG
 import { ServerState } from './server_state.js'; // Import ServerState
 import { INITIAL_NOTES } from './initial_notes.js'; // Import INITIAL_NOTES
-
-const NoteSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    content: z.any(),
-    status: z.enum(['pending', 'running', 'completed', 'failed', 'pendingUnitTesting']).default('pending'),
-    priority: z.number().min(0).max(CONFIG.MAX_PRIORITY).default(50),
-    deadline: z.string().nullable().optional(),
-    logic: z.array(z.object({
-        id: z.string(),
-        tool: z.string(),
-        input: z.any(),
-        dependencies: z.array(z.string()).default([]),
-        status: z.enum(['pending', 'running', 'completed', 'failed']).default('pending'),
-    })).optional(),
-    memory: z.array(z.any()).default([]),
-    references: z.array(z.string()).default([]),
-    createdAt: z.string().datetime().default(() => new Date().toISOString()),
-    updatedAt: z.string().datetime().nullable().default(null),
-    tests: z.array(z.string()).optional(),
-});
+import { NoteSchema } from './schemas.js'; // Import NoteSchema
 
 
 class NetentionServer {
@@ -76,7 +56,7 @@ class NetentionServer {
                 step.input = this.replacePlaceholders(step.input, memoryMap);
 
                 switch (step.tool) {
-                    case 'summarize':
+                    case 'summarize': // Use consistent tool name
                         await this.handleSummarize(note, step);
                         break;
                     case 'generateCode':
@@ -211,6 +191,40 @@ class NetentionServer {
         step.status = 'completed';
         await this.writeNoteToDB(note);
     }
+
+    async handleSummarize(note, step) { // Consistent handler name
+        try {
+            const result = await this.state.tools.executeTool('summarize', step.input, { graph: this.state.graph, llm: this.state.llm }); // Use 'summarize' tool name
+            note.memory.push({ type: 'tool', content: result, timestamp: Date.now(), stepId: step.id });
+            step.status = 'completed';
+            await this.writeNoteToDB(note);
+        } catch (error) {
+            this._handleToolStepError(note, step, error);
+        }
+    }
+
+    async handleGenerateCode(note, step) {
+        try {
+            const result = await this.state.tools.executeTool('generateCode', step.input, {graph: this.state.graph, llm: this.state.llm});
+            note.memory.push({type: 'codeGen', content: result, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.writeNoteToDB(note);
+        } catch (error) {
+            this._handleToolStepError(note, step, error);
+        }
+    }
+
+    async handleReflect(note, step) {
+        try {
+            const result = await this.state.tools.executeTool('reflect', step.input, {graph: this.state.graph, llm: this.state.llm});
+            note.memory.push({type: 'reflect', content: result, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.writeNoteToDB(note);
+        } catch (error) {
+            this._handleToolStepError(note, step, error);
+        }
+    }
+
 
     async executeStep(note, step, memoryMap) {
         const tool = this.state.tools.getTool(step.tool);
@@ -614,5 +628,4 @@ class NetentionServer {
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 
-export const NoteSchema = NoteSchema;
 export default NetentionServer;
