@@ -235,4 +235,19 @@ export class NoteStepHandler {
         }
         await this.state.writeNoteToDB(note);
     }
+
+
+    async executeToolStep(note, step, memoryMap) {
+        const tool = this.state.tools.getTool(step.tool);
+        if (!tool) return this.errorHandler.handleToolNotFoundError(note, step);
+        try {
+            const result = await tool.execute(step.input, {graph: this.state.graph, llm: this.state.llm});
+            memoryMap.set(step.id, result);
+            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+        } catch (error) {
+            this.errorHandler.handleToolStepError(note, step, error);
+        }
+        await this.state.serverCore.writeNoteToDB(note);
+    }
 }
