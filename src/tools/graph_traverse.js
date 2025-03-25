@@ -40,11 +40,32 @@ async function invokeImpl(input, context) { // Rename original invoke to invokeI
 }
 
 
-export default {
+import {z} from 'zod';
+import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+
+const schema = z.object({
+    startId: z.string(),
+    mode: z.enum(['dfs', 'bfs']).default('bfs'),
+    callback: z.string().optional()
+});
+
+const invokeImpl = createSimpleInvoke(schema);
+
+async function invoke(input, context) { // Rename original invoke to invokeImpl
+    const { startId, mode, callback } = invokeImpl(input); // Parse input here for consistency
+    const graph = context.graph;
+
+    const results = await traverseGraph(graph, startId, mode);
+
+    return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
+}
+
+
+export default defineTool({
     name: 'graph_traverse',
     description: 'Traverse graph (DFS/BFS)',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: withToolHandling({ name: 'graph_traverse', schema, invoke: invokeImpl }), // Use invokeImpl in withToolHandling
-};
+    invoke: invoke,
+});
