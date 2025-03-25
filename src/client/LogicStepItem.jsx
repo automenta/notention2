@@ -23,7 +23,7 @@ export default function LogicStepItem({
             onDragStart={(e) => step.onDragStart(e, index)}
             onDragOver={(e) => step.onDragOver(e, index)}
             onDragEnd={step.onDragEnd}
-            className={`logic-step-item ${isDragging && draggingIndex === index ? 'dragging' : ''} step-status-${step.status}`}
+            className={`logic-step-item ${isDragging && draggingIndex === index ? 'dragging' : ''} step-status-${step.status} ${step.status === 'running' ? 'step-running' : ''}`}
             title={availableTools.find(tool => tool.name === step.tool)?.description || step.tool}
             style={{
                 border: '1px solid #ccc',

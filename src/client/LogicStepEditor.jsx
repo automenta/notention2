@@ -198,6 +198,11 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                     z-index: -1; /* Place connector line behind the step item */
                 }
 
+                .step-running {
+                    border: 2px solid blue; /* Highlight running step */
+                    box-shadow: 0 0 5px blue; /* Add a subtle shadow */
+                }
+
 
                 ul {
                     position: relative; /* Needed for absolute positioning of pseudo-element */
