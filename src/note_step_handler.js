@@ -11,8 +11,7 @@ export class NoteStepHandler {
         try {
             const result = await executeToolStep(this.state, note, step, step.tool, memoryMap, this.errorHandler);
             note.memory.push({ type: 'tool', content: result, timestamp: Date.now(), stepId: step.id });
-            step.status = 'completed';
-            await this.state.serverCore.writeNoteToDB(note);
+            await this.state.markStepAsCompleted(note, step, result);
 
             // Tool-specific post-processing
             switch (step.tool) {
@@ -78,16 +77,14 @@ export class NoteStepHandler {
         const graph = this.state.getGraph();
         graph.addNote(newNote);
         note.memory.push({ type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id });
-        step.status = 'completed';
-        await this.state.serverCore.writeNoteToDB(note);
+        await this.state.markStepAsCompleted(note, step, `Knew ${newNoteId}`);
         this.state.queueManager.queueExecution(newNote);
     }
 
     async handleFetchExternal(note, step, data) {
         const { apiName, query } = step.input;
         note.memory.push({ type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id });
-        step.status = 'completed';
-        await this.state.serverCore.writeNoteToDB(note);
+        await this.state.markStepAsCompleted(note, step, JSON.stringify(data));
     }
 
     async handleCollaboration(note, step) {
@@ -98,7 +95,6 @@ export class NoteStepHandler {
             noteIds
         );
         note.memory.push({ type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id });
-        step.status = 'completed';
-        await this.state.serverCore.writeNoteToDB(note);
+        await this.state.markStepAsCompleted(note, step, collabResult.text);
     }
 }
