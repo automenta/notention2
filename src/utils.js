@@ -17,3 +17,18 @@ export function logToolStart(state, noteId, stepId, toolName) {
         toolName: toolName
     });
 }
+
+export function logNoteStart(state, noteId) {
+    state.log(`Starting execution of note ${noteId}`, 'info', {
+        component: 'NoteRunner',
+        noteId: noteId
+    });
+}
+
+export function logNoteFinalize(state, noteId, status) {
+    state.log(`Note ${noteId} execution finalized with status: ${status}`, 'debug', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        status: status
+    });
+}

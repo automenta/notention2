@@ -6,7 +6,7 @@ import { z } from 'zod';
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 import { ErrorHandler } from './error_handler.js'; // Import ErrorHandler
-import { logToolStart, replacePlaceholders } from './utils.js';
+import { logToolStart, replacePlaceholders, logNoteStart, logNoteFinalize } from './utils.js';
 
 export class NoteRunner {
     noteStepHandler;
@@ -23,6 +23,7 @@ export class NoteRunner {
         if (this.state.queueManager.executionQueue.has(note.id)) return note;
         this.state.queueManager.executionQueue.add(note.id);
         try {
+            logNoteStart(this.state, note.id);
             note.status = 'running';
             await this.state.writeNoteToDB(note);
             this.state.queueManager.updateAnalytics(note, 'start');
@@ -123,6 +124,7 @@ export class NoteRunner {
         } catch (error) {
             return this.errorHandler.handleNoteError(note, error);
         } finally {
+            logNoteFinalize(this.state, note.id, note.status);
             this.state.executionQueue.delete(note.id);
         }
     }
