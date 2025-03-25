@@ -9,11 +9,13 @@ const schema = z.object({
     script: z.string().optional(),
 });
 
-async function invoke(input) {
+async function invoke(input, context) {
     const {url, action, selector} = schema.parse(input);
 
-    if (action === 'open') {
-        const puppeteer = await import('puppeteer');
+    try {
+        context.logToolStart();
+        if (action === 'open') {
+            const puppeteer = await import('puppeteer');
         const browser = await puppeteer.launch({headless: "new"});
         const page = await browser.newPage();
         await page.goto(url);
