@@ -46,8 +46,8 @@ class NetentionServerCore {
             this.state.logger.log(`Note loading failed during server initialization: ${error}`, 'error', {
                 component: 'NoteLoader',
                 error: error.message
-            });
             throw error; // Re-throw to prevent server from starting with no notes
+        }
     }
 
     async flushBatchedUpdates() {
