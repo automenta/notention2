@@ -43,27 +43,7 @@ export class NoteRunner {
                 }
 
                 if (step.status !== 'pending') {
-                    this.state.log(`
-Step
-$
-{
-    stepId
-}
-in
-note
-$
-{
-    note.id
-}
-is
-not
-pending, skipping.Status
-:
-$
-{
-    step.status
-}
-`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: stepId, stepStatus: step.status });
+                    this.state.log(`Step ${stepId} in note ${note.id} is not pending, skipping. Status: ${step.status}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: stepId, stepStatus: step.status });
                     continue;
                 }
 
