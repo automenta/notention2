@@ -1,3 +1,5 @@
+import { logQueueProcessingError } from './utils.js';
+
 export class ExecutionQueue {
     executionQueue;
     analytics;
@@ -60,13 +62,7 @@ export class ExecutionQueue {
         try {
             await this.state.runNote(note);
         } catch (error) {
-            this.state.log(`Error processing note ${note.id} from queue: ${error}`, 'error', {
-                component: 'ExecutionQueue',
-                noteId: note.id,
-                errorType: 'NoteProcessingError',
-                errorMessage: error.message,
-                errorStack: error.stack
-            });
+            logQueueProcessingError(this.state, note.id, error);
             this.executionQueue.delete(noteId);
         } finally {
             this.executionQueue.delete(noteId);

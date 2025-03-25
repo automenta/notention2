@@ -33,6 +33,16 @@ export function logNoteFinalize(state, noteId, status) {
     });
 }
 
+export function logQueueProcessingError(state, noteId, error) {
+    state.log(`Error processing note ${noteId} from queue: ${error}`, 'error', {
+        component: 'ExecutionQueue',
+        noteId: noteId,
+        errorType: 'NoteProcessingError',
+        errorMessage: error.message,
+        errorStack: error.stack
+    });
+}
+
 export function logNoteExecutionError(state, noteId, error) {
     state.log(`Error running note ${noteId}: ${error}`, 'error', {
         component: 'NoteRunner',
