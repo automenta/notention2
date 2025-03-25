@@ -1,6 +1,6 @@
 import {ServerState} from './server_state_manager.js';
 import {ExecutionQueue} from './execution_queue_manager.js';
-import {WebSocketServerManager} from './websocket_manager.js';
+import {WebSocketServerManager} from './websocket_server.js';
 import {NetentionServerCore} from './netention_server_core.js';
 import {NoteHandler} from './note_handler.js';
 import {NoteRunner} from './note_runner.js';
