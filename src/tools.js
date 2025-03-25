@@ -25,9 +25,11 @@ export class Tools {
         this.tools = new Map(); // Clear existing tools before reloading
         const files = await readdir(path);
         for (const file of files) {
-            await this._loadToolFromFile(path, file);
+            if (file.endsWith('.js')) { // Only load .js files
+                await this._loadToolFromFile(path, file);
+            }
         }
-        return this.getTools(); // Return loaded tools for potential use
+        return this.getTools();
     }
 
     async _loadToolFromFile(path, file) {

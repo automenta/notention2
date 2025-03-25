@@ -75,6 +75,7 @@ export const INITIAL_NOTES = [
                 "compose": 'tool-compose-id',
                 "schedule": 'tool-schedule-id',
                 "debug": 'tool-debug-id',
+                "define_concept": 'tool-define-concept-id' // Placeholder for define_concept tool
             }
         },
         status: 'running',
@@ -96,16 +97,44 @@ export const INITIAL_NOTES = [
             },
             {
                 id: '3',
-                tool: 'reflect', // Add reflect
+                tool: 'reflect',
                 input: {noteId: 'seed-0'},
                 dependencies: ['2'],
                 status: 'pending'
             },
             {
                 id: '4',
-                tool: 'test_run', // Run tests for dev-1 note
-                input: {testId: 'dev-1'}, // Assuming 'dev-1' is the test note id
+                tool: 'test_run',
+                input: {testId: 'dev-1'},
                 dependencies: ['3'],
+                status: 'pending'
+            },
+            {
+                id: '5',
+                tool: 'define_concept',
+                input: { concept_name: 'Note', definition: 'A fundamental unit of knowledge and action in Netention.' },
+                dependencies: [],
+                status: 'pending'
+            },
+            {
+                id: '6',
+                tool: 'define_concept',
+                input: { concept_name: 'Agent', definition: 'The intelligent entity associated with a Note, responsible for planning and execution.' },
+                dependencies: [],
+                status: 'pending'
+            },
+            {
+                id: '7',
+                tool: 'define_concept',
+                input: { concept_name: 'Plan', definition: 'A graph-based representation of steps to achieve a Note\'s goal.' },
+                dependencies: [],
+                status: 'pending'
+            },
+            {
+                id: '8',
+                tool: 'define_concept',
+                input: { concept_name: 'Tool', definition: 'External functions or modules that Agents use to interact with the world.' },
+                dependencies: [],
                 status: 'pending'
             }
         ]
