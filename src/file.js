@@ -16,7 +16,13 @@ export class File {
         for (const file of files) {
             try {
                 const data = JSON.parse(await readFile(join(this.notesDir, file), 'utf8'));
-                const note = NoteSchema.parse(data);
+                let note;
+                try {
+                    note = NoteSchema.parse(data); // Validate note data against schema
+                } catch (validationError) {
+                    console.error(`Validation error loading note ${file}: ${validationError.errors}`);
+                    continue; // Skip loading this note and proceed to the next
+                }
                 this.notes.set(note.id, note);
             } catch (e) {
                 console.error(`Error loading note ${file}: ${e}`);
