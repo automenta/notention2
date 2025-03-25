@@ -50,6 +50,8 @@ async function invoke(input, context) {
     // return `**Diagnostic Report for Note '${note.title}' (ID: ${noteId}):**\n\n${llmSummary.text}\n\n**Raw Details:**\n${report}`;
 
     return `**Diagnostic Report for Note '${note.title}' (ID: ${noteId}):**\n\n${report}`;
+
+    context.state.logger.info(`Diagnostic Report for Note '${note.title}' (ID: ${noteId}):\n${report}`, {component: 'diagnose_note', noteId: noteId}); // Log the report
 }
 
 export default defineTool({
