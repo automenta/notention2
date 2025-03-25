@@ -3,7 +3,7 @@ export class ServerCore {
         this.state = state;
         this.queueManager = queueManager;
         this.websocketManager = websocketManager;
-        this.noteRunner = noteRunner; // Add NoteRunner
+        this.noteRunner = noteRunner;
     }
 
     async writeNoteToDB(note) {
