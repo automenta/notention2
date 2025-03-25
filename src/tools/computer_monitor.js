@@ -7,11 +7,12 @@ const schema = z.object({
     interval: z.number().min(1).optional(),
 });
 
-async function invoke(input) {
+async function invoke(input, context) {
     const {metric, interval = 5} = schema.parse(input); // Parse input here for consistency
     let data;
 
     try {
+        context.logToolStart();
         switch (metric) {
             case 'cpu':
                 data = await si.cpuCurrentSpeed();
@@ -30,8 +31,7 @@ async function invoke(input) {
         }
         return JSON.stringify({metric: metric, data: data}, null, 2);
     } catch (error) {
-        console.error(`Error monitoring ${metric}:`, error);
-        return `Error monitoring ${metric}: ${error.message}`;
+        context.handleToolError(error);
     }
 }
 
