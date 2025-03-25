@@ -62,7 +62,7 @@ export default {
 
             const successMsg = `Tool '${name}' implemented, validated, and registered. Code written to '${filepath}'.`;
             context.log(successMsg, 'info', { component: 'implement_tool', toolName: name, filepath: filepath });
-            return successMsg;
+            return { status: 'success', message: successMsg, filepath: filepath };
 
         } catch (validationError) { // Catch code validation errors
             const errorMsg = `Tool code validation error for '${name}': ${validationError.message}`;
@@ -70,11 +70,19 @@ export default {
             context.log(errorMsg, 'error', {
                 component: 'implement_tool',
                 toolName: name,
-                errorType: 'CodeValidationError', // More specific error type
+                errorType: 'CodeValidationError',
                 errorMessage: validationError.message,
                 toolCodeSnippet: toolCode.substring(0, 200) + '...'
             });
-            return errorMsg;
+            return {
+                status: 'error',
+                message: errorMsg,
+                errorDetails: {
+                    type: 'CodeValidationError',
+                    errorMessage: validationError.message,
+                    toolCodeSnippet: toolCode.substring(0, 200) + '...'
+                }
+            };
 
         } catch (error) { // Catch other errors (e.g., file write errors)
             const errorMsg = `Error implementing tool '${name}': ${error.message}`;
@@ -82,11 +90,19 @@ export default {
             context.log(errorMsg, 'error', {
                 component: 'implement_tool',
                 toolName: name,
-                errorType: 'ToolImplementationError', // More specific error type
+                errorType: 'ToolImplementationError',
                 errorMessage: error.message,
                 filepath: filepath
             });
-            return errorMsg;
+            return {
+                status: 'error',
+                message: errorMsg,
+                errorDetails: {
+                    type: 'ToolImplementationError',
+                    errorMessage: error.message,
+                    filepath: filepath
+                }
+            };
         }
     }
 };
