@@ -38,9 +38,6 @@ export class LLM {
         const prediction = await this.invoke([`Predict outcome for note ${noteId} given: ${scenario}`]);
         return prediction.text;
     }
-}
-
-NetentionServer.prototype.timeoutPromise = NetentionServer.prototype.timeoutPromise;
 
     async fetchExternalData(apiName, query) {
         const key = this.apiKeys.get(apiName);
