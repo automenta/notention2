@@ -65,38 +65,38 @@ export default {
                 component: 'implement_tool',
                 toolName: name
             });
-            new Script(toolCode); // Will throw an error if code is invalid
+            const validationResult = await validateCode(toolCode);
+            if (!validationResult.isValid) {
+                const errorMsg = `Tool code validation error for '${name}': ${validationResult.error}`;
+                console.error(errorMsg);
+                context.logger.log(errorMsg, 'error', {
+                    component: 'implement_tool',
+                    toolName: name,
+                    errorType: 'CodeValidationError',
+                    errorMessage: validationResult.error,
+                    toolCodeSnippet: toolCode.substring(0, 200) + '...'
+                });
+                return {
+                    status: 'error',
+                    message: errorMsg,
+                    errorDetails: {
+                        type: 'CodeValidationError',
+                        errorMessage: validationResult.error,
+                        toolCodeSnippet: toolCode.substring(0, 200) + '...'
+                    }
+                };
+            }
             context.logger.log(`Tool code validated successfully for '${name}'.`, 'debug', {
                 component: 'implement_tool',
                 toolName: name
             });
 
             await writeFile(filepath, toolCode);
-            await context.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
+            await context.state.toolLoader.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
 
             const successMsg = `Tool '${name}' implemented, validated, and registered. Code written to '${filepath}'.`;
             context.logger.log(successMsg, 'info', {component: 'implement_tool', toolName: name, filepath: filepath});
             return {status: 'success', message: successMsg, filepath: filepath};
-
-        } catch (validationError) { // Catch code validation errors
-            const errorMsg = `Tool code validation error for '${name}': ${validationError.message}`;
-            console.error(errorMsg, validationError);
-            context.logger.log(errorMsg, 'error', {
-                component: 'implement_tool',
-                toolName: name,
-                errorType: 'CodeValidationError',
-                errorMessage: validationError.message,
-                toolCodeSnippet: toolCode.substring(0, 200) + '...'
-            });
-            return {
-                status: 'error',
-                message: errorMsg,
-                errorDetails: {
-                    type: 'CodeValidationError',
-                    errorMessage: validationError.message,
-                    toolCodeSnippet: toolCode.substring(0, 200) + '...'
-                }
-            };
 
         } catch (error) { // Catch other errors during tool implementation (e.g., file write errors)
             const errorMsg = `Error implementing tool '${name}': ${error.message}`;
