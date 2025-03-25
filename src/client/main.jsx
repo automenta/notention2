@@ -80,8 +80,8 @@ function App() {
                 {
                     selector: 'node',
                     style: {
-                        'label': 'data(label)',
-                        'background-color': (ele) => { // Color based on status
+                        'label': (ele) => `${ele.data('label')} (${ele.data('status')})`, // Include status in label
+                        'background-color': (ele) => {
                             const status = ele.data('status');
                             switch (status) {
                                 case 'pending':
