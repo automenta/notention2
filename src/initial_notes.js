@@ -152,8 +152,10 @@ export const INITIAL_NOTES = [
                 input: {
                     tool_definition: {
                         name: 'hello_world',
-                        description: 'A simple tool that returns "Hello, world!"',
-                        code: 'async function invoke() { return "Hello, world!"; }'
+                        description: 'A simple tool that returns "Hello, world!" and takes a name as input',
+                        code: 'async function invoke(input) { return `Hello, ${input.name}!`; }',
+                        schemaDef: '{\n            name: z.string().describe(\'Name to greet\')\n        }',
+                        dependencies: []
                     }
                 },
                 dependencies: [],
@@ -162,7 +164,7 @@ export const INITIAL_NOTES = [
             {
                 id: '11',
                 tool: 'hello_world', // Use the newly implemented tool
-                input: {},
+                input: {name: 'Netention'},
                 dependencies: ['10'],
                 status: 'pending'
             },
