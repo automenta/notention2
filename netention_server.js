@@ -42,6 +42,15 @@ import { timeoutPromise } from './utils.js'; // Import timeoutPromise
             this.noteRunner,
             this.noteHandler
         );
+        this.serverCore = new NetentionServerCore(
+            this.state,
+            this.queueManager,
+            this.websocketManager,
+            this.errorHandler,
+            this.noteStepHandler,
+            this.noteRunner,
+            this.noteHandler
+        );
     }
 
 
