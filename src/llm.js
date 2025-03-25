@@ -10,6 +10,10 @@ export class LLM {
         this.apiKeys = new Map();
     }
 
+    timeoutPromise(promise, ms) {
+        return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
+    }
+
     async invoke(messages, collabNoteIds = [], apiContext = {}) {
         const prompt = messages[0].content;
         const cacheKey = `${prompt}:${collabNoteIds.join(',')}:${JSON.stringify(apiContext)}`;
@@ -34,6 +38,9 @@ export class LLM {
         const prediction = await this.invoke([`Predict outcome for note ${noteId} given: ${scenario}`]);
         return prediction.text;
     }
+}
+
+NetentionServer.prototype.timeoutPromise = NetentionServer.prototype.timeoutPromise;
 
     async fetchExternalData(apiName, query) {
         const key = this.apiKeys.get(apiName);
