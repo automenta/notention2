@@ -1,12 +1,5 @@
 
 
-
-class NetentionServer {
-    constructor() {
-        this.state = new ServerState();
-        this.queueManager = new ExecutionQueueManager(this.state);
-        this.websocketServerManager = new WebSocketServerManager(this.state); // Instantiate WebSocketServerManager
-
 import { ServerState } from './server_state.js';
 import { ExecutionQueueManager } from './execution_queue_manager.js';
 import { WebSocketServerManager } from './websocket_server.js';
