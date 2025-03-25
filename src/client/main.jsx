@@ -274,70 +274,83 @@ function App() {
             }
         });
 
-        // Function to update graph based on selectedNoteId
-        const updateGraphSelection = (selectedNoteId) => {
-            cy.elements().remove(); // Clear existing elements
+        return cy;
+    };
 
-            // Add main notes and edges
-            cy.add(mainNodes.concat(edges));
-
-            cy.nodes().removeClass('selected-node'); // Clear previous selection
-
-            if (selectedNoteId) {
-                const selectedNote = notes.find(note => note.id === selectedNoteId);
-                cy.getElementById(selectedNoteId).addClass('selected-node'); // Add class to selected node
-                if (selectedNote && selectedNote.logic) {
-                    const stepNodes = selectedNote.logic.map((step, index) => ({
-                        group: 'nodes',
-                        data: {
-                            id: step.id,
-                            label: `Step ${index + 1}: ${step.tool}`,
-                            status: step.status,
-                            isStep: true,
-                            parent: selectedNoteId // Make step nodes children of selected note
-                        }
-                    }));
-                    const stepEdges = selectedNote.logic.map((step, index) => {
-                        if (index > 0) {
-                            return {
-                                group: 'edges',
-                                data: {
-                                    source: selectedNote.logic[index - 1].id,
-                                    target: step.id
-                                }
-                            };
-                        }
-                        return null;
-                    }).filter(edge => edge); // Filter out nulls
-
-                    cy.add(stepNodes);
-                    cy.add(stepEdges);
-
-
-                    // Apply layout for step nodes - force directed layout for steps within the selected node
-                    cy.layout({
-                        name: 'cose',
-                        animate: false,
-                        //boundingBox: cy.getElementById(selectedNoteId).boundingBox(), // Layout only steps
-                        padding: 10,
-                        parent: cy.getElementById(selectedNoteId) // Apply layout to children of selected node
-                    }).run();
-
-
-                    cy.fit(); // Fit graph to content after adding steps
-                }
-            } else {
-                cy.layout({name: 'grid'}).run(); // Default layout when no note selected
-                cy.fit(); // Fit graph to content
+    const updateGraphSelection = (cy, notes, selectedNoteId) => {
+        if (!cy) return;
+        const mainNodes = notes.map(note => ({
+            group: 'nodes',
+            data: {
+                id: note.id,
+                label: note.title,
+                status: note.status,
+                noteData: note // Store entire note data
             }
-        };
+        }));
 
-        updateGraphSelection(selectedNoteId); // Initial graph update
+        const edges = notes.flatMap(note => (note.references ?? []).map(ref => ({
+            group: 'edges',
+            data: {
+                source: note.id,
+                target: ref
+            }
+        })));
 
-        // Update graph on selectedNoteId change
-        useEffect(() => {
-            updateGraphSelection(selectedNoteId);
-        }, [selectedNoteId]);
+        cy.elements().remove(); // Clear existing elements
+
+        // Add main notes and edges
+        cy.add(mainNodes.concat(edges));
+
+        cy.nodes().removeClass('selected-node'); // Clear previous selection
+
+        if (selectedNoteId) {
+            const selectedNote = notes.find(note => note.id === selectedNoteId);
+            cy.getElementById(selectedNoteId).addClass('selected-node'); // Add class to selected node
+            if (selectedNote && selectedNote.logic) {
+                const stepNodes = selectedNote.logic.map((step, index) => ({
+                    group: 'nodes',
+                    data: {
+                        id: step.id,
+                        label: `Step ${index + 1}: ${step.tool}`,
+                        status: step.status,
+                        isStep: true,
+                        parent: selectedNoteId // Make step nodes children of selected note
+                    }
+                }));
+                const stepEdges = selectedNote.logic.map((step, index) => {
+                    if (index > 0) {
+                        return {
+                            group: 'edges',
+                            data: {
+                                source: selectedNote.logic[index - 1].id,
+                                target: step.id
+                            }
+                        };
+                    }
+                    return null;
+                }).filter(edge => edge); // Filter out nulls
+
+                cy.add(stepNodes);
+                cy.add(stepEdges);
+
+
+                // Apply layout for step nodes - force directed layout for steps within the selected node
+                cy.layout({
+                    name: 'cose',
+                    animate: false,
+                    //boundingBox: cy.getElementById(selectedNoteId).boundingBox(), // Layout only steps
+                    padding: 10,
+                    parent: cy.getElementById(selectedNoteId) // Apply layout to children of selected node
+                }).run();
+
+
+                cy.fit(); // Fit graph to content after adding steps
+            }
+        } else {
+            cy.layout({name: 'grid'}).run(); // Default layout when no note selected
+            cy.fit(); // Fit graph to content
+        }
     };
 
 
