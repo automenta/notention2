@@ -128,10 +128,6 @@ class NetentionServer {
     broadcastNoteUpdate(note) {
         this.websocketManager.broadcastNoteUpdate(note);
     }
-
-    dispatchWebSocketMessage(parsedMessage) {
-        return this.serverCore.dispatchWebSocketMessage(parsedMessage); // Delegate to serverCore
-    }
 }
 
 

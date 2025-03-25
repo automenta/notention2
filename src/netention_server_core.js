@@ -31,12 +31,7 @@ class NetentionServerCore {
     log(message, level = 'info', context = {}) {
         this.state.log(message, level, context);
     }
-.
 
-    timeoutPromise(promise, ms) {
-        return this.timeoutPromise(promise, ms);
-    }
-.
 
     async dispatchWebSocketMessage(parsedMessage) {
         if (parsedMessage.type === 'createNote') {

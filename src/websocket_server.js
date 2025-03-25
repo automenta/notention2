@@ -30,7 +30,7 @@ export class WebSocketServerManager {
         ws.on('message', async msg => {
             try {
                 const parsedMessage = JSON.parse(msg);
-                await this.state.dispatchWebSocketMessage(parsedMessage); // Call dispatchWebSocketMessage on server state
+                await this.state.serverCore.dispatchWebSocketMessage(parsedMessage); // Call dispatchWebSocketMessage on server core
             } catch (e) {
                 this.state.log(`WebSocket message processing error: ${e}`, 'error', {
                     component: 'WebSocket',
