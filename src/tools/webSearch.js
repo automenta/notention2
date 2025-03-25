@@ -12,6 +12,7 @@ async function invoke(input, context) { // Rename original invoke to invokeImpl
     const apiUrl = `https://api.example.com/search?q=${encodeURIComponent(query)}${apiKeyToUse ? `&key=${apiKeyToUse}` : ''}`; // Placeholder API URL
 
     try {
+        context.logToolStart();
         const response = await fetch(apiUrl);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -19,8 +20,7 @@ async function invoke(input, context) { // Rename original invoke to invokeImpl
         const data = await response.json();
         return JSON.stringify(data.results || {message: `Search results for: ${query}`, query: query}, null, 2);
     } catch (error) {
-        console.error("Web search failed:", error);
-        return `Web search failed: ${error.message}. Query: ${query}`;
+        context.handleToolError(error);
     }
 }
 
