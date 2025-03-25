@@ -39,13 +39,6 @@ export function getToolSchema(availableTools, toolName) {
     return tool?.schema;
 }
 
-export function createSimpleInvoke(schema) {
-    return async function invoke(input) {
-        const parsedInput = schema.parse(input);
-        return parsedInput;
-    };
-}
-
 export function defineTool({name, description, schema, invoke, version = '1.0.0', dependencies = []}) {
     return {
         name,
@@ -53,6 +46,14 @@ export function defineTool({name, description, schema, invoke, version = '1.0.0'
         schema,
         version,
         dependencies,
-        invoke: withToolHandling({name, schema, invoke})
+        async invoke(input, context) {
+            try {
+                const validatedInput = schema.parse(input);
+                return await invoke(validatedInput, context);
+            } catch (error) {
+                console.error(`Input validation error for tool '${name}': ${error.errors}`);
+                throw new Error(`Tool input validation failed: ${error.errors.map(e => e.message).join(', ')}`);
+            }
+        }
     };
 }

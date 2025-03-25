@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     query: z.string(),
@@ -7,7 +7,11 @@ const schema = z.object({
     vectorStoreId: z.string().optional(),
 });
 
-const invokeImpl = createSimpleInvoke(schema);
+async function invoke(input, context) {
+    const { query, documents, vectorStoreId } = schema.parse(input);
+    // Tool logic here, access context.llm, context.graph, etc.
+    return `RAG Tool invoked with query: ${query}`; // Example return
+}
 
 export default defineTool({
     name: 'rag',
@@ -15,5 +19,5 @@ export default defineTool({
     schema,
     version: '1.0.0',
     dependencies: ['zod', '@langchain/core'],
-    invoke: invokeImpl,
+    invoke: invoke,
 });
