@@ -119,6 +119,14 @@ function App() {
                         'border-width': '3px',
                         'border-color': 'blue'
                     }
+                },
+                {
+                    selector: '.selected-node',
+                    style: {
+                        'border-style': 'dashed',
+                        'border-width': '4px',
+                        'border-color': 'red'
+                    }
                 }
             ],
             layout: {name: 'grid'}
@@ -217,8 +225,11 @@ function App() {
             // Add main notes and edges
             cy.add(mainNodes.concat(edges));
 
+            cy.nodes().removeClass('selected-node'); // Clear previous selection
+
             if (selectedNoteId) {
                 const selectedNote = notes.find(note => note.id === selectedNoteId);
+                cy.getElementById(selectedNoteId).addClass('selected-node'); // Add class to selected node
                 if (selectedNote && selectedNote.logic) {
                     const stepNodes = selectedNote.logic.map((step, index) => ({
                         group: 'nodes',
