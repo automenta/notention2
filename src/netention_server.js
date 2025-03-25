@@ -2,6 +2,7 @@ import {ServerState} from './server_state_manager.js';
 import {ExecutionQueue} from './execution_queue_manager.js'; // Import ExecutionQueue
 import {WebSocketServerManager} from './websocket_handler.js'; // Import WebSocketServerManager
 import {NetentionServerCore} from './netention_server_core.js'; // Import NetentionServerCore
+import {NoteHandler} from './note_handler.js'; // Import NoteHandler
 import react from '@vitejs/plugin-react';
 import {createViteServer} from "vitest/node";
 import * as http from "node:http";
@@ -9,7 +10,6 @@ import {CONFIG} from './config.js';
 import {ToolLoader} from './tool_loader.js';
 import {NoteLoader} from './note_loader.js';
 import {NoteRunner} from './note_runner.js';
-import {NoteHandler} from './note_handler.js';
 import {NoteStepHandler} from './note_step_handler.js';
 import {ErrorHandler} from './error_handler.js';
 import {INITIAL_NOTES} from './initial_notes.js';
@@ -34,7 +34,7 @@ class NetentionServer {
         this.errorHandler = new ErrorHandler(this.state);
         this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler);
         this.noteRunner = new NoteRunner(this.state, this.noteStepHandler, this.errorHandler, this);
-        this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager);
+        this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager); // Instantiate NoteHandler
         this.toolLoader = new ToolLoader(this.state);
         this.noteLoader = new NoteLoader(this.state);
         this.serverCore = new NetentionServerCore( // Instantiate NetentionServerCore
