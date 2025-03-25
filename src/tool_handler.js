@@ -32,8 +32,14 @@ export async function executeToolStep(state, note, step, toolName, memoryMap, er
             step
         );
 
+        const timeout = state.config.TOOL_TIMEOUT; // Get timeout from config
+
         // Call the tool's invoke method with the augmented context
-        const result = await tool.invoke(step.input, augmentedContext);
+        const toolPromise = tool.invoke(step.input, augmentedContext);
+        // Apply timeout to the tool execution
+        const result = await Promise.race([
+            toolPromise,
+            state.timeoutPromise(toolPromise, timeout, `Tool '${toolName}' timed out after ${timeout}ms`)]);
 
         memoryMap.set(step.id, result);
         note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
