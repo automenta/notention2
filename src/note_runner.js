@@ -129,32 +129,17 @@ ${JSON.stringify(note.memory.slice(0, 50))}
     async _updateNoteStatusPostExecution(note) {
         const pendingSteps = note.logic.filter(step => step.status === 'pending').length;
         if (!pendingSteps) note.status = 'completed';
-        await this.state.writeNoteToDB(note);
+        await this.state.serverCore.writeNoteToDB(note);
     }
 
     async _runNoteTests(note) {
         if (!CONFIG.AUTO_RUN_TESTS || !note.tests || !note.tests.length) return;
         for (const testFile of note.tests) {
             try {
-                const testModule = await import(`file://$
-{
-    process.cwd()
-}
-/$
-{
-    CONFIG.TESTS_DIR
-}
-/$
-{
-    testFile
-}
-`);
+                // Corrected import path using path.join
+                const testModule = await import(`file://${path.join(process.cwd(), CONFIG.TESTS_DIR, testFile)}`);
                 await testModule.default(note, this.state);
-                this.state.log(`Tests for note $
-{
-    note.id
-}
- passed.`, 'info', {
+                this.state.log(`Tests for note ${note.id} passed.`, 'info', {
                     component: 'NoteRunner',
                     noteId: note.id,
                     testFile: testFile
@@ -171,10 +156,10 @@ ${JSON.stringify(note.memory.slice(0, 50))}
     }
 
     _handleFailure(note, error) {
-        if (this.shouldRequestUnitTest(error)) {
+        if (this.shouldRequestUnitTest(note, error)) {
             this.requestUnitTest(note);
         } else {
-            this.errorHandler._handleFailure(note, error);
+            this.errorHandler._handleFailure(note, error); // Corrected call
         }
     }
 
@@ -191,6 +176,6 @@ ${JSON.stringify(note.memory.slice(0, 50))}
     }
 
     async requestUnitTest(note) {
-        this.errorHandler.requestUnitTest(note);
+        this.errorHandler.requestUnitTest(note); // Corrected call
     }
 }

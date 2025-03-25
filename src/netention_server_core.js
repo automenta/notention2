@@ -1,4 +1,5 @@
 import {CONFIG} from './config.js';
+import { File } from './file.js';
 
 class NetentionServerCore {
 

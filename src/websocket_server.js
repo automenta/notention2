@@ -5,10 +5,10 @@ export class WebSocketServerManager {
     wss;
     messageQueue;
 
-    constructor(serverState) {
+    constructor(serverState, queueManager) {
         this.state = serverState;
         this.wss = null;
-        this.messageQueue = []; // Initialize messageQueue here
+        this.messageQueue = [];
     }
 
     start(httpServer) {
