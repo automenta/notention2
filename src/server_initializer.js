@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import { createViteServer } from "vitest/node";
 import * as http from "node:http";
 import { CONFIG, INITIAL_NOTES } from './config.js';
-import { ToolLoader } from './tool_loader.js'; // Updated import path
+import { ToolLoader } from './tool_loader.js';
 import { NoteLoader } from './note_loader.js';
 
 export class ServerInitializer {

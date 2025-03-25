@@ -3,7 +3,7 @@ import { ExecutionQueue } from './execution_queue_manager.js';
 import { WebSocketServerManager } from './websocket_handler.js';
 import { ServerInitializer } from './server_initializer.js';
 import { ServerCore } from './server_core.js';
-import { NoteRunner } from './note_execution_handler.js';
+import { NoteRunner } from './note_runner.js';
 import { NoteHandler } from './note_handler.js';
 import { NoteStepHandler } from './note_step_handler.js';
 import { ErrorHandler } from './error_handler.js'; // Import ErrorHandler
