@@ -15,15 +15,22 @@ export default function NoteList({notes, onSelect, onDelete}) {
                             (Priority: {note.priority})
                         </span>
                         <span style={{
+                            display: 'inline-block',
                             marginLeft: '8px',
-                            fontSize: '0.8em',
-                            fontWeight: 'bold',
-                            color: note.status === 'pending' ? 'orange' :
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '3px',
+                            backgroundColor: note.status === 'pending' ? 'orange' :
                                 note.status === 'running' ? 'blue' :
                                     note.status === 'completed' ? 'green' :
                                         note.status === 'failed' ? 'red' :
                                             note.status === 'pendingUnitTesting' ? 'purple' :
                                                 'grey' // default
+                        }}></span>
+                        <span style={{
+                            marginLeft: '4px',
+                            fontSize: '0.8em',
+                            color: 'grey'
                         }}>
                             ({note.status})
                         </span>
