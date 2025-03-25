@@ -37,6 +37,11 @@ export function defineTool({
     };
 }
 
+export class Tools {
+    constructor() {
+        this.tools = new Map();
+    }
+
     addTool(toolDefinition) {
         const toolFactory = toolDefinition; // No need to instantiate here
         const tool = toolFactory();
