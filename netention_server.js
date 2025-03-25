@@ -12,6 +12,7 @@ import { NoteHandler } from './note_handler.js';
 import { NoteStepHandler } from './note_step_handler.js';
 import NetentionServerCore from './netention_server_core.js';
 import { ErrorHandler } from './error_handler.js';
+import { timeoutPromise } from './utils.js'; // Import timeoutPromise
 
 class NetentionServer {
     serverCore;
@@ -52,9 +53,9 @@ class NetentionServer {
         this.serverCore.log(message, level, context);
     }
 
-    timeoutPromise(promise, ms) {
-        return this.serverCore.timeoutPromise(promise, ms);
-    }
+    // timeoutPromise(promise, ms) { // Removed duplicated function
+    //     return this.serverCore.timeoutPromise(promise, ms);
+    // }
 
     async dispatchWebSocketMessage(parsedMessage) {
         await this.serverCore.dispatchWebSocketMessage(parsedMessage);

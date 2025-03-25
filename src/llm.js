@@ -1,6 +1,7 @@
 import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
 
 import { CONFIG } from './config.js';
+import { timeoutPromise } from './utils.js'; // Import timeoutPromise
 
 export class LLM {
     constructor() {
@@ -10,9 +11,9 @@ export class LLM {
         this.apiKeys = new Map();
     }
 
-    timeoutPromise(promise, ms) {
-        return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
-    }
+    // timeoutPromise(promise, ms) { // Removed duplicated function
+    //     return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
+    // }
 
     async invoke(messages, collabNoteIds = [], apiContext = {}) {
         const prompt = messages[0].content;
