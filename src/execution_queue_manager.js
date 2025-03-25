@@ -1,11 +1,11 @@
 import { CONFIG } from './config.js';
 
-export class ExecutionQueueManager {
+export class ExecutionQueue {
     constructor(serverState) {
         this.state = serverState;
     }
 
-    async initScheduler() {
+    initScheduler() {
         this.state.scheduler = setInterval(() => this.optimizeSchedule(), 5000);
     }
 
@@ -14,7 +14,7 @@ export class ExecutionQueueManager {
         notes.sort((a, b) => this.calculatePriority(b) - this.calculatePriority(a));
 
         this.state.log(`Optimizing schedule, considering ${notes.length} notes.`, 'debug', {
-            component: 'ExecutionQueueManager',
+            component: 'ExecutionQueue',
             notesCount: notes.length,
             pendingNotes: notes.map(n => ({ id: n.id, title: n.title, priority: this.calculatePriority(n) }))
         });
@@ -48,16 +48,16 @@ export class ExecutionQueueManager {
             return;
         }
 
-        if (note.status !== 'pending' && note.status !== 'running' && note.status !== 'pendingUnitTesting') { // Include pendingUnitTesting
+        if (note.status !== 'pending' && note.status !== 'running' && note.status !== 'pendingUnitTesting') {
             this.state.executionQueue.delete(noteId);
             return;
         }
 
         try {
-            await this.state.runNote(note); // Assuming runNote is in serverState or accessible
+            await this.state.runNote(note);
         } catch (error) {
             this.state.log(`Error processing note ${note.id} from queue: ${error}`, 'error', {
-                component: 'ExecutionQueueManager',
+                component: 'ExecutionQueue',
                 noteId: note.id,
                 errorType: 'NoteProcessingError',
                 errorMessage: error.message,

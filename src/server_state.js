@@ -5,6 +5,19 @@ import {LLM} from './llm.js';
 import {CONFIG} from './config.js';
 
 export class ServerState {
+    llm;
+    graph;
+    tools;
+    memory;
+    wss;
+    messageQueue;
+    pendingWrites;
+    updateBatch;
+    batchTimeout;
+    executionQueue;
+    analytics;
+    scheduler;
+
     constructor() {
         this.llm = new LLM();
         this.graph = new Graph();
@@ -17,7 +30,7 @@ export class ServerState {
         this.batchTimeout = null;
         this.executionQueue = new Set();
         this.analytics = new Map();
-        this.scheduler = null; // Scheduler moved to ExecutionQueueManager
+        this.scheduler = null;
     }
 
     log(message, level = 'info', context = {}) {
