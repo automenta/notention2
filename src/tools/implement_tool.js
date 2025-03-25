@@ -3,23 +3,24 @@ import { Tool } from '../tools.js';
 import { writeFile } from 'node:fs/promises';
 import path from 'path';
 import { CONFIG } from '../config.js';
+import { Script } from 'node:vm'; // Import Script for code validation
 
 const schema = z.object({
     tool_definition: z.object({
         name: z.string(),
         description: z.string(),
         code: z.string(),
-        schemaDef: z.string().optional(), // Schema definition as string
-        dependencies: z.array(z.string()).optional() // Dependencies as array of strings
+        schemaDef: z.string().optional(),
+        dependencies: z.array(z.string()).optional()
     })
 });
 
 export default {
     name: 'implement_tool',
-    description: 'Implements a new tool with schema and dependencies, and adds it to the tool registry by writing code to a file',
+    description: 'Implements a new tool with schema, dependencies, and code validation, writing to a file',
     schema,
-    version: '1.2.0', // Version bump for schema and dependencies
-    dependencies: ['zod', 'fs', 'path'],
+    version: '1.3.0', // Version bump for code validation
+    dependencies: ['zod', 'fs', 'path', 'vm'],
     async invoke(input, context) {
         const { tool_definition } = schema.parse(input);
         const { name, description, code, schemaDef, dependencies } = tool_definition;
@@ -31,8 +32,7 @@ export default {
         const filename = `${name}.js`;
         const filepath = path.join(CONFIG.TOOLS_BUILTIN_DIR, filename);
 
-        // Construct schema from schemaDef string, default to empty schema if not provided
-        const parsedSchemaDef = schemaDef ? schemaDef.trim() : '{}'; // Handle empty schemaDef
+        const parsedSchemaDef = schemaDef ? schemaDef.trim() : '{}';
         const schemaCode = `const schema = z.object(${parsedSchemaDef});`;
 
         const toolCode = `
@@ -52,14 +52,26 @@ export default {
 `;
 
         try {
+            // --- Code Validation ---
+            new Script(toolCode); // Will throw an error if code is invalid
+            context.log(`Tool code validated successfully for '${name}'.`, 'debug', { component: 'implement_tool', toolName: name });
+
             await writeFile(filepath, toolCode);
             await context.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
 
-            const successMsg = `Tool '${name}' implemented and registered. Code written to '${filepath}'.`;
+            const successMsg = `Tool '${name}' implemented, validated, and registered. Code written to '${filepath}'.`;
             context.log(successMsg, 'info', { component: 'implement_tool', toolName: name, filepath: filepath });
             return successMsg;
 
-        } catch (error) {
+
+        } catch (validationError) { // Catch code validation errors
+            const errorMsg = `Tool code validation error for '${name}': ${validationError.message}`;
+            console.error(errorMsg, validationError);
+            context.log(errorMsg, 'error', { component: 'implement_tool', toolName: name, error: validationError.message, toolCodeSnippet: toolCode.substring(0, 200) + '...' }); // Log code snippet
+            return errorMsg;
+
+
+        } catch (error) { // Catch other errors (e.g., file write errors)
             const errorMsg = `Error implementing tool '${name}': ${error.message}`;
             console.error(errorMsg, error);
             context.log(errorMsg, 'error', { component: 'implement_tool', toolName: name, error: error.message, filepath: filepath });
