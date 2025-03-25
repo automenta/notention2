@@ -105,7 +105,7 @@ export class NoteRunner {
 
     async _pruneMemory(note) {
         if (note.memory.length > 100) {
-            const summary = await this.state.llm.invoke([`Summarize: ${JSON.stringify(note.memory.slice(0, 50))}`]); // Corrected template literal
+            const summary = await this.state.llm.invoke([`Summarize: ${JSON.stringify(note.memory.slice(0, 50))}`]); // Invoke LLM to summarize memory
             note.memory = [
                 {type: 'summary', content: summary.text, timestamp: Date.now()},
                 ...note.memory.slice(-50)
@@ -135,7 +135,7 @@ export class NoteRunner {
         if (!CONFIG.AUTO_RUN_TESTS || !note.tests || !note.tests.length) return;
         for (const testFile of note.tests) {
             try {
-                // Dynamically import test module using path.join for correct path resolution
+                // Dynamically import test module using path.join to correctly resolve test file path
                 const testModule = await import(`file://${path.join(process.cwd(), CONFIG.TESTS_DIR, testFile)}`);
                 await testModule.default(note, this.state);
                 this.state.log(`Tests for note ${note.id} passed.`, 'info', {
@@ -150,7 +150,6 @@ export class NoteRunner {
     }
 
     async _finalizeNoteRun(note) {
-        logNoteRunFinalized(this.state, note.id, note.status); // Logging final note status
-        return note; // Return the finalized note
+        return note; // Return the finalized note, logging is handled in runNote
     }
 }
