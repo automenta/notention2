@@ -3,6 +3,7 @@ import { ExecutionQueue } from './execution_queue.js';
 import { WebSocket } from './websocket.js';
 import { ServerInitializer } from './server_initializer.js';
 import { ServerCore } from './server_core.js';
+import { NoteRunner } from './note_runner.js'; // Import NoteRunner
 
 class NetentionServer {
     constructor() {
@@ -10,7 +11,8 @@ class NetentionServer {
         this.queueManager = new ExecutionQueue(this.state);
         this.websocketManager = new WebSocket(this.state);
         this.core = new ServerCore(this.state, this.queueManager, this.websocketManager);
-        this.initializer = new ServerInitializer(this.state, this.queueManager, this.websocketManager); // Pass websocketManager
+        this.initializer = new ServerInitializer(this.state, this.queueManager, this.websocketManager);
+        this.noteRunner = new NoteRunner(this.state); // Instantiate NoteRunner
     }
 
     async initialize() {
@@ -30,7 +32,7 @@ class NetentionServer {
     }
 
     async runNote(note) {
-        return this.core.runNote(note);
+        return this.noteRunner.runNote(note); // Delegate to NoteRunner
     }
 
     replacePlaceholders(input, memoryMap) {
