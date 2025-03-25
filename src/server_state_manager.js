@@ -27,20 +27,6 @@ export class ServerState {
     }
 
     getConfig() {
-        this.config = CONFIG;
-        this.logger = new Logger();
-        this.llm = new LLM();
-        this.graph = new Graph();
-        this.tools = new Tools();
-        this.memory = new InMemoryChatMessageHistory();
-        this.pendingWrites = new Map();
-        this.updateBatch = new Set();
-        this.batchTimeout = null;
-        this.scheduler = null;
-        this.markStepAsCompleted = markStepAsCompleted.bind(this);
-    }
-
-    getConfig() {
         return this.config;
     }
 
