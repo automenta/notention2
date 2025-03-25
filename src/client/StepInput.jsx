@@ -1,15 +1,11 @@
 import React from 'react';
 import ReactJson from 'react-json-view';
+import {getToolSchema} from './tool_utils';
 
 export default function StepInput({step, index, availableTools, onStepChange}) {
 
-    const getToolSchema = (toolName) => {
-        const tool = availableTools.find(t => t.name === toolName);
-        return tool?.schema;
-    };
-
     const renderStepInputFields = () => {
-        const schema = getToolSchema(step.tool);
+        const schema = getToolSchema(availableTools, step.tool);
         if (!schema || !schema.properties) {
             return <div>No schema available for this tool.</div>;
         }
