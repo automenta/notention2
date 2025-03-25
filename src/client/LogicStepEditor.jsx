@@ -195,7 +195,12 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                     background: dashed linear-gradient(to bottom, #ccc 0%, #ccc 100%);
                     background-size: 100% 6px;
                     background-repeat: repeat-y;
-                    z-index: -1; /* Place connector line behind the step item */
+                    z-index: -1;
+                }
+
+                .logic-step-item:not(:last-child):hover::after {
+                    background: dashed linear-gradient(to bottom, #007bff 50%, transparent 50%); /* Highlight on hover */
+                    background-size: 100% 6px;
                 }
 
                 .step-running {
