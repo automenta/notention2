@@ -47,12 +47,13 @@ async function invoke(input, context) {
     }
 
     return `Browser action "${action}" on URL "${url}" is not implemented yet.`;
+}
 
-    export default defineTool({
-        name: 'browser_use',
-        description: 'Control a headless browser',
-        schema,
-        version: '1.0.0',
-        dependencies: ['zod', 'puppeteer'],
-        invoke: invoke,
-    });
+export default defineTool({
+    name: 'browser_use',
+    description: 'Control a headless browser',
+    schema,
+    version: '1.0.0',
+    dependencies: ['zod', 'puppeteer'],
+    invoke: invoke,
+});
