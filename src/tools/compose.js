@@ -14,23 +14,24 @@ export default {
     async invoke(input, context) {
         const {tools: toolNames, inputs} = schema.parse(input);
         let currentInput = inputs;
+        let stepInput = inputs.initialInput; // Use initialInput from inputs for the first step
         const executionResults = [];
 
         for (const toolName of toolNames) {
             const tool = context.tools.getTool(toolName);
             if (!tool) {
-                return `Error: Tool '${toolName}' not found in tool registry.`;
+                return `Error: Tool '${toolName}' not found: ${toolName}`;
             }
 
             try {
-                const result = await tool.execute(currentInput, context);
+                const result = await tool.execute(stepInput, context);
                 executionResults.push({toolName, result});
-                currentInput = result; // Output of current tool becomes input for the next
+                stepInput = result; // Output of current tool becomes input for the next
             } catch (error) {
                 return `Error executing tool '${toolName}': ${error.message}`;
             }
         }
 
-        return JSON.stringify(executionResults, null, 2); // Return results of the entire chain
+        return stepInput; // Return the final result of the chain
     }
 };
