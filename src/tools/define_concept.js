@@ -17,7 +17,9 @@ export default {
         const metaNote = context.graph.getNote(metaNoteId);
 
         if (!metaNote) {
-            return `Error: Meta-Note with ID '${metaNoteId}' not found.`;
+            const errorMsg = `Error: Meta-Note with ID '${metaNoteId}' not found.`;
+            context.log(errorMsg, 'error', { component: 'define_concept', metaNoteId: metaNoteId });
+            return errorMsg;
         }
 
         if (!metaNote.content || typeof metaNote.content !== 'object') {
@@ -32,6 +34,8 @@ export default {
 
         await context.graph.writeNoteToDB(metaNote); // Persist changes to Meta-Note
 
-        return `Concept '${concept_name}' defined and stored in Meta-Note.`;
+        const successMsg = `Concept '${concept_name}' defined and stored in Meta-Note.`;
+        context.log(successMsg, 'info', { component: 'define_concept', conceptName: concept_name });
+        return successMsg;
     }
 };
