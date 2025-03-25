@@ -38,11 +38,3 @@ export default {
             definition: definition,
             createdAt: new Date().toISOString()
         };
-
-        await context.graph.writeNoteToDB(metaNote);
-
-        const successMsg = `Concept '${concept_name}' defined and stored in Meta-Note.`;
-        context.log(successMsg, 'info', {component: 'define_concept', conceptName: concept_name});
-        return successMsg;
-    }
-};
