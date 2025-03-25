@@ -4,20 +4,6 @@ const schema = z.object({
     noteId: z.string()
 });
 
-async function handleStep(note, step, context) {
-    try {
-        const result = await context.tools.executeTool('reflect', step.input, {
-            graph: context.graph,
-            llm: context.llm
-        });
-        note.memory.push({type: 'reflect', content: result, timestamp: Date.now(), stepId: step.id});
-        step.status = 'completed';
-        await context.state.serverCore.writeNoteToDB(note);
-    } catch (error) {
-        context.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
-    }
-}
-
 export default {
     name: 'reflect',
     description: 'Reflect on a note and summarize its content and logic',
@@ -43,6 +29,5 @@ export default {
         ]);
 
         return `Reflection on Note '${note.title}' (ID: ${noteId}):\n${noteSummary.text}`;
-    },
-    handleStep // Export the handleStep function
+    }
 };
