@@ -3,6 +3,8 @@ import { CONFIG } from './config.js';
 import crypto from 'crypto';
 import { z } from 'zod';
 
+const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
+
 export class NoteRunner {
     constructor(serverState) {
         this.state = serverState;
@@ -297,7 +299,7 @@ export class NoteRunner {
     async _updateNoteStatusPostExecution(note) {
         const pendingSteps = note.logic.filter(step => step.status === 'pending').length;
         if (!pendingSteps) note.status = 'completed';
-        await this.writeNoteToDB(note);
+        await this.state.writeNoteToDB(note);
     }
 
     async _runNoteTests(note) {
@@ -340,7 +342,7 @@ export class NoteRunner {
         });
         note.status = 'failed';
         note.error = error.message;
-        this.writeNoteToDB(note);
+        this.state.writeNoteToDB(note);
         return note;
     }
 
@@ -356,7 +358,7 @@ export class NoteRunner {
         step.status = 'failed';
         step.error = errorMsg;
         note.status = 'failed';
-        this.writeNoteToDB(note);
+        this.state.writeNoteToDB(note);
         return errorMsg;
     }
 
@@ -372,7 +374,7 @@ export class NoteRunner {
         step.status = 'failed';
         step.error = error.message;
         note.status = 'failed';
-        this.writeNoteToDB(note);
+        this.state.writeNoteToDB(note);
         return `Tool execution failed: ${error.message}`;
     }
 
