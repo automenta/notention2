@@ -1,19 +1,10 @@
 import z from 'zod';
-
-import z from 'zod';
+import { withToolHandling } from '../tool_utils.js';
 
 const schema = z.object({
     query: z.string(),
     apiKey: z.string().optional(),
 });
-
-export default {
-    name: 'webSearch',
-    description: 'Search the web',
-    schema,
-    version: '1.0.0',
-    dependencies: ['zod'],
-import { withToolHandling } from '../tool_utils.js';
 
 async function invoke(input, context) {
     const {query, apiKey} = schema.parse(input);
