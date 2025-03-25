@@ -1,10 +1,14 @@
-import { CONFIG } from './config.js';
+import {CONFIG} from './config.js';
 import crypto from 'crypto';
-import { z } from 'zod';
+import {z} from 'zod';
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 export class NoteRunner {
+    export
+    default
+    NoteRunner;
+
     constructor(serverState) {
         this.state = serverState;
     }
@@ -22,25 +26,43 @@ export class NoteRunner {
             const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
             const readyQueue = note.logic.filter(step => !step.dependencies.length && step.status === 'pending').map(s => s.id);
 
-            this.state.log(`Running note ${note.id}, ${readyQueue.length} steps ready`, 'debug', { component: 'NoteRunner', noteId: note.id, readyQueueLength: readyQueue.length });
+            this.state.log(`Running note ${note.id}, ${readyQueue.length} steps ready`, 'debug', {
+                component: 'NoteRunner',
+                noteId: note.id,
+                readyQueueLength: readyQueue.length
+            });
 
 
             while (readyQueue.length) {
                 const stepId = readyQueue.shift();
                 const step = stepsById.get(stepId);
                 if (!step) {
-                    this.state.log(`Step ${stepId} not found in note ${note.id}`, 'warn', { component: 'NoteRunner', noteId: note.id, stepId: stepId });
+                    this.state.log(`Step ${stepId} not found in note ${note.id}`, 'warn', {
+                        component: 'NoteRunner',
+                        noteId: note.id,
+                        stepId: stepId
+                    });
                     continue;
                 }
 
                 if (step.status !== 'pending') {
-                    this.state.log(`Step ${stepId} in note ${note.id} is not pending, skipping. Status: ${step.status}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: stepId, stepStatus: step.status });
+                    this.state.log(`Step ${stepId} in note ${note.id} is not pending, skipping. Status: ${step.status}`, 'debug', {
+                        component: 'NoteRunner',
+                        noteId: note.id,
+                        stepId: stepId,
+                        stepStatus: step.status
+                    });
                     continue;
                 }
 
 
                 step.status = 'running';
-                this.state.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool });
+                this.state.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', {
+                    component: 'NoteRunner',
+                    noteId: note.id,
+                    stepId: step.id,
+                    toolName: step.tool
+                });
                 step.input = this.state.replacePlaceholders(step.input, memoryMap);
 
 
@@ -137,14 +159,24 @@ export class NoteRunner {
                 createdAt: new Date().toISOString()
             };
             this.state.graph.addNote(testNote);
-            note.memory.push({type: 'testGen', content: `Generated test ${testNoteId} for ${targetId}`, timestamp: Date.now(), stepId: step.id});
+            note.memory.push({
+                type: 'testGen',
+                content: `Generated test ${testNoteId} for ${targetId}`,
+                timestamp: Date.now(),
+                stepId: step.id
+            });
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
             this.state.queueExecution(testNote);
             return testNoteId;
         } catch (error) {
             step.status = 'failed';
-            note.memory.push({type: 'testGenError', content: `Test generation failed: ${error.message}`, timestamp: Date.now(), stepId: step.id});
+            note.memory.push({
+                type: 'testGenError',
+                content: `Test generation failed: ${error.message}`,
+                timestamp: Date.now(),
+                stepId: step.id
+            });
             await this.state.writeNoteToDB(note);
             return `Test generation failed: ${error.message}`;
         }
@@ -153,19 +185,31 @@ export class NoteRunner {
     async _handleTestExecution(note, step) {
         const {testId} = step.input;
         try {
-            const results = await this.state.tools.executeTool('test_run', {testId}, {graph: this.state.graph, llm: this.state.llm});
-            note.memory.push({type: 'testRun', content: `Executed test ${testId}: ${results}`, timestamp: Date.now(), stepId: step.id});
+            const results = await this.state.tools.executeTool('test_run', {testId}, {
+                graph: this.state.graph,
+                llm: this.state.llm
+            });
+            note.memory.push({
+                type: 'testRun',
+                content: `Executed test ${testId}: ${results}`,
+                timestamp: Date.now(),
+                stepId: step.id
+            });
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
             return results;
         } catch (error) {
             step.status = 'failed';
-            note.memory.push({type: 'testRunError', content: `Test execution failed: ${error.message}`, timestamp: Date.now(), stepId: step.id});
+            note.memory.push({
+                type: 'testRunError',
+                content: `Test execution failed: ${error.message}`,
+                timestamp: Date.now(),
+                stepId: step.id
+            });
             await this.state.writeNoteToDB(note);
             return `Test execution failed: ${error.message}`;
         }
     }
-
 
     async _handleCollaboration(note, step) {
         const {noteIds} = step.input;
@@ -227,8 +271,11 @@ export class NoteRunner {
 
     async _handleSummarize(note, step) {
         try {
-            const result = await this.state.tools.executeTool('summarize', step.input, { graph: this.state.graph, llm: this.state.llm });
-            note.memory.push({ type: 'tool', content: result, timestamp: Date.now(), stepId: step.id });
+            const result = await this.state.tools.executeTool('summarize', step.input, {
+                graph: this.state.graph,
+                llm: this.state.llm
+            });
+            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
         } catch (error) {
@@ -238,7 +285,10 @@ export class NoteRunner {
 
     async _handleGenerateCode(note, step) {
         try {
-            const result = await this.state.tools.executeTool('generateCode', step.input, {graph: this.state.graph, llm: this.state.llm});
+            const result = await this.state.tools.executeTool('generateCode', step.input, {
+                graph: this.state.graph,
+                llm: this.state.llm
+            });
             note.memory.push({type: 'codeGen', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
@@ -249,7 +299,10 @@ export class NoteRunner {
 
     async _handleReflect(note, step) {
         try {
-            const result = await this.state.tools.executeTool('reflect', step.input, {graph: this.state.graph, llm: this.state.llm});
+            const result = await this.state.tools.executeTool('reflect', step.input, {
+                graph: this.state.graph,
+                llm: this.state.llm
+            });
             note.memory.push({type: 'reflect', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
@@ -257,7 +310,6 @@ export class NoteRunner {
             this._handleToolStepError(note, step, error);
         }
     }
-
 
     async _executeStep(note, step, memoryMap) {
         const tool = this.state.tools.getTool(step.tool);
@@ -283,7 +335,6 @@ export class NoteRunner {
             await this.state.writeNoteToDB(note);
         }
     }
-
 
     _processStepDependencies(dependencies, stepsById, readyQueue, stepId, note) {
         for (const [currentStepId, deps] of dependencies.entries()) {
@@ -375,8 +426,6 @@ export class NoteRunner {
         this.state.writeNoteToDB(note);
         return `Tool execution failed: ${error.message}`;
     }
-
-export default NoteRunner;
 
     _handleFailure(note, error) {
         this.errorHandler._handleFailure(note, error); // Delegate to ErrorHandler

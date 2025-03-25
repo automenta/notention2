@@ -19,11 +19,11 @@ export default function NoteList({notes, onSelect, onDelete}) {
                             fontSize: '0.8em',
                             fontWeight: 'bold',
                             color: note.status === 'pending' ? 'orange' :
-                                   note.status === 'running' ? 'blue' :
-                                   note.status === 'completed' ? 'green' :
-                                   note.status === 'failed' ? 'red' :
-                                   note.status === 'pendingUnitTesting' ? 'purple' :
-                                   'grey' // default
+                                note.status === 'running' ? 'blue' :
+                                    note.status === 'completed' ? 'green' :
+                                        note.status === 'failed' ? 'red' :
+                                            note.status === 'pendingUnitTesting' ? 'purple' :
+                                                'grey' // default
                         }}>
                             ({note.status})
                         </span>

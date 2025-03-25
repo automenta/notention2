@@ -1,9 +1,9 @@
 import react from '@vitejs/plugin-react';
-import { createViteServer } from "vitest/node";
+import {createViteServer} from "vitest/node";
 import * as http from "node:http";
-import { CONFIG, INITIAL_NOTES } from './config.js';
-import { ToolLoader } from './tool_loader.js';
-import { NoteLoader } from './note_loader.js';
+import {CONFIG, INITIAL_NOTES} from './config.js';
+import {ToolLoader} from './tool_loader.js';
+import {NoteLoader} from './note_loader.js';
 
 export class ServerInitializer {
     toolLoader;
@@ -21,17 +21,17 @@ export class ServerInitializer {
     }
 
     async initialize() {
-        this.state.log("Starting initialization...", 'info', { component: 'Server' });
+        this.state.log("Starting initialization...", 'info', {component: 'Server'});
         await this._loadTools();
         await this._loadNotesFromDB();
         this.state.llm.setApiKey('exampleApi', 'your-key-here');
-        this.state.log("Server started successfully.", 'info', { component: 'Server' });
+        this.state.log("Server started successfully.", 'info', {component: 'Server'});
         this._startServer();
         this.queueManager.initScheduler();
     }
 
     async _loadTools() {
-        this.state.log("Loading tools...", 'info', { component: 'ToolLoader' });
+        this.state.log("Loading tools...", 'info', {component: 'ToolLoader'});
         try {
             const loadedTools = await this.toolLoader.loadTools(CONFIG.TOOLS_BUILTIN_DIR); // Pass tools directory
             this.state.log(`Loaded ${loadedTools.length} tools.`, 'info', {
@@ -48,7 +48,7 @@ export class ServerInitializer {
     }
 
     async _loadNotesFromDB() {
-        this.state.log("Loading notes from DB...", 'info', { component: 'NoteLoader' });
+        this.state.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
         try {
             const loadedNotesCount = await this.noteLoader.loadNotes(INITIAL_NOTES);
             this.state.log(`Loaded ${loadedNotesCount} notes from DB.`, 'info', {
@@ -69,7 +69,7 @@ export class ServerInitializer {
         const vite = await createViteServer({
             root: "client",
             plugins: [react()],
-            server: { middlewareMode: true },
+            server: {middlewareMode: true},
         });
 
         const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));

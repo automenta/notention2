@@ -2,7 +2,15 @@ import React from 'react';
 import StepToolSelect from './StepToolSelect.jsx'; // Import StepToolSelect
 import StepInput from './StepInput.jsx'; // Import StepInput
 
-export default function LogicStepItem({ step, index, availableTools, onStepChange, onDeleteStep, isDragging, draggingIndex }) {
+export default function LogicStepItem({
+                                          step,
+                                          index,
+                                          availableTools,
+                                          onStepChange,
+                                          onDeleteStep,
+                                          isDragging,
+                                          draggingIndex
+                                      }) {
 
     return (
         <li
@@ -23,7 +31,7 @@ export default function LogicStepItem({ step, index, availableTools, onStepChang
                 alignItems: 'center'
             }}
         >
-            <div style={{ flexGrow: 1 }}>
+            <div style={{flexGrow: 1}}>
                 <div><strong>Step {index + 1}:</strong></div>
                 <StepToolSelect
                     step={step}
@@ -39,7 +47,7 @@ export default function LogicStepItem({ step, index, availableTools, onStepChang
                 />
                 <div>Status: {step.status}</div>
             </div>
-            <button onClick={() => onDeleteStep(index)} style={{ marginLeft: '10px' }}>Delete</button>
+            <button onClick={() => onDeleteStep(index)} style={{marginLeft: '10px'}}>Delete</button>
         </li>
     );
 }

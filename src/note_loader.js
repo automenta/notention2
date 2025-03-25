@@ -8,6 +8,7 @@ export class NoteLoader {
         return this.state.graph.getNotes().length;
     }
 }
+
 export class NoteLoader {
     constructor(serverState) {
         this.state = serverState;

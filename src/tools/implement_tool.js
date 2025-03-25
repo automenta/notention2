@@ -1,9 +1,8 @@
 import {z} from 'zod';
-import { Tool } from '../tools.js';
-import { writeFile } from 'node:fs/promises';
+import {writeFile} from 'node:fs/promises';
 import path from 'path';
-import { CONFIG } from '../config.js';
-import { Script } from 'node:vm'; // Import Script for code validation
+import {CONFIG} from '../config.js';
+import {Script} from 'node:vm'; // Import Script for code validation
 
 const schema = z.object({
     tool_definition: z.object({
@@ -22,8 +21,8 @@ export default {
     version: '1.3.0', // Version bump for code validation
     dependencies: ['zod', 'fs', 'path', 'vm'],
     async invoke(input, context) {
-        const { tool_definition } = schema.parse(input);
-        const { name, description, code, schemaDef, dependencies } = tool_definition;
+        const {tool_definition} = schema.parse(input);
+        const {name, description, code, schemaDef, dependencies} = tool_definition;
 
         if (!name || !description || !code) {
             return "Error: Tool definition must include name, description, and code.";
@@ -53,16 +52,22 @@ export default {
 
         try {
             // --- Code Validation ---
-            context.log(`Validating tool code for '${name}'...`, 'debug', { component: 'implement_tool', toolName: name });
+            context.log(`Validating tool code for '${name}'...`, 'debug', {
+                component: 'implement_tool',
+                toolName: name
+            });
             new Script(toolCode); // Will throw an error if code is invalid
-            context.log(`Tool code validated successfully for '${name}'.`, 'debug', { component: 'implement_tool', toolName: name });
+            context.log(`Tool code validated successfully for '${name}'.`, 'debug', {
+                component: 'implement_tool',
+                toolName: name
+            });
 
             await writeFile(filepath, toolCode);
             await context.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
 
             const successMsg = `Tool '${name}' implemented, validated, and registered. Code written to '${filepath}'.`;
-            context.log(successMsg, 'info', { component: 'implement_tool', toolName: name, filepath: filepath });
-            return { status: 'success', message: successMsg, filepath: filepath };
+            context.log(successMsg, 'info', {component: 'implement_tool', toolName: name, filepath: filepath});
+            return {status: 'success', message: successMsg, filepath: filepath};
 
         } catch (validationError) { // Catch code validation errors
             const errorMsg = `Tool code validation error for '${name}': ${validationError.message}`;

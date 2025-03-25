@@ -114,6 +114,7 @@ export class ErrorHandler {
         });
     }
 }
+
 export class ErrorHandler {
     constructor(serverState) {
         this.state = serverState;

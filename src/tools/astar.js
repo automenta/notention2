@@ -21,7 +21,7 @@ function reconstructPath(cameFrom, currentId) {
 }
 
 async function astarPathfinding(graph, startId, goalId) {
-    const open = new PriorityQueue({ comparator: (a, b) => b.f - a.f });
+    const open = new PriorityQueue({comparator: (a, b) => b.f - a.f});
     const cameFrom = new Map();
     const gScore = new Map();
     const fScore = new Map();

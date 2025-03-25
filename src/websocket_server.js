@@ -1,5 +1,4 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import { CONFIG } from './config.js';
+import {WebSocket, WebSocketServer} from 'ws';
 import crypto from 'crypto';
 
 export class WebSocketServerManager {
@@ -9,16 +8,16 @@ export class WebSocketServerManager {
     }
 
     start(httpServer) {
-        this.wss = new WebSocketServer({ server: httpServer });
+        this.wss = new WebSocketServer({server: httpServer});
         this.wss.on('connection', ws => this._handleConnection(ws));
     }
 
     _handleConnection(ws) {
-        this.state.log('Client connected', 'info', { component: 'WebSocket' });
+        this.state.log('Client connected', 'info', {component: 'WebSocket'});
         this._sendInitialData(ws);
 
         while (this.state.messageQueue.length) {
-            const { client, message } = this.state.messageQueue.shift();
+            const {client, message} = this.state.messageQueue.shift();
             if (!client || client.readyState === WebSocket.OPEN) {
                 (client || ws).send(message);
             }
@@ -37,17 +36,17 @@ export class WebSocketServerManager {
             }
         });
 
-        ws.on('close', () => this.state.log('Client disconnected', 'info', { component: 'WebSocket' }));
+        ws.on('close', () => this.state.log('Client disconnected', 'info', {component: 'WebSocket'}));
     }
 
     _sendInitialData(ws) {
-        ws.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
+        ws.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
         const availableToolsData = this.state.tools.getTools().map(tool => ({
             name: tool.name,
             description: tool.description,
             schema: tool.schema
         }));
-        ws.send(JSON.stringify({ type: 'tools', data: availableToolsData }));
+        ws.send(JSON.stringify({type: 'tools', data: availableToolsData}));
     }
 
 
@@ -102,17 +101,17 @@ export class WebSocketServerManager {
         const noteIdToDelete = parsedMessage.id;
         this.state.graph.removeNote(noteIdToDelete);
         await this.state.graph.removeReferences(noteIdToDelete);
-        await this.state.writeNoteToDB({ id: noteIdToDelete }); //still write to trigger update
+        await this.state.writeNoteToDB({id: noteIdToDelete}); //still write to trigger update
         this.broadcastNotesUpdate();
     }
 
 
     broadcastNotesUpdate() {
-        this.broadcast({ type: 'notes', data: this.state.graph.getNotes() });
+        this.broadcast({type: 'notes', data: this.state.graph.getNotes()});
     }
 
     broadcastNoteUpdate(note) {
-        this.broadcast({ type: 'noteUpdate', data: note });
+        this.broadcast({type: 'noteUpdate', data: note});
     }
 
 

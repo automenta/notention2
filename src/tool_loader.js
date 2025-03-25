@@ -1,6 +1,6 @@
 import {readdir} from 'node:fs/promises';
-import { Tool } from './tools.js';
-import { CONFIG } from './config.js';
+import {Tool} from './tools.js';
+import {CONFIG} from './config.js';
 
 export class ToolLoader {
     constructor(serverState) {

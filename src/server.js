@@ -1,6 +1,3 @@
-
-
-import { NoteSchema } from './schemas.js';
 import NetentionServer from './netention_server.js';
 
 const server = new NetentionServer();

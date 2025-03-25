@@ -38,11 +38,10 @@ export class NoteHandler {
         const noteIdToDelete = parsedMessage.id;
         this.state.graph.removeNote(noteIdToDelete);
         await this.state.graph.removeReferences(noteIdToDelete);
-        await this.state.writeNoteToDB({ id: noteIdToDelete }); //still write to trigger update
+        await this.state.writeNoteToDB({id: noteIdToDelete}); //still write to trigger update
         this.websocketManager.broadcastNotesUpdate();
     }
 }
-import crypto from 'crypto';
 
 export class NoteHandler {
     constructor(serverState, websocketManager, executionQueue) {
@@ -82,7 +81,7 @@ export class NoteHandler {
         const noteIdToDelete = parsedMessage.id;
         this.state.graph.removeNote(noteIdToDelete);
         await this.state.graph.removeReferences(noteIdToDelete);
-        await this.state.writeNoteToDB({ id: noteIdToDelete }); //still write to trigger update
+        await this.state.writeNoteToDB({id: noteIdToDelete}); //still write to trigger update
         this.websocketManager.broadcastNotesUpdate();
     }
 }

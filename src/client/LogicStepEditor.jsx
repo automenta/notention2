@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import ReactJson from 'react-json-view';
 import LogicStepItem from './LogicStepItem.jsx'; // Import LogicStepItem
 
-export default function LogicStepEditor({ logic, onChange, availableTools }) {
+export default function LogicStepEditor({logic, onChange, availableTools}) {
     const [draggingIndex, setDraggingIndex] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -19,7 +19,7 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
 
     const handleStepChange = (index, field, value) => {
         const updatedLogic = logic.map((step, i) =>
-            i === index ? { ...step, [field]: value } : step
+            i === index ? {...step, [field]: value} : step
         );
         onChange(updatedLogic);
     };
@@ -69,14 +69,14 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
             const value = step.input[paramName] !== undefined ? step.input[paramName] : '';
 
             const handleInputChange = (paramValue) => {
-                const updatedInput = { ...step.input, [paramName]: paramValue };
+                const updatedInput = {...step.input, [paramName]: paramValue};
                 handleStepChange(index, 'input', updatedInput);
             };
 
 
             return (
-                <div key={paramName} style={{ marginBottom: '10px' }}>
-                    <label style={{ marginRight: '10px' }}>{paramName}:</label>
+                <div key={paramName} style={{marginBottom: '10px'}}>
+                    <label style={{marginRight: '10px'}}>{paramName}:</label>
                     <ReactJson
                         src={value || null} // Use null for empty values
                         onEdit={(val) => handleInputChange(val.updated_src)}
@@ -94,8 +94,8 @@ export default function LogicStepEditor({ logic, onChange, availableTools }) {
 
     return (
         <div>
-            <label style={{ marginRight: '10px' }}>Logic Steps:</label>
-            <ul style={{ padding: 0 }}>
+            <label style={{marginRight: '10px'}}>Logic Steps:</label>
+            <ul style={{padding: 0}}>
                 {logic.map((step, index) => (
                     <LogicStepItem
                         key={step.id}

@@ -62,7 +62,13 @@ function App() {
     const initializeCytoscape = (notes, container, setSelectedNoteId, handleCreateNoteFromGraph, handleDeleteNodeFromGraph, handleCreateEdge) => { // Accept handleCreateEdge
         const cy = cytoscape({
             container: container,
-            elements: notes.map(note => ({data: {id: note.id, label: note.title, status: note.status}})) // Include status in node data
+            elements: notes.map(note => ({
+                data: {
+                    id: note.id,
+                    label: note.title,
+                    status: note.status
+                }
+            })) // Include status in node data
                 .concat(notes.flatMap(note => (note.references ?? []).map(ref => ({
                     data: {
                         source: note.id,
@@ -77,12 +83,18 @@ function App() {
                         'background-color': (ele) => { // Color based on status
                             const status = ele.data('status');
                             switch (status) {
-                                case 'pending': return 'orange';
-                                case 'running': return 'blue';
-                                case 'completed': return 'green';
-                                case 'failed': return 'red';
-                                case 'pendingUnitTesting': return 'purple';
-                                default: return '#666';
+                                case 'pending':
+                                    return 'orange';
+                                case 'running':
+                                    return 'blue';
+                                case 'completed':
+                                    return 'green';
+                                case 'failed':
+                                    return 'red';
+                                case 'pendingUnitTesting':
+                                    return 'purple';
+                                default:
+                                    return '#666';
                             }
                         },
                         'width': 80,
@@ -94,12 +106,12 @@ function App() {
             layout: {name: 'grid'}
         });
 
-        cy.on('click', 'node', function(evt){ // Handle node click
+        cy.on('click', 'node', function (evt) { // Handle node click
             var node = evt.target;
             setSelectedNoteId(node.id()); // Update selectedNoteId in App
         });
 
-        cy.on('cxttap', 'node', function(evt){ // Handle context tap (right click) on node
+        cy.on('cxttap', 'node', function (evt) { // Handle context tap (right click) on node
             var node = evt.target;
             handleDeleteNodeFromGraph(node.id()); // Call delete node handler
         });
@@ -111,19 +123,19 @@ function App() {
             }
         });
 
-        cy.on('dragstart', 'node', function(evt){
+        cy.on('dragstart', 'node', function (evt) {
             if (edgeDrawingMode) {
                 setSourceNode(evt.target);
             }
         });
 
-        cy.on('drag', 'node', function(evt){
+        cy.on('drag', 'node', function (evt) {
             if (edgeDrawingMode && sourceNode) {
                 // visual feedback during drag if needed
             }
         });
 
-        cy.on('dragstop', 'node', function(evt){
+        cy.on('dragstop', 'node', function (evt) {
             if (edgeDrawingMode && sourceNode) {
                 const targetNode = evt.target;
                 if (sourceNode !== targetNode) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactJson from 'react-json-view';
 
-export default function StepInput({ step, index, availableTools, onStepChange }) {
+export default function StepInput({step, index, availableTools, onStepChange}) {
 
     const getToolSchema = (toolName) => {
         const tool = availableTools.find(t => t.name === toolName);
@@ -18,13 +18,13 @@ export default function StepInput({ step, index, availableTools, onStepChange })
             const value = step.input[paramName] !== undefined ? step.input[paramName] : '';
 
             const handleInputChange = (paramValue) => {
-                const updatedInput = { ...step.input, [paramName]: paramValue };
+                const updatedInput = {...step.input, [paramName]: paramValue};
                 onStepChange(index, 'input', updatedInput);
             };
 
             return (
-                <div key={paramName} style={{ marginBottom: '10px' }}>
-                    <label style={{ marginRight: '10px' }}>{paramName}:</label>
+                <div key={paramName} style={{marginBottom: '10px'}}>
+                    <label style={{marginRight: '10px'}}>{paramName}:</label>
                     <ReactJson
                         src={value || null} // Use null for empty values
                         onEdit={(val) => handleInputChange(val.updated_src)}
