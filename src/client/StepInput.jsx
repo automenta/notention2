@@ -28,6 +28,14 @@ export default function StepInput({step, index, availableTools, onStepChange}) {
                 handleInputChange(event.target.value);
             };
 
+            const handleInputChangeNumber = (event) => {
+                handleInputChange(Number(event.target.value));
+            };
+
+            const handleInputChangeBoolean = (event) => {
+                handleInputChange(event.target.checked);
+            };
+
             if (inputType === 'string') {
                 return (
                     <div key={paramName} style={{marginBottom: '10px'}}>
@@ -39,7 +47,44 @@ export default function StepInput({step, index, availableTools, onStepChange}) {
                         />
                     </div>
                 );
-            } else {
+            } else if (inputType === 'number') {
+                return (
+                    <div key={paramName} style={{marginBottom: '10px'}}>
+                        <label style={{marginRight: '10px'}}>{paramName}:</label>
+                        <input
+                            type="number"
+                            value={value || 0}
+                            onChange={handleInputChangeNumber}
+                        />
+                    </div>
+                );
+            } else if (inputType === 'boolean') {
+                return (
+                    <div key={paramName} style={{marginBottom: '10px'}}>
+                        <label style={{marginRight: '10px'}}>{paramName}:</label>
+                        <input
+                            type="checkbox"
+                            checked={value || false}
+                            onChange={handleInputChangeBoolean}
+                        />
+                    </div>
+                );
+            } else if (paramSchema.enum) {
+                return (
+                    <div key={paramName} style={{marginBottom: '10px'}}>
+                        <label style={{marginRight: '10px'}}>{paramName}:</label>
+                        <select
+                            value={value || paramSchema.enum[0]}
+                            onChange={(e) => handleInputChange(e.target.value)}
+                        >
+                            {paramSchema.enum.map(enumValue => (
+                                <option key={enumValue} value={enumValue}>{enumValue}</option>
+                            ))}
+                        </select>
+                    </div>
+                );
+            }
+            else {
                 return (
                     <div key={paramName} style={{marginBottom: '10px'}}>
                         <label style={{marginRight: '10px'}}>{paramName}:</label>
