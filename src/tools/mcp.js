@@ -1,16 +1,14 @@
 import {z} from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     task: z.string(),
     constraints: z.any().optional(),
 });
 
-const invokeImpl = createSimpleInvoke(schema);
-
 //https://modelcontextprotocol.io
 async function invoke(input) { // Rename original invoke to invokeImpl
-    const {task} = invokeImpl(input); // Parse input here for consistency
+    const {task} = schema.parse(input); // Parse input here for consistency
     return `Stub: MCP for ${task}`;
 }
 

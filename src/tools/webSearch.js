@@ -1,15 +1,13 @@
 import z from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     query: z.string(),
     apiKey: z.string().optional(),
 });
 
-const invokeImpl = createSimpleInvoke(schema);
-
 async function invoke(input, context) { // Rename original invoke to invokeImpl
-    const {query, apiKey} = invokeImpl(input); // Parse input here for consistency
+    const {query, apiKey} = schema.parse(input); // Parse input here for consistency
     const apiKeyToUse = apiKey || context?.apiKey || ''; // Use input apiKey, or context apiKey, or empty string
     const apiUrl = `https://api.example.com/search?q=${encodeURIComponent(query)}${apiKeyToUse ? `&key=${apiKeyToUse}` : ''}`; // Placeholder API URL
 

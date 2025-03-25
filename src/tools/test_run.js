@@ -1,14 +1,12 @@
 import {z} from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     testId: z.string()
 });
 
-const invokeImpl = createSimpleInvoke(schema);
-
 async function invoke(input, context) {
-    const { testId } = invokeImpl(input);
+    const { testId } = schema.parse(input);
     const graph = context.graph;
     const testNote = graph.getNote(testId);
 

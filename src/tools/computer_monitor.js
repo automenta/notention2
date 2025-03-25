@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 const si = require('systeminformation');
 
 const schema = z.object({
@@ -7,10 +7,8 @@ const schema = z.object({
     interval: z.number().min(1).optional(),
 });
 
-const invokeImpl = createSimpleInvoke(schema);
-
 async function invoke(input) {
-    const {metric, interval = 5} = invokeImpl(input); // Parse input here for consistency
+    const {metric, interval = 5} = schema.parse(input); // Parse input here for consistency
     let data;
 
     try {

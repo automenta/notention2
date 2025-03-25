@@ -1,15 +1,13 @@
 import {z} from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     modelId: z.string(),
     input: z.any() // Define input schema based on the model type
 });
 
-const invokeImpl = createSimpleInvoke(schema);
-
 async function invoke(input, context) {
-    const { modelId, input: predictionInput } = invokeImpl(input);
+    const { modelId, input: predictionInput } = schema.parse(input);
     const graph = context.graph;
     const modelNote = graph.getNote(modelId);
 

@@ -1,13 +1,11 @@
 import {z} from 'zod';
 import PriorityQueue from 'priority-queue-js';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     startId: z.string(),
     goalId: z.string()
 });
-
-const invokeImpl = createSimpleInvoke(schema);
 
 function heuristic(startId, goalId) {
     // Simple heuristic: Manhattan distance (example, adapt as needed)
@@ -63,7 +61,7 @@ async function astarPathfinding(graph, startId, goalId) {
 
 
 async function invoke(input, context) { // Rename original invoke to invokeImpl
-    const { startId, goalId } = invokeImpl(input); // Parse input here for consistency
+    const { startId, goalId } = schema.parse(input); // Parse input here for consistency
     const graph = context.graph;
 
     if (!graph.getNote(startId)) {

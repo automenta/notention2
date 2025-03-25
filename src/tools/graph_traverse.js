@@ -1,13 +1,11 @@
 import {z} from 'zod';
-import { withToolHandling, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     startId: z.string(),
     mode: z.enum(['dfs', 'bfs']).default('bfs'),
     callback: z.string().optional()
 });
-
-const invoke = createSimpleInvoke(schema);
 
 async function traverseGraph(graph, startId, mode) {
     const visited = new Set();
@@ -30,29 +28,8 @@ async function traverseGraph(graph, startId, mode) {
 }
 
 
-async function invokeImpl(input, context) { // Rename original invoke to invokeImpl
-    const { startId, mode, callback } = invoke(input); // Parse input here for consistency
-    const graph = context.graph;
-
-    const results = await traverseGraph(graph, startId, mode);
-
-    return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
-}
-
-
-import {z} from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
-
-const schema = z.object({
-    startId: z.string(),
-    mode: z.enum(['dfs', 'bfs']).default('bfs'),
-    callback: z.string().optional()
-});
-
-const invokeImpl = createSimpleInvoke(schema);
-
 async function invoke(input, context) { // Rename original invoke to invokeImpl
-    const { startId, mode, callback } = invokeImpl(input); // Parse input here for consistency
+    const { startId, mode, callback } = schema.parse(input); // Parse input here for consistency
     const graph = context.graph;
 
     const results = await traverseGraph(graph, startId, mode);

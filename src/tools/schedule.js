@@ -1,15 +1,13 @@
 import {z} from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import { defineTool } from '../tool_utils.js';
 
 const schema = z.object({
     noteId: z.string(),
     time: z.string() // You might want to use a more specific format for time/date
 });
 
-const invokeImpl = createSimpleInvoke(schema);
-
 async function invoke(input, context) { // Rename original invoke to invokeImpl
-    const { noteId, time } = invokeImpl(input); // Parse input here for consistency
+    const { noteId, time } = schema.parse(input); // Parse input here for consistency
     const graph = context.graph;
     const note = graph.getNote(noteId);
 
@@ -36,7 +34,7 @@ async function invoke(input, context) { // Rename original invoke to invokeImpl
 
     setTimeout(async () => {
         note.status = 'pending';
-        await graph.writeNoteToDB(note);
+        await context.serverCore.writeNoteToDB(note);
         context.state.queueManager.queueExecution(note);
         context.logger.log(`Note '${noteId}' executed as scheduled at '${time}'.`, 'info', {
             component: 'schedule',
