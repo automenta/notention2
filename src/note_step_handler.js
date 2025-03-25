@@ -8,8 +8,47 @@ export class NoteStepHandler {
 
     constructor(serverState, errorHandler) {
         this.state = serverState;
-        this.errorHandler = errorHandler; // Instantiate ErrorHandler
+        this.errorHandler = errorHandler;
     }
+
+
+    async handleStep(note, step, memoryMap) {
+        switch (step.tool) {
+            case 'summarize':
+                await this.handleSummarize(note, step);
+                break;
+            case 'generateCode':
+                await this.handleGenerateCode(note, step);
+                break;
+            case 'reflect':
+                await this.handleReflect(note, step);
+                break;
+            case 'test_gen':
+                await this.handleTestGeneration(note, step);
+                break;
+            case 'test_run':
+                await this.handleTestExecution(note, step);
+                break;
+            case 'knowNote':
+                await this.handleKnowNote(note, step);
+                break;
+            case 'analytics':
+                await this.handleAnalytics(note, step);
+                break;
+            case 'fetchExternal':
+                await this.handleFetchExternal(note, step);
+                break;
+            case 'collaborate':
+                await this.handleCollaboration(note, step);
+                break;
+            case 'generateTool':
+                await this.handleToolGeneration(note, step);
+                break;
+            default:
+                await this._executeStep(note, step, memoryMap);
+        }
+    }
+
 
     async handleTestGeneration(note, step) {
         const {code, targetId} = step.input;

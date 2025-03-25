@@ -52,42 +52,8 @@ export class NoteRunner {
                 logToolStart(this.state, note.id, step.id, step.tool);
                 step.input = replacePlaceholders(step.input, memoryMap);
 
-
                 try {
-                    switch (step.tool) {
-                        case 'summarize':
-                            await this.noteStepHandler.handleSummarize(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'generateCode':
-                            await this.noteStepHandler.handleGenerateCode(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'reflect':
-                            await this.noteStepHandler.handleReflect(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'test_gen':
-                            await this.noteStepHandler.handleTestGeneration(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'test_run':
-                            await this.noteStepHandler.handleTestExecution(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'knowNote':
-                            await this.noteStepHandler.handleKnowNote(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'analytics':
-                            await this.noteStepHandler.handleAnalytics(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'fetchExternal':
-                            await this.noteStepHandler.handleFetchExternal(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'collaborate':
-                            await this.noteStepHandler.handleCollaboration(note, step); // Delegate to NoteStepHandler
-                            break;
-                        case 'generateTool':
-                            await this.noteStepHandler.handleToolGeneration(note, step); // Delegate to NoteStepHandler
-                            break;
-                        default:
-                            await this._executeStep(note, step, memoryMap);
-                    }
+                    await this.noteStepHandler.handleStep(note, step, memoryMap);
                 } catch (error) {
                     step.status = 'failed';
                     logStepError(this.state, note.id, step.id, step.tool, error);
