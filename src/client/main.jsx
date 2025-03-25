@@ -110,6 +110,14 @@ function App() {
                         'line-style': 'dashed',
                         'width': 2
                     }
+                },
+                {
+                    selector: '.dragging-node',
+                    style: {
+                        'border-style': 'dashed',
+                        'border-width': '3px',
+                        'border-color': 'blue'
+                    }
                 }
             ],
             layout: {name: 'grid'}
@@ -135,6 +143,8 @@ function App() {
         cy.on('dragstart', 'node', function (evt) {
             if (edgeDrawingMode) {
                 setSourceNode(evt.target);
+            } else {
+                evt.target.addClass('dragging-node'); // Add class on drag start
             }
         });
 
@@ -165,6 +175,8 @@ function App() {
                     cy.remove(tempEdge);
                     setTempEdge(null);
                 }
+            } else {
+                evt.target.removeClass('dragging-node'); // Remove class on drag stop
             }
         });
 
