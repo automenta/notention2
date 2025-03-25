@@ -17,6 +17,21 @@ const promptTemplate = PromptTemplate.fromTemplate(
 
 const chain = new LLMChain({llm: llm, prompt: promptTemplate});
 
+async function handleStep(note, step, context) {
+    try {
+        const result = await context.tools.executeTool('summarize', step.input, {
+            graph: context.graph,
+            llm: context.llm
+        });
+        note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await context.state.writeNoteToDB(note);
+    } catch (error) {
+        context.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
+    }
+}
+
+
 export default {
     name: 'summarize',
     description: 'Summarize text',
@@ -28,4 +43,5 @@ export default {
         const result = await chain.call({text, length, style});
         return result.text || 'No summary generated';
     },
+    handleStep // Export the handleStep function
 };
