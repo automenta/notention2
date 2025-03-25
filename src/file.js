@@ -15,7 +15,14 @@ export class File {
         const files = await readdir(this.notesDir);
         for (const file of files) {
             try {
-                const data = JSON.parse(await readFile(join(this.notesDir, file), 'utf8'));
+                const fileData = await readFile(join(this.notesDir, file), 'utf8');
+                let data;
+                try {
+                    data = JSON.parse(fileData); // Parse file data
+                } catch (parseError) {
+                    console.error(`Error parsing JSON from file ${file}: ${parseError}`);
+                    continue; // Skip to the next file if JSON parsing fails
+                }
                 let note;
                 try {
                     note = NoteSchema.parse(data); // Validate note data against schema
@@ -33,7 +40,7 @@ export class File {
 
     async saveNote(note) {
         try {
-            await writeFile(join(this.notesDir, `${note.id}.json`), JSON.stringify(note));
+            await writeFile(join(this.notesDir, `${note.id}.json`), JSON.stringify(note, null, 2), 'utf8'); // Add formatting and encoding
         } catch (error) {
             console.error(`Error saving note ${note.id} to file: ${error}`);
             throw error; // Re-throw to allow caller to handle or log
@@ -45,7 +52,7 @@ export class File {
             await unlink(join(this.notesDir, `${noteId}.json`));
             this.notes.delete(noteId);
         } catch (error) {
-            console.error(`Error deleting note ${noteId} from file: ${error}`);
+            console.error(`Error deleting note ${noteId} from file ${noteId}: ${error}`);
             throw error; // Re-throw to allow caller to handle or log
         }
     }
@@ -58,7 +65,7 @@ export class File {
                     await this.saveNote(note);
                 } catch (error) {
                     console.error(`Error updating references for note ${note.id} during removeReferences of note ${noteId}: ${error}`);
-                    // Decide if you want to re-throw or just log and continue.
+                    // Consider more robust error handling if reference updates are critical.
                     // For now, logging and continuing to process other notes.
                 }
             }
