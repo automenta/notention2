@@ -135,7 +135,7 @@ export class NoteRunner {
         if (!CONFIG.AUTO_RUN_TESTS || !note.tests || !note.tests.length) return;
         for (const testFile of note.tests) {
             try {
-                // Corrected import path using path.join
+                // Dynamically import test module using path.join for correct path resolution
                 const testModule = await import(`file://${path.join(process.cwd(), CONFIG.TESTS_DIR, testFile)}`);
                 await testModule.default(note, this.state);
                 this.state.log(`Tests for note ${note.id} passed.`, 'info', {
@@ -150,7 +150,7 @@ export class NoteRunner {
     }
 
     async _finalizeNoteRun(note) {
-        logNoteRunFinalized(this.state, note.id, note.status);
-        return note;
+        logNoteRunFinalized(this.state, note.id, note.status); // Logging final note status
+        return note; // Return the finalized note
     }
 }
