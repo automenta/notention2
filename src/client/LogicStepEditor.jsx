@@ -153,6 +153,23 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                     background-repeat: repeat-y;
                 }
 
+                .step-status-pending {
+                    background-color: #fffde7; /* Light yellow for pending */
+                }
+
+                .step-status-running {
+                    background-color: #e3f2fd; /* Light blue for running */
+                }
+
+                .step-status-completed {
+                    background-color: #e8f5e9; /* Light green for completed */
+                }
+
+                .step-status-failed {
+                    background-color: #ffebee; /* Light red for failed */
+                }
+
+
                 ul {
                     position: relative; /* Needed for absolute positioning of pseudo-element */
                     padding-left: 20px; /* Adjust to align with the connector line */
