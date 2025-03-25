@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG } from './config.js';
 
-class WebSocketHandler {
+export class WebSocketServerManager { // Renamed class to WebSocketServerManager
     constructor(serverState) {
         this.state = serverState;
         this.wss = null;
@@ -13,7 +13,7 @@ class WebSocketHandler {
     }
 
     _handleConnection(ws) {
-        this.state.log('Client connected', 'info', { component: 'WebSocketHandler' });
+        this.state.log('Client connected', 'info', { component: 'WebSocketServer' }); // Updated component name in log
         ws.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
         const availableToolsData = this.state.tools.getTools().map(tool => ({
             name: tool.name,
@@ -35,14 +35,14 @@ class WebSocketHandler {
                 await this._handleWebSocketMessage(parsedMessage);
             } catch (e) {
                 this.state.log(`WebSocket message processing error: ${e}`, 'error', {
-                    component: 'WebSocketHandler',
+                    component: 'WebSocketServer', // Updated component name in log
                     errorType: 'MessageParsingError',
                     error: e.message
                 });
             }
         });
 
-        ws.on('close', () => this.state.log('Client disconnected', 'info', { component: 'WebSocketHandler' }));
+        ws.on('close', () => this.state.log('Client disconnected', 'info', { component: 'WebSocketServer' })); // Updated component name in log
     }
 
 
@@ -91,11 +91,11 @@ class WebSocketHandler {
 
         } else {
             this.state.log('Unknown message type', 'warn', {
-                component: 'WebSocketHandler',
+                component: 'WebSocketServer', // Updated component name in log
                 messageType: parsedMessage.type
             });
         }
     }
 }
 
-export default WebSocketHandler;
+export default WebSocketServerManager; // Updated export to WebSocketServerManager
