@@ -76,7 +76,7 @@ export class NoteStepHandler {
             });
             step.status = 'completed';
             await this.state.writeNoteToDB(note);
-            this.state.queueExecution(testNote);
+            this.state.queueManager.queueExecution(testNote);
             return testNoteId;
         } catch (error) {
             step.status = 'failed';
@@ -157,7 +157,7 @@ export class NoteStepHandler {
         note.memory.push({type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await this.state.writeNoteToDB(note);
-        this.state.queueExecution(newNote);
+        this.state.queueManager.queueExecution(newNote);
     }
 
     async handleAnalytics(note, step) {

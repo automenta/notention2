@@ -19,14 +19,14 @@ export function logToolStart(state, noteId, stepId, toolName) {
 }
 
 export function logNoteStart(state, noteId) {
-    state.log(`Starting execution of note ${noteId}`, 'info', {
+    state.logger.log(`Starting execution of note ${noteId}`, 'info', {
         component: 'NoteRunner',
         noteId: noteId
     });
 }
 
 export function logNoteFinalize(state, noteId, status) {
-    state.log(`Note ${noteId} execution finalized with status: ${status}`, 'debug', {
+    state.logger.log(`Note ${noteId} execution finalized with status: ${status}`, 'debug', {
         component: 'NoteRunner',
         noteId: noteId,
         status: status
@@ -34,7 +34,7 @@ export function logNoteFinalize(state, noteId, status) {
 }
 
 export function logQueueProcessingError(state, noteId, error) {
-    state.log(`Error processing note ${noteId} from queue: ${error}`, 'error', {
+    state.logger.log(`Error processing note ${noteId} from queue: ${error}`, 'error', {
         component: 'ExecutionQueue',
         noteId: noteId,
         errorType: 'NoteProcessingError',
@@ -44,7 +44,7 @@ export function logQueueProcessingError(state, noteId, error) {
 }
 
 export function logNoteExecutionError(state, noteId, error) {
-    state.log(`Error running note ${noteId}: ${error}`, 'error', {
+    state.logger.log(`Error running note ${noteId}: ${error}`, 'error', {
         component: 'NoteRunner',
         noteId: noteId,
         errorType: 'NoteExecutionError',
@@ -53,7 +53,7 @@ export function logNoteExecutionError(state, noteId, error) {
 }
 
 export function logToolNotFoundError(state, noteId, stepId, toolName) {
-    state.log(`Tool ${toolName} not found`, 'error', {
+    state.logger.log(`Tool ${toolName} not found`, 'error', {
         component: 'NoteRunner',
         noteId: noteId,
         stepId: stepId,
@@ -63,7 +63,7 @@ export function logToolNotFoundError(state, noteId, stepId, toolName) {
 }
 
 export function logToolExecutionError(state, noteId, stepId, toolName, error) {
-    state.log(`Error executing tool ${toolName} for note ${noteId}: ${error}`, 'error', {
+    state.logger.log(`Error executing tool ${toolName} for note ${noteId}: ${error}`, 'error', {
         component: 'NoteRunner',
         noteId: noteId,
         stepId: stepId,
@@ -74,11 +74,11 @@ export function logToolExecutionError(state, noteId, stepId, toolName, error) {
 }
 
 export function logNoteRetryQueued(state, noteId) {
-    state.log(`Note ${noteId} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: noteId});
+    state.logger.log(`Note ${noteId} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: noteId});
 }
 
 export function logUnitTestRequestQueued(state, noteId, testNoteId) {
-    state.log(`Unit test requested for Note ${noteId}, test Note ${testNoteId} created.`, 'info', {
+    state.logger.log(`Unit test requested for Note ${noteId}, test Note ${testNoteId} created.`, 'info', {
         component: 'NoteRunner',
         noteId: noteId,
         testNoteId: testNoteId
@@ -86,7 +86,7 @@ export function logUnitTestRequestQueued(state, noteId, testNoteId) {
 }
 
 export function logMemoryPrune(state, noteId, summaryText) {
-    state.log(`Note ${noteId} memory pruned. Summary: ${summaryText}`, 'debug', {
+    state.logger.log(`Note ${noteId} memory pruned. Summary: ${summaryText}`, 'debug', {
         component: 'NoteRunner',
         noteId: noteId,
         summary: summaryText.substring(0, 50) + '...' // Show snippet of summary
@@ -94,7 +94,7 @@ export function logMemoryPrune(state, noteId, summaryText) {
 }
 
 export function logTestRunnerStart(state, noteId, testFile) {
-    state.log(`Running tests for note ${noteId} using ${testFile}...`, 'info', {
+    state.logger.log(`Running tests for note ${noteId} using ${testFile}...`, 'info', {
         component: 'TestRunner',
         noteId: noteId,
         testFile: testFile
@@ -102,7 +102,7 @@ export function logTestRunnerStart(state, noteId, testFile) {
 }
 
 export function logNoteRunFinalized(state, noteId, status) {
-    state.log(`Note ${noteId} execution finalized with status: ${status}`, 'debug', {
+    state.logger.log(`Note ${noteId} execution finalized with status: ${status}`, 'debug', {
         component: 'NoteRunner',
         noteId: noteId,
         status: status
@@ -110,7 +110,7 @@ export function logNoteRunFinalized(state, noteId, status) {
 }
 
 export function logNoteFailure(state, noteId, error) {
-    state.log(`Note ${noteId} execution failed: ${error}`, 'error', {
+    state.logger.log(`Note ${noteId} execution failed: ${error}`, 'error', {
         component: 'NoteRunner',
         noteId: noteId,
         errorType: 'NoteExecutionError',
@@ -119,11 +119,11 @@ export function logNoteFailure(state, noteId, error) {
 }
 
 export function logRetryExecutionQueued(state, noteId) {
-    state.log(`Note ${noteId} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: noteId});
+    state.logger.log(`Note ${noteId} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: noteId});
 }
 
 export function logUnitTestRequested(state, noteId, testNoteId) {
-    state.log(`Unit test requested for Note ${noteId}, test Note ${testNoteId} created.`, 'info', {
+    state.logger.log(`Unit test requested for Note ${noteId}, test Note ${testNoteId} created.`, 'info', {
         component: 'NoteRunner',
         noteId: noteId,
         testNoteId: testNoteId
@@ -131,15 +131,15 @@ export function logUnitTestRequested(state, noteId, testNoteId) {
 }
 
 export function logWebSocketConnect(state) {
-    state.log('Client connected', 'info', {component: 'WebSocket'});
+    state.logger.log('Client connected', 'info', {component: 'WebSocket'});
 }
 
 export function logWebSocketDisconnect(state) {
-    state.log('Client disconnected', 'info', {component: 'WebSocket'});
+    state.logger.log('Client disconnected', 'info', {component: 'WebSocket'});
 }
 
 export function logNoteQueueLength(state, noteId, readyQueueLength) {
-    state.log(`Running note ${noteId}, ${readyQueueLength} steps ready`, 'debug', {
+    state.logger.log(`Running note ${noteId}, ${readyQueueLength} steps ready`, 'debug', {
         component: 'NoteRunner',
         noteId: noteId,
         readyQueueLength: readyQueueLength
@@ -147,7 +147,7 @@ export function logNoteQueueLength(state, noteId, readyQueueLength) {
 }
 
 export function logStepNotFound(state, noteId, stepId) {
-    state.log(`Step ${stepId} not found in note ${noteId}`, 'warn', {
+    state.logger.log(`Step ${stepId} not found in note ${noteId}`, 'warn', {
         component: 'NoteRunner',
         noteId: noteId,
         stepId: stepId
@@ -155,7 +155,7 @@ export function logStepNotFound(state, noteId, stepId) {
 }
 
 export function logStepNotPending(state, noteId, stepId, stepStatus) {
-    state.log(`Step ${stepId} in note ${noteId} is not pending, skipping. Status: ${stepStatus}`, 'debug', {
+    state.logger.log(`Step ${stepId} in note ${noteId} is not pending, skipping. Status: ${stepStatus}`, 'debug', {
         component: 'NoteRunner',
         noteId: noteId,
         stepId: stepId,
@@ -164,7 +164,7 @@ export function logStepNotPending(state, noteId, stepId, stepStatus) {
 }
 
 export function logStepError(state, noteId, stepId, toolName, error) {
-    state.log(`Error executing step ${stepId} of note ${noteId} with tool ${toolName}: ${error}`, 'error', {
+    state.logger.log(`Error executing step ${stepId} of note ${noteId} with tool ${toolName}: ${error}`, 'error', {
         component: 'NoteRunner',
         noteId: noteId,
         stepId: stepId,
@@ -176,7 +176,7 @@ export function logStepError(state, noteId, stepId, toolName, error) {
 }
 
 export function logTestPass(state, noteId, testFile) {
-    state.log(`Tests for note ${noteId} passed.`, 'info', {
+    state.logger.log(`Tests for note ${noteId} passed.`, 'info', {
         component: 'TestRunner',
         noteId: noteId,
         testFile: testFile
@@ -184,7 +184,7 @@ export function logTestPass(state, noteId, testFile) {
 }
 
 export function logTestFail(state, noteId, testFile, error) {
-    state.log(`Tests failed for note ${noteId}: ${error}`, 'error', {
+    state.logger.log(`Tests failed for note ${noteId}: ${error}`, 'error', {
         component: 'TestRunner',
         noteId: noteId,
         testFile: testFile,
@@ -193,7 +193,7 @@ export function logTestFail(state, noteId, testFile, error) {
 }
 
 export function logNoteFinalized(state, noteId, status) {
-    state.log(`Note ${noteId} execution finalized.`, 'debug', {
+    state.logger.log(`Note ${noteId} execution finalized.`, 'debug', {
         component: 'NoteRunner',
         noteId: noteId,
         status: status

@@ -19,7 +19,7 @@ export class ExecutionQueue {
         const notes = [...this.state.graph.getNotes()].filter(n => n.status === 'pending' || n.status === 'running');
         notes.sort((a, b) => this.calculatePriority(b) - this.calculatePriority(a));
 
-        this.state.log(`Optimizing schedule, considering ${notes.length} notes.`, 'debug', {
+        this.state.logger.log(`Optimizing schedule, considering ${notes.length} notes.`, 'debug', {
             component: 'ExecutionQueue',
             notesCount: notes.length,
             pendingNotes: notes.map(n => ({id: n.id, title: n.title, priority: this.calculatePriority(n)}))
@@ -37,7 +37,7 @@ export class ExecutionQueue {
     }
 
     queueExecution(note) {
-        this.state.log(`Queueing note ${note.id} for execution.`, 'debug', {
+        this.state.logger.log(`Queueing note ${note.id} for execution.`, 'debug', {
             component: 'ExecutionQueue',
             noteId: note.id
         });

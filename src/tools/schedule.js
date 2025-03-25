@@ -30,7 +30,7 @@ export default {
             return `Error: Scheduled time '${time}' is in the past.`;
         }
 
-        context.log(`Note '${noteId}' scheduling execution for '${time}'.`, 'info', {
+        context.logger.log(`Note '${noteId}' scheduling execution for '${time}'.`, 'info', {
             component: 'schedule',
             noteId: noteId,
             scheduledTime: time
@@ -39,8 +39,8 @@ export default {
         setTimeout(async () => {
             note.status = 'pending';
             await context.graph.writeNoteToDB(note);
-            context.state.queueExecution(note);
-            context.log(`Note '${noteId}' executed as scheduled at '${time}'.`, 'info', {
+            context.state.queueManager.queueExecution(note);
+            context.logger.log(`Note '${noteId}' executed as scheduled at '${time}'.`, 'info', {
                 component: 'schedule',
                 noteId: noteId,
                 scheduledTime: time

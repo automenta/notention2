@@ -26,21 +26,17 @@ class NetentionServerCore {
         this.loadNotesFromDB(); // Load notes from DB on initialization
     }
 
-    log(message, level = 'info', context = {}) {
-        this.state.log(message, level, context);
-    }
-
     async loadNotesFromDB() {
-        this.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
+        this.state.logger.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
         try {
             const loadedNotes = await this.fileManager.loadNotes();
             loadedNotes.forEach(note => this.state.graph.addNote(note));
-            this.log(`Loaded ${loadedNotes.length} notes from DB using File storage.`, 'info', {
+            this.state.logger.log(`Loaded ${loadedNotes.length} notes from DB using File storage.`, 'info', {
                 component: 'NoteLoader',
                 count: loadedNotes.length
             });
         } catch (error) {
-            this.state.log(`Note loading failed during server initialization: ${error}`, 'error', {
+            this.state.logger.log(`Note loading failed during server initialization: ${error}`, 'error', {
                 component: 'NoteLoader',
                 error: error.message
             });
@@ -59,7 +55,7 @@ class NetentionServerCore {
         } else if (parsedMessage.type === 'createEdge') {
             await this.noteHandler.handleCreateEdge(parsedMessage);
         } else {
-            this.state.log(`Unknown message type: ${parsedMessage.type}`, 'warn', {
+            this.state.logger.log(`Unknown message type: ${parsedMessage.type}`, 'warn', {
                 component: 'WebSocket',
                 messageType: parsedMessage.type
             });
@@ -67,7 +63,7 @@ class NetentionServerCore {
     }
 
     async writeNoteToDB(note) {
-        this.state.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
+        this.state.logger.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
         this.state.updateBatch.add(note.id);
         if (!this.batchTimeout) {
             this.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);

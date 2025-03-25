@@ -49,32 +49,27 @@ class NetentionServer {
     }
 
 
-    log(message, level = 'info', context = {}) {
-        this.state.log(message, level, context);
-    }
-
-
     async initialize() {
-        this.log("Starting initialization...", 'info', {component: 'Server'});
+        this.state.logger.log("Starting initialization...", 'info', {component: 'Server'});
         await this._loadTools();
         await this._loadNotesFromDB();
         this.state.llm.setApiKey('exampleApi', 'your-key-here');
-        this.log("Server started successfully.", 'info', {component: 'Server'});
+        this.state.logger.log("Server started successfully.", 'info', {component: 'Server'});
         this._startServer();
         this.queueManager.initScheduler();
     }
 
 
     async _loadTools() {
-        this.log("Loading tools...", 'info', {component: 'ToolLoader'});
+        this.state.logger.log("Loading tools...", 'info', {component: 'ToolLoader'});
         try {
             const loadedTools = await this.toolLoader.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
-            this.log(`Loaded ${loadedTools.length} tools.`, 'info', {
+            this.state.logger.log(`Loaded ${loadedTools.length} tools.`, 'info', {
                 component: 'ToolLoader',
                 count: loadedTools.length
             });
         } catch (error) {
-            this.log(`Tool loading failed during server initialization: ${error}`, 'error', {
+            this.state.logger.log(`Tool loading failed during server initialization: ${error}`, 'error', {
                 component: 'ToolLoader',
                 error: error.message
             });
@@ -86,15 +81,15 @@ class NetentionServer {
    async _loadNotesFromDB() {
        // Note loading is now handled by NetentionServerCore
        // This method is intentionally left empty as the logic has moved
-       this.log("Note loading delegated to NetentionServerCore.", 'info', {component: 'NoteLoader'});
+       this.state.logger.log("Note loading delegated to NetentionServerCore.", 'info', {component: 'NoteLoader'});
         try {
             const loadedNotesCount = 0; // Indicate no notes loaded directly here
-            this.log(`Loaded ${loadedNotesCount} notes from DB.`, 'info', {
+            this.state.logger.log(`Loaded ${loadedNotesCount} notes from DB.`, 'info', {
                 component: 'NoteLoader',
                 count: loadedNotesCount
             });
         } catch (error) {
-            this.log(`Note loading failed during server initialization: ${error}`, 'error', {
+            this.state.logger.log(`Note loading failed during server initialization: ${error}`, 'error', {
                 component: 'NoteLoader',
                 error: error.message
             });

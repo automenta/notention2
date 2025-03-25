@@ -19,7 +19,7 @@ export default {
 
         if (!metaNote) {
             const errorMsg = `Error: Meta-Note with ID '${metaNoteId}' not found.`;
-            context.log(errorMsg, 'error', {component: 'define_concept', metaNoteId: metaNoteId});
+            context.logger.log(errorMsg, 'error', {component: 'define_concept', metaNoteId: metaNoteId});
             return errorMsg;
         }
 
@@ -43,7 +43,7 @@ export default {
         await context.graph.writeNoteToDB(metaNote);
 
         const successMsg = `Concept '${concept_name}' defined and stored in Meta-Note.`;
-        context.log(successMsg, 'info', {component: 'define_concept', conceptName: concept_name});
+        context.logger.log(successMsg, 'info', {component: 'define_concept', conceptName: concept_name});
         return {status: 'success', message: successMsg, conceptName: concept_name};
     }
 };

@@ -52,12 +52,12 @@ export default {
 
         try {
             // --- Code Validation ---
-            context.log(`Validating tool code for '${name}'...`, 'debug', {
+            context.logger.log(`Validating tool code for '${name}'...`, 'debug', {
                 component: 'implement_tool',
                 toolName: name
             });
             new Script(toolCode); // Will throw an error if code is invalid
-            context.log(`Tool code validated successfully for '${name}'.`, 'debug', {
+            context.logger.log(`Tool code validated successfully for '${name}'.`, 'debug', {
                 component: 'implement_tool',
                 toolName: name
             });
@@ -66,13 +66,13 @@ export default {
             await context.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
 
             const successMsg = `Tool '${name}' implemented, validated, and registered. Code written to '${filepath}'.`;
-            context.log(successMsg, 'info', {component: 'implement_tool', toolName: name, filepath: filepath});
+            context.logger.log(successMsg, 'info', {component: 'implement_tool', toolName: name, filepath: filepath});
             return {status: 'success', message: successMsg, filepath: filepath};
 
         } catch (validationError) { // Catch code validation errors
             const errorMsg = `Tool code validation error for '${name}': ${validationError.message}`;
             console.error(errorMsg, validationError);
-            context.log(errorMsg, 'error', {
+            context.logger.log(errorMsg, 'error', {
                 component: 'implement_tool',
                 toolName: name,
                 errorType: 'CodeValidationError',
@@ -92,7 +92,7 @@ export default {
         } catch (error) { // Catch other errors (e.g., file write errors)
             const errorMsg = `Error implementing tool '${name}': ${error.message}`;
             console.error(errorMsg, error);
-            context.log(errorMsg, 'error', {
+            context.logger.log(errorMsg, 'error', {
                 component: 'implement_tool',
                 toolName: name,
                 errorType: 'ToolImplementationError',

@@ -138,7 +138,7 @@ export class NoteRunner {
                 // Dynamically import test module using path.join to correctly resolve test file path
                 const testModule = await import(`file://${path.join(process.cwd(), CONFIG.TESTS_DIR, testFile)}`);
                 await testModule.default(note, this.state);
-                this.state.log(`Tests for note ${note.id} passed.`, 'info', {
+                this.state.logger.log(`Tests for note ${note.id} passed.`, 'info', {
                     component: 'NoteRunner',
                     noteId: note.id,
                     testFile: testFile
