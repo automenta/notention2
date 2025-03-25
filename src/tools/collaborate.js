@@ -1,6 +1,5 @@
 import {z} from 'zod';
 
-const schema = z.object({
 import {z} from 'zod';
 import { withToolHandling } from '../tool_utils.js';
 
