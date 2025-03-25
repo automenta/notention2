@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import { withToolHandling } from '../tool_utils.js';
 import evalExprTool from './eval_expr.js';
 import composeTool from './compose.js';
 
@@ -14,22 +15,24 @@ const schema = z.object({
     }))
 });
 
+async function invoke(input, context) {
+    const {condition_expr, then_branch, else_branch} = schema.parse(input);
+
+    const conditionResult = await evalExprTool.invoke({expr: condition_expr}, context);
+    const isConditionTrue = Boolean(conditionResult); // Cast to boolean
+
+    if (isConditionTrue) {
+        return await composeTool.invoke({toolChain: then_branch}, context);
+    } else {
+        return await composeTool.invoke({toolChain: else_branch}, context);
+    }
+}
+
 export default {
     name: 'if_else',
     description: 'Conditional execution of tool branches based on an expression',
     schema,
     version: '1.0.0',
     dependencies: ['zod', './eval_expr.js', './compose.js'],
-    async invoke(input, context) {
-        const {condition_expr, then_branch, else_branch} = schema.parse(input);
-
-        const conditionResult = await evalExprTool.invoke({expr: condition_expr}, context);
-        const isConditionTrue = Boolean(conditionResult); // Cast to boolean
-
-        if (isConditionTrue) {
-            return await composeTool.invoke({toolChain: then_branch}, context);
-        } else {
-            return await composeTool.invoke({toolChain: else_branch}, context);
-        }
-    }
+    invoke: withToolHandling({ name: 'if_else', schema, invoke }),
 };
