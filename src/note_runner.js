@@ -6,7 +6,7 @@ import { z } from 'zod';
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 import { ErrorHandler } from './error_handler.js'; // Import ErrorHandler
-import { logToolStart, replacePlaceholders, logNoteStart, logNoteFinalize } from './utils.js';
+import { logToolStart, replacePlaceholders, logNoteStart, logNoteFinalize, logNoteQueueLength, logStepError, logStepNotFound, logStepNotPending, logTestFail, logTestPass } from './utils.js';
 
 export class NoteRunner {
     noteStepHandler;
@@ -33,19 +33,18 @@ export class NoteRunner {
             const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
             const readyQueue = note.logic.filter(step => !step.dependencies.length && step.status === 'pending').map(s => s.id);
 
-            this.state.log(`Running note ${note.id}, ${readyQueue.length} steps ready`, 'debug', { component: 'NoteRunner', noteId: note.id, readyQueueLength: readyQueue.length });
-
+            logNoteQueueLength(this.state, note.id, readyQueue.length);
 
             while (readyQueue.length) {
                 const stepId = readyQueue.shift();
                 const step = stepsById.get(stepId);
                 if (!step) {
-                    this.state.log(`Step ${stepId} not found in note ${note.id}`, 'warn', { component: 'NoteRunner', noteId: note.id, stepId: stepId });
+                    logStepNotFound(this.state, note.id, stepId);
                     continue;
                 }
 
                 if (step.status !== 'pending') {
-                    this.state.log(`Step ${stepId} in note ${note.id} is not pending, skipping. Status: ${step.status}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: stepId, stepStatus: step.status });
+                    logStepNotPending(this.state, note.id, stepId, step.status);
                     continue;
                 }
 
@@ -91,16 +90,7 @@ export class NoteRunner {
                     }
                 } catch (error) {
                     step.status = 'failed';
-                    const errorMsg = `Error executing step ${step.id} of note ${note.id} with tool ${step.tool}: ${error}`;
-                    this.state.log(errorMsg, 'error', {
-                        component: 'NoteRunner',
-                        noteId: note.id,
-                        stepId: step.id,
-                        toolName: step.tool,
-                        errorName: error.name,
-                        errorMessage: error.message,
-                        errorStack: error.stack
-                    });
+                    logStepError(this.state, note.id, step.id, step.tool, error);
                     note.memory.push({
                         type: 'stepError',
                         content: errorMsg,
@@ -184,22 +174,13 @@ export class NoteRunner {
                     testFile: testFile
                 });
             } catch (error) {
-                this.state.log(`Tests failed for note ${note.id}: ${error}`, 'error', {
-                    component: 'TestRunner',
-                    noteId: note.id,
-                    testFile: testFile,
-                    error: error.message
-                });
+                logTestFail(this.state, note.id, testFile, error);
             }
         }
     }
 
     async _finalizeNoteRun(note) {
-        this.state.log(`Note ${note.id} execution finalized.`, 'debug', {
-            component: 'NoteRunner',
-            noteId: note.id,
-            status: note.status
-        });
+        logNoteFinalized(this.state, note.id, note.status);
         return note;
     }
 
