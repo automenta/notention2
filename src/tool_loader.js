@@ -45,3 +45,10 @@ export function createSimpleInvoke(schema) {
         return parsedInput;
     };
 }
+
+export function createSimpleInvoke(schema) {
+    return async function invoke(input) {
+        const parsedInput = schema.parse(input);
+        return parsedInput;
+    };
+}
