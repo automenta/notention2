@@ -16,7 +16,7 @@ export class ErrorHandler {
     }
 
     handleNoteError(note, error) {
-        logNoteExecutionError(this.state, note.id, error);
+        logNoteExecutionError(this.state, note.id, error, {noteTitle: note.title, stepId: 'N/A', toolName: 'N/A'});
 
         if (this.shouldRetry(error)) {
             this.retryExecution(note);
@@ -31,7 +31,7 @@ export class ErrorHandler {
 
     handleToolNotFoundError(note, step) {
         const error = new ToolNotFoundError(`Tool ${step.tool} not found`);
-        logToolNotFoundError(this.state, note.id, step.id, step.tool);
+        logToolNotFoundError(this.state, note.id, step.id, step.tool, {noteTitle: note.title});
         step.status = 'failed';
         step.error = error.message;
         this.state.serverCore.writeNoteToDB(note);
@@ -39,7 +39,7 @@ export class ErrorHandler {
 
     handleToolStepError(note, step, error) {
         const toolError = new ToolExecutionError(error.message);
-        logToolExecutionError(this.state, note.id, step.id, step.tool, toolError);
+        logToolExecutionError(this.state, note.id, step.id, step.tool, toolError, {noteTitle: note.title});
         step.status = 'failed';
         step.error = toolError.message;
         this.state.serverCore.writeNoteToDB(note);
