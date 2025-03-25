@@ -11,10 +11,6 @@ export class LLM {
         this.apiKeys = new Map();
     }
 
-    // timeoutPromise(promise, ms) { // Removed duplicated function
-    //     return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
-    // }
-
     async invoke(messages, collabNoteIds = [], apiContext = {}) {
         const prompt = messages[0].content;
         const cacheKey = `${prompt}:${collabNoteIds.join(',')}:${JSON.stringify(apiContext)}`;
