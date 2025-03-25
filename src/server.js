@@ -8,10 +8,10 @@ import crypto from 'crypto';
 import {Graph} from './graph.js';
 import {Tools} from './tools.js';
 import {LLM} from './llm.js';
-import { CONFIG } from './config.js'; // Import CONFIG
+import { CONFIG } from './config.js'; // Import CONFIG from config.js
 import { ServerState } from './server_state.js'; // Import ServerState
-import { INITIAL_NOTES } from './initial_notes.js'; // Import INITIAL_NOTES
-import { NoteSchema } from './schemas.js'; // Import NoteSchema
+import { INITIAL_NOTES } from './initial_notes.js'; // Import INITIAL_NOTES from initial_notes.js
+import { NoteSchema } from './schemas.js'; // Import NoteSchema from schemas.js
 
 
 class NetentionServer {
@@ -56,7 +56,7 @@ class NetentionServer {
                 step.input = this.replacePlaceholders(step.input, memoryMap);
 
                 switch (step.tool) {
-                    case 'summarize': // Use consistent tool name
+                    case 'summarize':
                         await this.handleSummarize(note, step);
                         break;
                     case 'generateCode':
