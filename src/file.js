@@ -32,19 +32,35 @@ export class File {
     }
 
     async saveNote(note) {
-        await writeFile(join(this.notesDir, `${note.id}.json`), JSON.stringify(note));
+        try {
+            await writeFile(join(this.notesDir, `${note.id}.json`), JSON.stringify(note));
+        } catch (error) {
+            console.error(`Error saving note ${note.id} to file: ${error}`);
+            throw error; // Re-throw to allow caller to handle or log
+        }
     }
 
     async deleteNote(noteId) {
-        await unlink(join(this.notesDir, `${noteId}.json`));
-        this.notes.delete(noteId);
+        try {
+            await unlink(join(this.notesDir, `${noteId}.json`));
+            this.notes.delete(noteId);
+        } catch (error) {
+            console.error(`Error deleting note ${noteId} from file: ${error}`);
+            throw error; // Re-throw to allow caller to handle or log
+        }
     }
 
     async removeReferences(noteId) {
         for (const [id, note] of this.notes.entries()) {
             if (note.references.includes(noteId)) {
                 note.references = note.references.filter(ref => ref !== noteId);
-                await this.saveNote(note);
+                try {
+                    await this.saveNote(note);
+                } catch (error) {
+                    console.error(`Error updating references for note ${note.id} during removeReferences of note ${noteId}: ${error}`);
+                    // Decide if you want to re-throw or just log and continue.
+                    // For now, logging and continuing to process other notes.
+                }
             }
         }
     }
