@@ -30,39 +30,11 @@ export class NoteStepHandler {
     }
 
     async handleStep(note, step, memoryMap) {
-        switch (step.tool) {
-            case 'summarize':
-                await this.handleSummarizeStep(note, step, memoryMap);
-                break;
-            case 'generateCode':
-                await this.handleGenerateCodeStep(note, step, memoryMap);
-                break;
-            case 'reflect':
-                await this.handleReflectStep(note, step, memoryMap);
-                break;
-            case 'test_gen':
-                await this.handleTestGeneration(note, step, memoryMap);
-                break;
-            case 'test_run':
-                await this.handleTestExecution(note, step, memoryMap);
-                break;
-            case 'knowNote':
-                await this.handleKnowNote(note, step, memoryMap);
-                break;
-            case 'analytics':
-                await this.handleAnalytics(note, step, memoryMap);
-                break;
-            case 'fetchExternal':
-                await this.handleFetchExternal(note, step, memoryMap);
-                break;
-            case 'collaborate':
-                await this.handleCollaboration(note, step, memoryMap);
-                break;
-            case 'generateTool':
-                await this.handleToolGeneration(note, step, memoryMap);
-                break;
-            default:
-                await this.handleDefaultStep(note, step, memoryMap);
+        try {
+            await executeToolStep(this.state, note, step, step.tool, memoryMap, this.errorHandler);
+        } catch (error) {
+            step.status = 'failed';
+            this.errorHandler.handleToolStepError(note, step, error);
         }
     }
 
@@ -193,39 +165,6 @@ export class NoteStepHandler {
             await this.state.serverCore.writeNoteToDB(note);
         } catch (error) {
             step.status = 'failed';
-            this.errorHandler.handleToolStepError(note, step, error);
-        }
-    }
-
-    async handleSummarizeStep(note, step, memoryMap) {
-        try {
-            const result = await executeToolStep(this.state, note, step, 'summarize', memoryMap, this.errorHandler);
-            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.state.serverCore.writeNoteToDB(note);
-        } catch (error) {
-            this.errorHandler.handleToolStepError(note, step, error);
-        }
-    }
-
-    async handleGenerateCodeStep(note, step, memoryMap) {
-         try {
-            const result = await executeToolStep(this.state, note, step, 'generateCode', memoryMap, this.errorHandler);
-            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.state.serverCore.writeNoteToDB(note);
-        } catch (error) {
-            this.errorHandler.handleToolStepError(note, step, error);
-        }
-    }
-
-    async handleReflectStep(note, step, memoryMap) {
-        try {
-            const result = await executeToolStep(this.state, note, step, 'reflect', memoryMap, this.errorHandler);
-            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.state.serverCore.writeNoteToDB(note);
-        } catch (error) {
             this.errorHandler.handleToolStepError(note, step, error);
         }
     }

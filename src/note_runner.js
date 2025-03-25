@@ -58,15 +58,14 @@ export class NoteRunner {
                     logStepError(this.state, note.id, step.id, step.tool, error);
                     note.memory.push({
                         type: 'stepError',
-                        content: error.message, // Changed from errorMsg
+                        content: error.message,
                         timestamp: Date.now(),
                         stepId: step.id,
                         errorName: error.name,
                         errorMessage: error.message
                     });
                     await this.state.serverCore.writeNoteToDB(note);
-                    return this._handleFailure(note, error); // Changed to pass error directly
-
+                    return this._handleFailure(note, error);
                 }
                 this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
             }
@@ -78,9 +77,6 @@ export class NoteRunner {
             return await this._finalizeNoteRun(note);
         } catch (error) {
             return this.errorHandler.handleNoteError(note, error);
-        } finally {
-            logNoteFinalize(this.state, note.id, note.status);
-            this.state.queueManager.executionQueue.delete(note.id);
         } finally {
             logNoteFinalize(this.state, note.id, note.status);
             this.state.queueManager.executionQueue.delete(note.id);
