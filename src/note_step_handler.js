@@ -18,10 +18,10 @@ export class NoteStepHandler {
                 await this.handleSummarize(note, step);
                 break;
             case 'generateCode':
-                await this.handleGenerateCode(note, step);
+                await this.generateCodeHandler(note, step);
                 break;
             case 'reflect':
-                await this.handleReflect(note, step);
+                await this.reflectHandler(note, step);
                 break;
             case 'test_gen':
                 await this.handleTestGeneration(note, step);
@@ -193,34 +193,25 @@ export class NoteStepHandler {
         }
     }
 
-    async handleGenerateCode(note, step) {
-        try {
-            const result = await this.state.tools.executeTool('generateCode', step.input, {
-                graph: this.state.graph,
-                llm: this.state.llm
-            });
-            note.memory.push({type: 'codeGen', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.state.writeNoteToDB(note);
-        } catch (error) {
-            this.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
-        }
+    async generateCodeHandler(note, step) {
+        await generateCodeTool.handleStep(note, step, {
+            graph: this.state.graph,
+            llm: this.state.llm,
+            tools: this.state.tools,
+            errorHandler: this.errorHandler,
+            state: this.state
+        });
     }
 
-    async handleReflect(note, step) {
-        try {
-            const result = await this.state.tools.executeTool('reflect', step.input, {
-                graph: this.state.graph,
-                llm: this.state.llm
-            });
-            note.memory.push({type: 'reflect', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.state.writeNoteToDB(note);
-        } catch (error) {
-            this.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
-        }
+    async reflectHandler(note, step) {
+        await reflectTool.handleStep(note, step, {
+            graph: this.state.graph,
+            llm: this.state.llm,
+            tools: this.state.tools,
+            errorHandler: this.errorHandler,
+            state: this.state
+        });
     }
-
 
     async _executeStep(note, step, memoryMap) {
         const tool = this.state.tools.getTool(step.tool);
