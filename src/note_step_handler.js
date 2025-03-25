@@ -1,23 +1,6 @@
 import crypto from 'crypto';
 import {z} from 'zod';
-
-async function executeToolStep(state, note, step, toolName, memoryMap, errorHandler) {
-    try {
-        const result = await state.tools.executeTool(toolName, step.input, {
-            graph: state.graph,
-            llm: state.llm
-        });
-        memoryMap.set(step.id, result);
-        note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
-        step.status = 'completed';
-        await state.serverCore.writeNoteToDB(note);
-        return result;
-    } catch (error) {
-        step.status = 'failed';
-        errorHandler.handleToolStepError(note, step, error);
-        return `Tool execution failed: ${error.message}`;
-    }
-}
+import { executeToolStep } from './tool_handler.js';
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
@@ -30,60 +13,36 @@ export class NoteStepHandler {
     }
 
     async handleStep(note, step, memoryMap) {
-        try {
-            await executeToolStep(this.state, note, step, step.tool, memoryMap, this.errorHandler);
-        } catch (error) {
-            step.status = 'failed';
-            this.errorHandler.handleToolStepError(note, step, error);
-        }
+        await executeToolStep(this.state, note, step, step.tool, memoryMap, this.errorHandler);
     }
 
     async handleTestGeneration(note, step, memoryMap) {
         const {code, targetId} = step.input;
-        try {
-            const testCode = await executeToolStep(this.state, note, step, 'test_gen', memoryMap, this.errorHandler);
-            const testNoteId = crypto.randomUUID();
-            const testNote = {
-                id: testNoteId,
-                title: `Test for ${targetId}`,
-                content: {type: 'test', code: testCode},
-                status: 'pending',
-                priority: 75,
-                references: [targetId],
-                createdAt: new Date().toISOString()
-            };
-            this.state.graph.addNote(testNote);
-            note.memory.push({
-                type: 'testGen',
-                content: `Generated test ${testNoteId} for ${targetId}`,
-                timestamp: Date.now(),
-                stepId: step.id
-            });
-            this.state.queueManager.queueExecution(testNote);
-            return testNoteId;
-        } catch (error) {
-            step.status = 'failed';
-            this.errorHandler.handleToolStepError(note, step, error);
-            return `Test generation failed: ${error.message}`;
-        }
+        const testCode = await executeToolStep(this.state, note, step, 'test_gen', memoryMap, this.errorHandler);
+        const testNoteId = crypto.randomUUID();
+        const testNote = {
+            id: testNoteId,
+            title: `Test for ${targetId}`,
+            content: {type: 'test', code: testCode},
+            status: 'pending',
+            priority: 75,
+            references: [targetId],
+            createdAt: new Date().toISOString()
+        };
+        this.state.graph.addNote(testNote);
+        note.memory.push({
+            type: 'testGen',
+            content: `Generated test ${testNoteId} for ${targetId}`,
+            timestamp: Date.now(),
+            stepId: step.id
+        });
+        this.state.queueManager.queueExecution(testNote);
+        return testNoteId;
     }
 
     async handleTestExecution(note, step, memoryMap) {
         const {testId} = step.input;
-        try {
-            const results = await executeToolStep(this.state, note, step, 'test_run', memoryMap, this.errorHandler);
-            note.memory.push({
-                type: 'testRun',
-                content: `Executed test ${testId}: ${results}`,
-                timestamp: Date.now(),
-                stepId: step.id
-            });
-            return results;
-        } catch (error) {
-            step.status = 'failed';
-            this.errorHandler.handleToolStepError(note, step, error);
-            return `Test execution failed: ${error.message}`;
-        }
+        return await executeToolStep(this.state, note, step, 'test_run', memoryMap, this.errorHandler);
     }
 
     async handleCollaboration(note, step, memoryMap) {
@@ -152,18 +111,7 @@ export class NoteStepHandler {
 
     async handleAnalytics(note, step, memoryMap) {
         const {targetId} = step.input;
-        try {
-            const target = this.state.graph.getNote(targetId);
-            if (!target) throw new Error(`Note ${targetId} not found`);
-            const analytics = this.state.queueManager.analytics.get(targetId) || {usage: 0, runtime: 0};
-            const result = `Usage: ${analytics.usage}, Avg Runtime: ${analytics.runtime / (analytics.usage || 1)}ms`;
-            note.memory.push({type: 'analytics', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.state.serverCore.writeNoteToDB(note);
-        } catch (error) {
-            step.status = 'failed';
-            this.errorHandler.handleToolStepError(note, step, error);
-        }
+        return await executeToolStep(this.state, note, step, 'analyze', memoryMap, this.errorHandler);
     }
 
     async handleFetchExternal(note, step, memoryMap) {
@@ -180,16 +128,6 @@ export class NoteStepHandler {
     }
 
     async handleDefaultStep(note, step, memoryMap) {
-        const tool = this.state.tools.getTool(step.tool);
-        if (!tool) return this.errorHandler.handleToolNotFoundError(note, step);
-        try {
-            const result = await tool.execute(step.input, {graph: this.state.graph, llm: this.state.llm});
-            memoryMap.set(step.id, result);
-            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.state.serverCore.writeNoteToDB(note);
-        } catch (error) {
-            this.errorHandler.handleToolStepError(note, step, error);
-        }
+        await executeToolStep(this.state, note, step, step.tool, memoryMap, this.errorHandler);
     }
 }
