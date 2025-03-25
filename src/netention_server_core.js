@@ -86,5 +86,5 @@ class NetentionServerCore {
         });
         await Promise.all(Array.from(this.state.pendingWrites.values()).map(resolve => resolve()));
         this.state.pendingWrites.clear();
-        await this.fileManager.saveNotesToDB(); // Ensure notes are saved to DB after batch update
+        await Promise.all(noteUpdates.map(note => this.fileManager.saveNote(note))); // Ensure notes are saved to DB after batch update
     }
