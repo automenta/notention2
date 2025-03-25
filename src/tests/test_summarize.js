@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import summarizeTool from '../tools/summarizeTool.js'; // Updated import path
+import summarizeTool from '../tools/summarize.js'; // Updated import path
 
 describe('Summarize Tool', () => {
     it('should summarize text', async () => {
