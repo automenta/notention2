@@ -8,9 +8,14 @@ const schema = z.object({
 
 async function invoke(input, context) {
     const { apiName, query } = schema.parse(input);
-    const llm = context.llm;
-    const data = await llm.fetchExternalData(apiName, query);
-    return data;
+    try {
+        context.logToolStart();
+        const llm = context.llm;
+        const data = await llm.fetchExternalData(apiName, query);
+        return data;
+    } catch (error) {
+        context.handleToolError(error);
+    }
 }
 
 
