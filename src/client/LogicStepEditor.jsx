@@ -110,10 +110,31 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                         onDragStart={handleDragStart}
                         onDragOver={handleDragOver}
                         onDragEnd={handleDragEnd}
+                        depth={getStepDepth(step.id, logic)} // Calculate depth
                     />
                 ))}
             </ul>
             <button onClick={handleAddStep}>Add Step</button>
+            {/* Utility function to calculate step depth */}
+            {/* Consider moving this function outside the component if used elsewhere */}
+            {/* or making it a separate utility module */}
+            <script>
+                {`
+                function getStepDepth(stepId, logic) {
+                    let depth = 0;
+                    let currentStep = logic.find(step => step.id === stepId);
+                    if (!currentStep || !currentStep.dependencies || currentStep.dependencies.length === 0) {
+                        return depth;
+                    }
+
+                    let maxDependencyDepth = 0;
+                    for (const depId of currentStep.dependencies) {
+                        maxDependencyDepth = Math.max(maxDependencyDepth, getStepDepth(depId, logic) + 1);
+                    }
+                    return maxDependencyDepth;
+                }
+                `}
+            </script>
             <style jsx>{`
                 .logic-step-item.dragging {
                     opacity: 0.5;
