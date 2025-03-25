@@ -169,12 +169,33 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                     background-color: #ffebee; /* Light red for failed */
                 }
 
+                .step-status-completed {
+                    background-color: #e8f5e9; /* Light green for completed */
+                }
+
+                .step-status-failed {
+                    background-color: #ffebee; /* Light red for failed */
+                }
+
                 .logic-step-item .dependency-connector {
                     position: absolute;
                     left: 0px; /* Adjust as needed */
                     top: 0;
                     height: 100%;
                     border-left: 2px dashed #ccc;
+                }
+
+                .logic-step-item .step-connector-anchor::after {
+                    content: '';
+                    position: absolute;
+                    left: 10px; /* Adjust to align with anchor */
+                    top: 0%;
+                    height: 100%;
+                    width: 2px;
+                    background: dashed linear-gradient(to bottom, #ccc 0%, #ccc 100%);
+                    background-size: 100% 6px;
+                    background-repeat: repeat-y;
+                    z-index: -1; /* Place connector line behind the step item */
                 }
 
 
