@@ -27,12 +27,26 @@ class NetentionServerCore {
     }
 
     timeoutPromise(promise, ms) {
-        return this.serverCore.timeoutPromise(promise, ms);
+        return this.timeoutPromise(promise, ms);
     }
 
     async dispatchWebSocketMessage(parsedMessage) {
-        await this.serverCore.dispatchWebSocketMessage(parsedMessage);
+        if (parsedMessage.type === 'createNote') {
+            await this.noteHandler.handleCreateNote(parsedMessage);
+        } else if (parsedMessage.type === 'updateNote') {
+            await this.noteHandler.handleUpdateNote(parsedMessage);
+        } else if (parsedMessage.type === 'deleteNote') {
+            await this.noteHandler.handleDeleteNote(parsedMessage);
+        } else if (parsedMessage.type === 'createEdge') {
+            await this.noteHandler.handleCreateEdge(parsedMessage);
+        } else {
+            this.state.log(`Unknown message type: ${parsedMessage.type}`, 'warn', {
+                component: 'WebSocket',
+                messageType: parsedMessage.type
+            });
+        }
     }
+
     async writeNoteToDB(note) {
         this.state.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
         this.state.updateBatch.add(note.id);

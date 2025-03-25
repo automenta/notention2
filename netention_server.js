@@ -54,12 +54,12 @@ class NetentionServer {
     }
 
     // timeoutPromise(promise, ms) { // Removed duplicated function
-    //     return this.serverCore.timeoutPromise(promise, ms);
+    //     return this.timeoutPromise(promise, ms);
     // }
 
-    async dispatchWebSocketMessage(parsedMessage) {
-        await this.serverCore.dispatchWebSocketMessage(parsedMessage);
-    }
+    // async dispatchWebSocketMessage(parsedMessage) { // Moved to NetentionServerCore
+    //     await this.serverCore.dispatchWebSocketMessage(parsedMessage);
+    // }
 
     async initialize() {
         this.log("Starting initialization...", 'info', {component: 'Server'});
