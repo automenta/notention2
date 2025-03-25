@@ -13,6 +13,8 @@ export class ServerState {
     updateBatch;
     batchTimeout;
     scheduler;
+    pendingWrites;
+    updateBatch;
 
     constructor() {
         this.llm = new LLM(); // Instantiate LLM Class

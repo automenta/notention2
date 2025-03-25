@@ -121,24 +121,24 @@ class NetentionServer {
 
     async writeNoteToDB(note) {
         this.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
-        this.state.updateBatch.add(note.id);
-        if (!this.state.batchTimeout) {
-            this.state.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
+        this.state.updateBatch.add(note.id); // Access via state
+        if (!this.batchTimeout) { // Keep batchTimeout in NetentionServer
+            this.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
         }
-        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve));
+        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve)); // Access via state
     }
 
     async flushBatchedUpdates() {
-        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
+        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => { // Access via state
             return this.state.graph.getNote(noteId);
         });
-        this.state.updateBatch.clear();
-        this.state.batchTimeout = null;
+        this.state.updateBatch.clear(); // Access via state
+        this.batchTimeout = null; // Keep batchTimeout in NetentionServer
         noteUpdates.forEach(note => {
             this.websocketManager.broadcastNoteUpdate(note); // Use websocketManager to broadcast
-            const resolver = this.state.pendingWrites.get(note.id);
+            const resolver = this.state.pendingWrites.get(note.id); // Access via state
             if (resolver) resolver();
-            this.state.pendingWrites.delete(note.id);
+            this.state.pendingWrites.delete(note.id); // Access via state
         });
     }
 
