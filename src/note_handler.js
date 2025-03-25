@@ -1,10 +1,8 @@
 import crypto from 'crypto';
 
 export class NoteHandler {
-    constructor(serverState, websocketManager, executionQueue) {
+    constructor(serverState) {
         this.state = serverState;
-        this.websocketManager = websocketManager;
-        this.executionQueue = executionQueue;
     }
 
     async handleCreateNote(parsedMessage) {
@@ -18,9 +16,9 @@ export class NoteHandler {
             createdAt: new Date().toISOString(),
         };
         this.state.graph.addNote(newNote);
-        await this.state.writeNoteToDB(newNote);
-        this.executionQueue.queueExecution(newNote);
-        this.websocketManager.broadcastNotesUpdate();
+        await this.state.serverCore.writeNoteToDB(newNote); // Use serverCore's writeNoteToDB
+        this.state.queueManager.queueExecution(newNote); // Access queueManager from state
+        this.state.websocketManager.broadcastNotesUpdate(); // Access websocketManager from state
     }
 
     async handleUpdateNote(parsedMessage) {
@@ -29,8 +27,8 @@ export class NoteHandler {
         if (existingNote) {
             Object.assign(existingNote, updatedNote);
             existingNote.updatedAt = new Date().toISOString();
-            await this.state.writeNoteToDB(existingNote);
-            this.websocketManager.broadcastNotesUpdate();
+            await this.state.serverCore.writeNoteToDB(existingNote); // Use serverCore's writeNoteToDB
+            this.state.websocketManager.broadcastNotesUpdate(); // Access websocketManager from state
         }
     }
 
@@ -38,8 +36,8 @@ export class NoteHandler {
         const noteIdToDelete = parsedMessage.id;
         this.state.graph.removeNote(noteIdToDelete);
         await this.state.graph.removeReferences(noteIdToDelete);
-        await this.state.writeNoteToDB({id: noteIdToDelete}); //still write to trigger update
-        this.websocketManager.broadcastNotesUpdate();
+        await this.state.serverCore.writeNoteToDB({id: noteIdToDelete}); // Use serverCore's writeNoteToDB //still write to trigger update
+        this.state.websocketManager.broadcastNotesUpdate(); // Access websocketManager from state
     }
 }
 import crypto from 'crypto';
