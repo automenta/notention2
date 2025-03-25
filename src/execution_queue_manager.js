@@ -62,7 +62,7 @@ export class ExecutionQueue {
         try {
             await this.state.runNote(note);
         } catch (error) {
-            logQueueProcessingError(this.state, note.id, error);
+            logQueueProcessingError(this.state, note.id, error, undefined, note.title);
             this.executionQueue.delete(noteId);
             // Basic retry for queue processing itself - re-queue the note if processing fails
             this.state.logger.warn(`Re-queueing note ${note.id} due to queue processing error.`, {
