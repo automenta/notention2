@@ -1,4 +1,5 @@
 import { logToolStart, logToolExecutionError } from './utils.js';
+import {loadToolsFromDirectory} from './tool_utils.js';
 
 export function withStandardToolHandling(context, toolName, note, step) {
     const augmentedContext = { ...context };
