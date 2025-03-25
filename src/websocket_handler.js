@@ -1,11 +1,14 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG } from './config.js';
-import crypto from 'crypto';
+import { NoteHandler } from './note_handler.js'; // Import NoteHandler
 
 export class WebSocketServerManager {
-    constructor(serverState) {
+    noteHandler; // Declare NoteHandler
+
+    constructor(serverState, executionQueue) {
         this.state = serverState;
         this.wss = null;
+        this.noteHandler = new NoteHandler(serverState, this, executionQueue); // Instantiate NoteHandler
     }
 
     start(httpServer) {
@@ -27,7 +30,7 @@ export class WebSocketServerManager {
         ws.on('message', async msg => {
             try {
                 const parsedMessage = JSON.parse(msg);
-                await this._handleWebSocketMessage(parsedMessage, ws); // Pass WebSocket instance
+                await this._handleWebSocketMessage(parsedMessage, ws);
             } catch (e) {
                 this.state.log(`WebSocket message processing error: ${e}`, 'error', {
                     component: 'WebSocketServer',
@@ -51,16 +54,16 @@ export class WebSocketServerManager {
     }
 
 
-    async _handleWebSocketMessage(parsedMessage, ws) { // Receive WebSocket instance
+    async _handleWebSocketMessage(parsedMessage, ws) {
         switch (parsedMessage.type) {
             case 'createNote':
-                await this._handleCreateNote(parsedMessage);
+                await this.noteHandler.handleCreateNote(parsedMessage); // Delegate to NoteHandler
                 break;
             case 'updateNote':
-                await this._handleUpdateNote(parsedMessage);
+                await this.noteHandler.handleUpdateNote(parsedMessage); // Delegate to NoteHandler
                 break;
             case 'deleteNote':
-                await this._handleDeleteNote(parsedMessage);
+                await this.noteHandler.handleDeleteNote(parsedMessage); // Delegate to NoteHandler
                 break;
             default:
                 this.state.log('Unknown message type', 'warn', {
@@ -68,42 +71,6 @@ export class WebSocketServerManager {
                     messageType: parsedMessage.type
                 });
         }
-    }
-
-
-    async _handleCreateNote(parsedMessage) {
-        const newNote = {
-            id: crypto.randomUUID(),
-            title: parsedMessage.title || 'New Note',
-            content: '',
-            status: 'pending',
-            logic: [],
-            memory: [],
-            createdAt: new Date().toISOString(),
-        };
-        this.state.graph.addNote(newNote);
-        await this.state.writeNoteToDB(newNote);
-        this.state.queueExecution(newNote);
-        this.broadcastNotesUpdate(); // Broadcast note list update
-    }
-
-    async _handleUpdateNote(parsedMessage) {
-        const updatedNote = parsedMessage;
-        const existingNote = this.state.graph.getNote(updatedNote.id);
-        if (existingNote) {
-            Object.assign(existingNote, updatedNote);
-            existingNote.updatedAt = new Date().toISOString();
-            await this.state.writeNoteToDB(existingNote);
-            this.broadcastNotesUpdate(); // Broadcast note list update
-        }
-    }
-
-    async _handleDeleteNote(parsedMessage) {
-        const noteIdToDelete = parsedMessage.id;
-        this.state.graph.removeNote(noteIdToDelete);
-        await this.state.graph.removeReferences(noteIdToDelete);
-        await this.state.writeNoteToDB({ id: noteIdToDelete }); //still write to trigger update
-        this.broadcastNotesUpdate(); // Broadcast note list update
     }
 
 

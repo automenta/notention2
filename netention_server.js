@@ -4,13 +4,15 @@ import { WebSocketServerManager } from './websocket_handler.js';
 import { ServerInitializer } from './server_initializer.js';
 import { ServerCore } from './server_core.js';
 import { NoteRunner } from './note_execution_handler.js';
+import { NoteHandler } from './note_handler.js';
 
 class NetentionServer {
     constructor() {
         this.state = new ServerState();
         this.queueManager = new ExecutionQueue(this.state);
-        this.websocketManager = new WebSocketServerManager(this.state);
+        this.websocketManager = new WebSocketServerManager(this.state, this.queueManager); // Pass executionQueue
         this.noteRunner = new NoteRunner(this.state);
+        this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager); // Instantiate NoteHandler
         this.core = new ServerCore(this.state, this.queueManager, this.websocketManager, this.noteRunner);
         this.initializer = new ServerInitializer(this.state, this.queueManager, this.websocketManager, this.noteRunner);
     }
