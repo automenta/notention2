@@ -235,13 +235,4 @@ export class NoteStepHandler {
         }
         await this.state.writeNoteToDB(note);
     }
-
-
-    _handleToolStepError(note, step, error) {
-        return this.errorHandler.handleToolStepError(note, step, error); // Delegate to ErrorHandler
-    }
-
-    _handleToolNotFoundError(note, step) {
-        return this.errorHandler.handleToolNotFoundError(note, step); // Delegate to ErrorHandler
-    }
 }
