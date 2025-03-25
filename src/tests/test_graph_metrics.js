@@ -1,4 +1,4 @@
-import {describe, expect, it} from '../test_utils';
+import {describe, expect, it} from 'vitest';
 import graphMetricsTool from '../tools/graph_metrics.js';
 
 describe('Graph Metrics Tool', () => {

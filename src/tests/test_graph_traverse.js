@@ -1,4 +1,4 @@
-import {describe, expect, it} from '../test_utils';
+import {describe, expect, it} from 'vitest';
 import graphTraverseTool from '../tools/graph_traverse.js';
 
 describe('Graph Traverse Tool', () => {
