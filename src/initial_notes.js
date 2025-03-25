@@ -100,6 +100,13 @@ export const INITIAL_NOTES = [
                 input: {noteId: 'seed-0'},
                 dependencies: ['2'],
                 status: 'pending'
+            },
+            {
+                id: '4',
+                tool: 'test_run', // Run tests for dev-1 note
+                input: {testId: 'dev-1'}, // Assuming 'dev-1' is the test note id
+                dependencies: ['3'],
+                status: 'pending'
             }
         ]
     },
