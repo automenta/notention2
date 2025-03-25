@@ -155,28 +155,4 @@ ${JSON.stringify(note.memory.slice(0, 50))}
         logNoteRunFinalized(this.state, note.id, note.status);
         return note;
     }
-
-    _handleFailure(note, error) {
-        if (this.shouldRequestUnitTest(note, error)) {
-            this.requestUnitTest(note);
-        } else {
-            this.errorHandler._handleFailure(note, error); // Corrected call
-        }
-    }
-
-    shouldRetry(error) {
-        return this.errorHandler.shouldRetry(error);
-    }
-
-    retryExecution(note) {
-        this.errorHandler.retryExecution(note);
-    }
-
-    shouldRequestUnitTest(note, error) {
-        return this.errorHandler.shouldRequestUnitTest(note, error);
-    }
-
-    async requestUnitTest(note) {
-        this.errorHandler.requestUnitTest(note); // Corrected call
-    }
 }
