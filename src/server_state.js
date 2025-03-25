@@ -6,7 +6,7 @@ import {CONFIG} from './config.js';
 
 export class ServerState {
     constructor() {
-        this.llm = new LLM(); // Instantiate LLM Class
+        this.llm = new LLM();
         this.graph = new Graph();
         this.tools = new Tools();
         this.memory = new InMemoryChatMessageHistory();
@@ -15,9 +15,9 @@ export class ServerState {
         this.pendingWrites = new Map();
         this.updateBatch = new Set();
         this.batchTimeout = null;
-        this.executionQueue = new Set(); // Changed to Set
+        this.executionQueue = new Set();
         this.analytics = new Map();
-        this.scheduler = null;
+        this.scheduler = null; // Scheduler moved to ExecutionQueueManager
     }
 
     log(message, level = 'info', context = {}) {
