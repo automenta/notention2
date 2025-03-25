@@ -74,48 +74,26 @@ export class NoteStepHandler {
 
     async handleToolGeneration(note, step, memoryMap) {
         const {name, desc, code} = step.input;
-        try {
-            const toolDef = {
-                name,
-                description: desc,
-                schema: z.object({}),
-                invoke: new Function('input', 'context', code)
-            };
-            this.state.tools.addTool(toolDef);
-            note.memory.push({
-                type: 'toolGen',
-                content: `Generated tool ${name}`,
-                timestamp: Date.now(),
-                stepId: step.id
-            });
-            step.status = 'completed';
-            await this.state.serverCore.writeNoteToDB(note);
-        } catch (error) {
-            await handleToolStepError(this.state, note, step, error);
-        }
+        await this.handleToolExecution(note, step, memoryMap, 'generateTool');
     }
 
     async handleKnowNote(note, step, memoryMap) {
         const {title, goal} = step.input;
-        try {
-            const newNoteId = crypto.randomUUID();
-            const newNote = {
-                id: newNoteId,
-                title,
-                content: goal,
-                status: 'pending',
-                logic: [],
-                memory: [],
-                createdAt: new Date().toISOString(),
-            };
-            this.state.graph.addNote(newNote);
-            note.memory.push({type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-            await this.state.serverCore.writeNoteToDB(note);
-            this.state.queueManager.queueExecution(newNote);
-        } catch (error) {
-            await handleToolStepError(this.state, note, step, error);
-        }
+        const newNoteId = crypto.randomUUID();
+        const newNote = {
+            id: newNoteId,
+            title,
+            content: goal,
+            status: 'pending',
+            logic: [],
+            memory: [],
+            createdAt: new Date().toISOString(),
+        };
+        this.state.graph.addNote(newNote);
+        note.memory.push({type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await this.state.serverCore.writeNoteToDB(note);
+        this.state.queueManager.queueExecution(newNote);
     }
 
     async handleAnalytics(note, step, memoryMap) {
