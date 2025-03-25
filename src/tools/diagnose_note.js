@@ -1,12 +1,12 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     noteId: z.string()
 });
 
 async function invoke(input, context) {
-    const { noteId } = schema.parse(input);
+    const {noteId} = schema.parse(input);
     const note = context.graph.getNote(noteId);
 
     if (!note) {
@@ -51,7 +51,10 @@ async function invoke(input, context) {
 
     return `**Diagnostic Report for Note '${note.title}' (ID: ${noteId}):**\n\n${report}`;
 
-    context.state.logger.info(`Diagnostic Report for Note '${note.title}' (ID: ${noteId}):\n${report}`, {component: 'diagnose_note', noteId: noteId}); // Log the report
+    context.state.logger.info(`Diagnostic Report for Note '${note.title}' (ID: ${noteId}):\n${report}`, {
+        component: 'diagnose_note',
+        noteId: noteId
+    }); // Log the report
 }
 
 export default defineTool({

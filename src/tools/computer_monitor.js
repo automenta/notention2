@@ -1,5 +1,6 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
+
 const si = require('systeminformation');
 
 const schema = z.object({

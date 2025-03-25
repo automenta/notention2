@@ -1,8 +1,8 @@
-import { logToolStart, logToolExecutionError } from './utils.js';
+import {logToolExecutionError, logToolStart} from './utils.js';
 import {loadToolsFromDirectory} from './tool_utils.js';
 
 export function withStandardToolHandling(context, toolName, note, step) {
-    const augmentedContext = { ...context };
+    const augmentedContext = {...context};
 
     augmentedContext.logToolStart = () => {
         logToolStart(context.state, note.id, step.id, toolName);
@@ -17,14 +17,14 @@ export function withStandardToolHandling(context, toolName, note, step) {
 }
 
 export function defineTool({
-    name,
-    description,
-    schema,
-    invoke,
-    version = '1.0.0',
-    dependencies = [],
-    logging = true // New option to control default logging
-}) {
+                               name,
+                               description,
+                               schema,
+                               invoke,
+                               version = '1.0.0',
+                               dependencies = [],
+                               logging = true // New option to control default logging
+                           }) {
     return () => {
         return {
             name,

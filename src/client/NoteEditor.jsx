@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 import ReactJson from 'react-json-view';
 import LogicStepEditor from './LogicStepEditor.jsx';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
-import { NoteEditorStyles } from './NoteEditorStyles.js'; // Import the styles
+import {NoteEditorStyles} from './NoteEditorStyles.js'; // Import the styles
 
-export default function NoteEditor({ note, onUpdate, notes = [], onRunTool, availableTools }) {
+export default function NoteEditor({note, onUpdate, notes = [], onRunTool, availableTools}) {
     const [title, setTitle] = useState(note?.title || '');
     const [content, setContent] = useState(note?.content || {});
     const [priority, setPriority] = useState(note?.priority || 50);
@@ -85,7 +85,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool, avai
     };
 
     const handleRunNow = () => {
-        onUpdate({ id: note.id, status: 'pending' });
+        onUpdate({id: note.id, status: 'pending'});
     };
 
     const handleRunTool = () => {
@@ -154,7 +154,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool, avai
                 </select>
             </div>
             <div style={NoteEditorStyles.section}>
-                <LogicStepEditor logic={logic} onChange={handleLogicChange} availableTools={availableTools} />
+                <LogicStepEditor logic={logic} onChange={handleLogicChange} availableTools={availableTools}/>
             </div>
 
             <div style={NoteEditorStyles.section}>
@@ -174,7 +174,7 @@ export default function NoteEditor({ note, onUpdate, notes = [], onRunTool, avai
             {selectedTool && (
                 <div style={NoteEditorStyles.toolSection}>
                     <StepInput
-                        step={{ tool: selectedTool, input: toolInput }}
+                        step={{tool: selectedTool, input: toolInput}}
                         availableTools={availableTools}
                         onStepChange={(index, field, value) => handleToolInputChange(value)}
                         index={0}

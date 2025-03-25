@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 import {ChatGoogleGenerativeAI} from "@langchain/google-genai";
 import {PromptTemplate} from "@langchain/core/prompts";
 import {LLMChain} from "langchain/chains";
@@ -19,11 +19,11 @@ const promptTemplate = PromptTemplate.fromTemplate(
 const chain = new LLMChain({llm: llm, prompt: promptTemplate});
 
 async function invoke(input, context) {
-    const { text, length = 'medium', style = 'paragraph' } = schema.parse(input);
+    const {text, length = 'medium', style = 'paragraph'} = schema.parse(input);
 
     try {
         context.logToolStart(); // Use the augmented context to log
-        const result = await chain.call({ text, length, style });
+        const result = await chain.call({text, length, style});
         return result.text || 'No summary generated';
     } catch (error) {
         context.handleToolError(error); // Use the augmented context to handle errors

@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     noteId: z.string(),
@@ -7,7 +7,7 @@ const schema = z.object({
 });
 
 async function invoke(input, context) { // Rename original invoke to invokeImpl
-    const { noteId, time } = schema.parse(input); // Parse input here for consistency
+    const {noteId, time} = schema.parse(input); // Parse input here for consistency
     const graph = context.graph;
     const note = graph.getNote(noteId);
 
@@ -55,46 +55,51 @@ export default defineTool({
     dependencies: ['zod'],
     try {
         context.logToolStart();
-        const { noteId, time } = schema.parse(input); // Parse input here for consistency
+        const {noteId, time} = schema.parse(input); // Parse input here for consistency
         const graph = context.graph;
         const note = graph.getNote(noteId);
 
-        if (!note) {
-            return `Error: Note with ID '${noteId}' not found.`;
-        }
+        if(
+!note
+)
+{
+    return `Error: Note with ID '${noteId}' not found.`;
+}
 
-        const scheduledTime = new Date(time);
-        if (isNaN(scheduledTime.getTime())) {
-            return `Error: Invalid time format '${time}'. Please use a valid date and time string.`;
-        }
+const scheduledTime = new Date(time);
+if (isNaN(scheduledTime.getTime())) {
+    return `Error: Invalid time format '${time}'. Please use a valid date and time string.`;
+}
 
-        const delay = scheduledTime.getTime() - Date.now();
+const delay = scheduledTime.getTime() - Date.now();
 
-        if (delay <= 0) {
-            return `Error: Scheduled time '${time}' is in the past.`;
-        }
+if (delay <= 0) {
+    return `Error: Scheduled time '${time}' is in the past.`;
+}
 
-        context.logger.log(`Note '${noteId}' scheduling execution for '${time}'.`, 'info', {
-            component: 'schedule',
-            noteId: noteId,
-            scheduledTime: time
-        });
+context.logger.log(`Note '${noteId}' scheduling execution for '${time}'.`, 'info', {
+    component: 'schedule',
+    noteId: noteId,
+    scheduledTime: time
+});
 
-        setTimeout(async () => {
-            note.status = 'pending';
-            await context.serverCore.writeNoteToDB(note);
-            context.state.queueManager.queueExecution(note);
-            context.logger.log(`Note '${noteId}' executed as scheduled at '${time}'.`, 'info', {
-                component: 'schedule',
-                noteId: noteId,
-                scheduledTime: time
-            });
-        }, delay);
+setTimeout(async () => {
+    note.status = 'pending';
+    await context.serverCore.writeNoteToDB(note);
+    context.state.queueManager.queueExecution(note);
+    context.logger.log(`Note '${noteId}' executed as scheduled at '${time}'.`, 'info', {
+        component: 'schedule',
+        noteId: noteId,
+        scheduledTime: time
+    });
+}, delay);
 
-        return `Note '${noteId}' scheduled to run at '${time}'.`;
-    } catch (error) {
-        context.handleToolError(error);
-    }
+return `Note '${noteId}' scheduled to run at '${time}'.`;
+} catch
+(error)
+{
+    context.handleToolError(error);
+}
 }
 
 

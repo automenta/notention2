@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     toolChain: z.array(z.object({ // toolChain is now an array of tool configurations
@@ -22,7 +22,7 @@ async function invoke(input, context) {
 
         try {
             const result = await tool.execute(stepInput || {}, context); // Use stepInput if provided, otherwise empty object
-            executionResults.push({ toolName, result });
+            executionResults.push({toolName, result});
         } catch (error) {
             return `Error executing tool '${toolName}': ${error.message}`;
         }
@@ -43,7 +43,7 @@ async function invoke(input, context) {
 
             try {
                 const result = await tool.execute(stepInput || {}, context); // Use stepInput if provided, otherwise empty object
-                executionResults.push({ toolName, result });
+                executionResults.push({toolName, result});
             } catch (error) {
                 return `Error executing tool '${toolName}': ${error.message}`;
             }

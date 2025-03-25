@@ -1,15 +1,14 @@
-import { logToolStart, logToolExecutionError } from './utils.js';
-import {readdir} from 'node:fs/promises';
+import {logToolExecutionError, logToolStart} from './utils.js';
 
 export function withToolHandling(tool) {
     return async (input, context) => {
         try {
             const validatedInput = tool.schema.parse(input);
             const result = await tool.invoke(validatedInput, context);
-            return { success: true, data: result };
+            return {success: true, data: result};
         } catch (error) {
             console.error(`Tool '${tool.name}' failed: ${error}`);
-            return { success: false, error: error.message };
+            return {success: false, error: error.message};
         }
     };
 }
@@ -31,14 +30,14 @@ export function getToolSchema(availableTools, toolName) {
 }
 
 export function defineTool({
-    name,
-    description,
-    schema,
-    invoke,
-    version = '1.0.0',
-    dependencies = [],
-    logging = true // New option to control default logging
-}) {
+                               name,
+                               description,
+                               schema,
+                               invoke,
+                               version = '1.0.0',
+                               dependencies = [],
+                               logging = true // New option to control default logging
+                           }) {
     return () => {
         const safeInvoke = async (input, context) => {
             try {

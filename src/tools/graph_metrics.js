@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool, createSimpleInvoke } from '../tool_utils.js';
+import {createSimpleInvoke, defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     startId: z.string()
@@ -33,15 +33,20 @@ export default defineTool({
         const graph = context.graph;
         const note = graph.getNote(startId);
 
-        if (!note) {
-            return `Node ${startId} not found`;
-        }
+        if(
+!note
+)
+{
+    return `Node ${startId} not found`;
+}
 
-        const degree = graph.getReferences(startId).length;
-        return {degree, nodes: graph.getSize()};
-    } catch (error) {
-        context.handleToolError(error);
-    }
+const degree = graph.getReferences(startId).length;
+return {degree, nodes: graph.getSize()};
+} catch
+(error)
+{
+    context.handleToolError(error);
+}
 }
 
 

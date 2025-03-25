@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     concept_name: z.string(),
@@ -8,14 +8,14 @@ const schema = z.object({
 });
 
 async function invoke(input, context) {
-    const { concept_name, definition, metaNoteId: inputMetaNoteId } = schema.parse(input);
+    const {concept_name, definition, metaNoteId: inputMetaNoteId} = schema.parse(input);
     const metaNoteId = inputMetaNoteId || 'seed-0'; // Default to 'seed-0' if not provided
     const graph = context.graph;
     const metaNote = graph.getNote(metaNoteId);
 
     if (!metaNote) {
         const errorMsg = `Error: Meta-Note with ID '${metaNoteId}' not found.`;
-        context.logger.log(errorMsg, 'error', { component: 'define_concept', metaNoteId: metaNoteId });
+        context.logger.log(errorMsg, 'error', {component: 'define_concept', metaNoteId: metaNoteId});
         return errorMsg;
     }
 
@@ -39,17 +39,17 @@ async function invoke(input, context) {
     await context.serverCore.writeNoteToDB(metaNote);
 
     const successMsg = `Concept '${concept_name}' defined and stored in Meta-Note.`;
-    context.logger.log(successMsg, 'info', { component: 'define_concept', conceptName: concept_name });
+    context.logger.log(successMsg, 'info', {component: 'define_concept', conceptName: concept_name});
     try {
         context.logToolStart();
-        const { concept_name, definition, metaNoteId: inputMetaNoteId } = schema.parse(input);
+        const {concept_name, definition, metaNoteId: inputMetaNoteId} = schema.parse(input);
         const metaNoteId = inputMetaNoteId || 'seed-0'; // Default to 'seed-0' if not provided
         const graph = context.graph;
         const metaNote = graph.getNote(metaNoteId);
 
         if (!metaNote) {
             const errorMsg = `Error: Meta-Note with ID '${metaNoteId}' not found.`;
-            context.logger.log(errorMsg, 'error', { component: 'define_concept', metaNoteId: metaNoteId });
+            context.logger.log(errorMsg, 'error', {component: 'define_concept', metaNoteId: metaNoteId});
             return errorMsg;
         }
 
@@ -73,8 +73,8 @@ async function invoke(input, context) {
         await context.serverCore.writeNoteToDB(metaNote);
 
         const successMsg = `Concept '${concept_name}' defined and stored in Meta-Note.`;
-        context.logger.log(successMsg, 'info', { component: 'define_concept', conceptName: concept_name });
-        return { status: 'success', message: successMsg, conceptName: concept_name };
+        context.logger.log(successMsg, 'info', {component: 'define_concept', conceptName: concept_name});
+        return {status: 'success', message: successMsg, conceptName: concept_name};
     } catch (error) {
         context.handleToolError(error);
     }

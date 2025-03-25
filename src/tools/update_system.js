@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     update_instructions: z.string()
@@ -33,7 +33,7 @@ export default defineTool({
         });
 
         return `System update instructions received and logged. Instructions: ${update_instructions}`;
-    } catch (error) {
+    } catch(error) {
         context.handleToolError(error);
     }
 }

@@ -1,5 +1,4 @@
 import React, {useState} from 'react';
-import ReactJson from 'react-json-view';
 import LogicStepItem from './LogicStepItem.jsx'; // Import LogicStepItem
 import {getToolSchema} from './tool_utils';
 import ToolInputRenderer from './ToolInputRenderer.jsx';

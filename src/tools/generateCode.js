@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     description: z.string(),
@@ -7,14 +7,14 @@ const schema = z.object({
 });
 
 async function invoke(input, context) {
-    const { description, execute = false } = schema.parse(input);
+    const {description, execute = false} = schema.parse(input);
     const llm = context.llm;
     const code = await llm.invoke([`Generate JS code: ${description}`]);
     try {
         context.logToolStart();
         if (execute) {
             const vm = require('vm');
-            const sandbox = { console, require };
+            const sandbox = {console, require};
             vm.createContext(sandbox);
         }
         return code.content;

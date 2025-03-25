@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     modelId: z.string(),
@@ -7,7 +7,7 @@ const schema = z.object({
 });
 
 async function invoke(input, context) {
-    const { modelId, input: predictionInput } = schema.parse(input);
+    const {modelId, input: predictionInput} = schema.parse(input);
     try {
         context.logToolStart();
         const graph = context.graph;

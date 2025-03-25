@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import crypto from 'crypto';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     modelType: z.enum(['dtree', 'classifier', 'pca', 'cluster']), // Example model types
@@ -9,7 +9,7 @@ const schema = z.object({
 });
 
 async function invoke(input, context) {
-    const { modelType, data, targetId } = schema.parse(input);
+    const {modelType, data, targetId} = schema.parse(input);
     const modelId = crypto.randomUUID();
     const graph = context.graph;
 
@@ -54,7 +54,7 @@ export default defineTool({
     dependencies: ['zod', 'crypto'],
     try {
         context.logToolStart();
-        const { modelType, data, targetId } = schema.parse(input);
+        const {modelType, data, targetId} = schema.parse(input);
         const modelId = crypto.randomUUID();
         const graph = context.graph;
 
@@ -89,7 +89,7 @@ export default defineTool({
         });
 
         return modelId; // Return the ID of the newly created model Note
-    } catch (error) {
+    } catch(error) {
         context.handleToolError(error);
     }
 }

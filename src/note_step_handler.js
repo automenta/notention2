@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { executeToolStep } from './tool_handler.js';
+import {executeToolStep} from './tool_handler.js';
 
 export class NoteStepHandler {
     constructor(serverState, errorHandler) {
@@ -46,12 +46,12 @@ export class NoteStepHandler {
     }
 
     async handleTestGeneration(note, step, testCode) {
-        const { targetId } = step.input;
+        const {targetId} = step.input;
         const testNoteId = crypto.randomUUID();
         const testNote = {
             id: testNoteId,
             title: `Test for ${targetId}`,
-            content: { type: 'test', code: testCode },
+            content: {type: 'test', code: testCode},
             status: 'pending',
             priority: 75,
             references: [targetId],
@@ -71,7 +71,7 @@ export class NoteStepHandler {
     }
 
     async handleKnowNote(note, step) {
-        const { title, goal } = step.input;
+        const {title, goal} = step.input;
         const newNoteId = crypto.randomUUID();
         const newNote = {
             id: newNoteId,
@@ -90,14 +90,14 @@ export class NoteStepHandler {
     }
 
     async handleFetchExternal(note, step) {
-        const { apiName, query } = step.input;
+        const {apiName, query} = step.input;
         const data = await this.state.getLLM().fetchExternalData(apiName, query);
         const stepResult = `Fetched data from ${apiName}`;
         await this.state.markStepAsCompleted(note, step, stepResult);
     }
 
     async handleCollaboration(note, step) {
-        const { noteIds } = step.input;
+        const {noteIds} = step.input;
         const llm = this.state.getLLM();
         const collabResult = await llm.invoke(
             [`Collaborate on "${note.title}" with notes: ${noteIds.join(', ')}`],

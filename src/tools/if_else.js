@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 import evalExprTool from './eval_expr.js';
 import composeTool from './compose.js';
 
@@ -41,12 +41,12 @@ export default defineTool({
         const conditionResult = await evalExprTool.invoke({expr: condition_expr}, context);
         const isConditionTrue = Boolean(conditionResult); // Cast to boolean
 
-        if (isConditionTrue) {
+        if(isConditionTrue) {
             return await composeTool.invoke({toolChain: then_branch}, context);
         } else {
             return await composeTool.invoke({toolChain: else_branch}, context);
         }
-    } catch (error) {
+    } catch(error) {
         context.handleToolError(error);
     }
 }

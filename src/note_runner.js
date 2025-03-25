@@ -1,24 +1,34 @@
 import {CONFIG} from './config.js';
 import path from 'path'; // ADDED
 import {
-    logNoteStart,
+    logMemoryPrune,
     logNoteFinalize,
     logNoteQueueLength,
+    logNoteStart,
     logStepError,
     logStepNotFound,
     logStepNotPending,
     logTestFail,
-    logMemoryPrune,
     replacePlaceholders
 } from './utils.js';
-import {
-    NoteExecutionError
-} from './errors.js';
+import {NoteExecutionError} from './errors.js';
 
 export class NoteRunner {
     constructor(serverState) {
         this.state = serverState;
         this.errorHandler = this.state.errorHandler;
+    }
+
+    static _createTestNote(note, testId) {
+        return {
+            id: testId,
+            title: `Test for ${note.title}`,
+            content: {type: 'test', code: ''},
+            status: 'pending',
+            priority: 75,
+            references: [note.id],
+            createdAt: new Date().toISOString()
+        };
     }
 
     async runNote(note) {
@@ -203,17 +213,5 @@ export class NoteRunner {
         const testNote = this._createTestNote(note, testId);
         this.state.graph.addNote(testNote);
         this.state.queueManager.queueExecution(testNote);
-    }
-
-    static _createTestNote(note, testId) {
-        return {
-            id: testId,
-            title: `Test for ${note.title}`,
-            content: {type: 'test', code: ''},
-            status: 'pending',
-            priority: 75,
-            references: [note.id],
-            createdAt: new Date().toISOString()
-        };
     }
 }

@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     title: z.string(),
@@ -7,7 +7,7 @@ const schema = z.object({
 });
 
 async function invoke(input, context) {
-    const { title, goal } = schema.parse(input);
+    const {title, goal} = schema.parse(input);
 
     try {
         context.logToolStart();
@@ -23,7 +23,7 @@ async function invoke(input, context) {
         };
         const graph = context.graph;
         graph.addNote(newNote);
-        note.memory.push({ type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id });
+        note.memory.push({type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await context.serverCore.writeNoteToDB(note);
         context.state.queueManager.queueExecution(newNote);

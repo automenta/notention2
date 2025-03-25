@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     startId: z.string(),
@@ -7,7 +7,7 @@ const schema = z.object({
 });
 
 async function invoke(input, context) { // Rename original invoke to invokeImpl
-    const { startId, query } = schema.parse(input); // Parse input here for consistency
+    const {startId, query} = schema.parse(input); // Parse input here for consistency
     const graph = context.graph;
     const visited = new Set();
     const queue = [startId];
@@ -20,7 +20,7 @@ async function invoke(input, context) { // Rename original invoke to invokeImpl
 
         const note = graph.getNote(id);
         if (note && (note.title.includes(query) || note.content.includes(query))) {
-            results.push({ id, title: note.title });
+            results.push({id, title: note.title});
         }
         queue.push(...graph.getReferences(id));
     }
@@ -34,28 +34,31 @@ export default defineTool({
     schema,
     try {
         context.logToolStart();
-        const { startId, query } = schema.parse(input); // Parse input here for consistency
+        const {startId, query} = schema.parse(input); // Parse input here for consistency
         const graph = context.graph;
         const visited = new Set();
         const queue = [startId];
         const results = [];
 
-        while (queue.length) {
-            const id = queue.shift();
-            if (visited.has(id)) continue;
-            visited.add(id);
+        while(queue.length)
+{
+    const id = queue.shift();
+    if (visited.has(id)) continue;
+    visited.add(id);
 
-            const note = graph.getNote(id);
-            if (note && (note.title.includes(query) || note.content.includes(query))) {
-                results.push({ id, title: note.title });
-            }
-            queue.push(...graph.getReferences(id));
-        }
-
-        return results;
-    } catch (error) {
-        context.handleToolError(error);
+    const note = graph.getNote(id);
+    if (note && (note.title.includes(query) || note.content.includes(query))) {
+        results.push({id, title: note.title});
     }
+    queue.push(...graph.getReferences(id));
+}
+
+return results;
+} catch
+(error)
+{
+    context.handleToolError(error);
+}
 }
 
 export default defineTool({

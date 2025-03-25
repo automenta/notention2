@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { defineTool } from '../tool_utils.js';
+import {defineTool} from '../tool_utils.js';
 
 const schema = z.object({
     code: z.string(),
@@ -7,7 +7,7 @@ const schema = z.object({
 });
 
 async function invoke(input, context) {
-    const { code, targetId } = schema.parse(input);
+    const {code, targetId} = schema.parse(input);
     const llm = context.llm;
     const graph = context.graph;
     const targetNote = graph.getNote(targetId);
@@ -51,7 +51,7 @@ async function invoke(input, context) {
         `;
 
     try {
-        const llmResult = await llm.invoke([{ role: 'user', content: prompt }]);
+        const llmResult = await llm.invoke([{role: 'user', content: prompt}]);
         const testCode = llmResult.text;
 
         if (!testCode) {
@@ -73,13 +73,13 @@ export default defineTool({
     dependencies: ['zod', '@langchain/google-genai'],
     try {
         context.logToolStart();
-        const { code, targetId } = schema.parse(input);
+        const {code, targetId} = schema.parse(input);
         const llm = context.llm;
         const graph = context.graph;
         const targetNote = graph.getNote(targetId);
 
         let noteContext = "";
-        if (targetNote) {
+        if(targetNote) {
             noteContext = `
             Note Title: ${targetNote.title}
             Note Content: ${JSON.stringify(targetNote.content, null, 2)}
@@ -116,17 +116,22 @@ export default defineTool({
         \`\`\`
         `;
 
-        const llmResult = await llm.invoke([{ role: 'user', content: prompt }]);
+        const llmResult = await llm.invoke([{role: 'user', content: prompt}]);
         const testCode = llmResult.text;
 
-        if (!testCode) {
-            throw new Error("Failed to generate test code from LLM.");
-        }
+        if(
+!testCode
+)
+{
+    throw new Error("Failed to generate test code from LLM.");
+}
 
-        return testCode;
-    } catch (error) {
-        context.handleToolError(error);
-    }
+return testCode;
+} catch
+(error)
+{
+    context.handleToolError(error);
+}
 }
 
 export default defineTool({

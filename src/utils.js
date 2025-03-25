@@ -199,6 +199,7 @@ export function logNoteFinalized(state, noteId, status) {
         status: status
     });
 }
+
 export async function handleToolStepError(state, note, step, error) {
     step.status = 'failed';
     step.error = error.message;
