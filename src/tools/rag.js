@@ -9,8 +9,13 @@ const schema = z.object({
 
 async function invoke(input, context) {
     const { query, documents, vectorStoreId } = schema.parse(input);
-    // Tool logic here, access context.llm, context.graph, etc.
-    return `RAG Tool invoked with query: ${query}`; // Example return
+    try {
+        context.logToolStart();
+        // Tool logic here, access context.llm, context.graph, etc.
+        return `RAG Tool invoked with query: ${query}`; // Example return
+    } catch (error) {
+        context.handleToolError(error);
+    }
 }
 
 export default defineTool({
