@@ -402,7 +402,7 @@ export class NoteRunner {
     retryExecution(note) {
         note.status = 'pending'; // Reset status to pending for retry
         this.state.writeNoteToDB(note);
-        this.queueExecution(note); // Re-queue for execution
+        this.state.queueExecution(note); // Re-queue for execution
         this.state.log(`Note ${note.id} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: note.id});
     }
 
@@ -418,7 +418,7 @@ export class NoteRunner {
         const testId = crypto.randomUUID();
         note.tests.push(testId); // Assign a test ID to the note
         note.status = 'pendingUnitTesting';
-        await this.writeNoteToDB(note);
+        await this.state.writeNoteToDB(note);
 
 
         const testNote = {
@@ -434,8 +434,8 @@ export class NoteRunner {
             references: [note.id] // Create reference to the note being tested
         };
         this.state.graph.addNote(testNote);
-        await this.writeNoteToDB(testNote);
-        this.queueExecution(testNote); // Queue the test note for execution
+        await this.state.writeNoteToDB(testNote);
+        this.state.queueExecution(testNote); // Queue the test note for execution
         this.state.log(`Unit test requested for Note ${note.id}, test Note ${testId} created.`, 'info', {
             component: 'NoteRunner',
             noteId: note.id,
@@ -443,6 +443,9 @@ export class NoteRunner {
         });
     }
 }
+const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
+
+export default NoteRunner;
 
 
 export default NoteRunner;
