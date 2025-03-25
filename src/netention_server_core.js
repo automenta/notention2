@@ -1,6 +1,6 @@
 import {CONFIG} from './config.js';
-import {NoteLoader} from './note_loader.js';
 import {File} from './file.js';
+import {loadToolsFromDirectory} from './tool_utils.js';
 
 class NetentionServerCore {
 
@@ -12,6 +12,7 @@ class NetentionServerCore {
     noteRunner;
     noteHandler;
     batchTimeout;
+    toolLoader;
 
 
     constructor(state, queueManager, websocketManager, errorHandler, noteStepHandler, noteRunner, noteHandler) {
@@ -24,7 +25,8 @@ class NetentionServerCore {
         this.noteHandler = noteHandler;
         this.batchTimeout = null;
         this.fileManager = new File(CONFIG.DB_PATH); // Instantiate File manager
-        this.tools.loadTools();
+        this.toolLoader = {loadTools: this.state.tools.loadTools.bind(this.state.tools)};
+        this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
         this.loadNotesFromDB(); // Load notes from DB on initialization
     }
 
