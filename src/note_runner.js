@@ -26,59 +26,8 @@ export class NoteRunner {
         if (this.state.queueManager.executionQueue.has(note.id)) return note;
         this.state.queueManager.executionQueue.add(note.id);
         try {
-            logNoteStart(this.state, note.id);
-            note.status = 'running';
-            await this.state.serverCore.writeNoteToDB(note);
-            this.state.queueManager.updateAnalytics(note, 'start');
-
-            const memoryMap = new Map(note.memory.map(m => [m.stepId || m.timestamp, m.content]));
-            const stepsById = new Map(note.logic.map(step => [step.id, step]));
-            const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
-            const readyQueue = note.logic.filter(step => !step.dependencies.length && step.status === 'pending').map(s => s.id);
-
-            logNoteQueueLength(this.state, note.id, readyQueue.length);
-
-            while (readyQueue.length) {
-                const stepId = readyQueue.shift();
-                const step = stepsById.get(stepId);
-                if (!step) {
-                    logStepNotFound(this.state, note.id, stepId);
-                    continue;
-                }
-
-                if (step.status !== 'pending') {
-                    logStepNotPending(this.state, note.id, stepId, step.status);
-                    continue;
-                }
-
-                step.status = 'running';
-                this.state.logger.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', {
-                    component: 'NoteRunner',
-                    noteId: note.id,
-                    stepId: step.id,
-                    toolName: step.tool
-                });
-                step.input = replacePlaceholders(step.input, memoryMap);
-
-                try {
-                    await this.state.noteStepHandler.handleStep(note, step, memoryMap);
-                } catch (error) {
-                    step.status = 'failed';
-                    logStepError(this.state, note.id, step.id, step.tool, error);
-                    note.memory.push({
-                        type: 'stepError',
-                        content: error.message,
-                        timestamp: Date.now(),
-                        stepId: step.id,
-                        errorName: error.name,
-                        errorMessage: error.message
-                    });
-                    await this.state.serverCore.writeNoteToDB(note);
-                    return this._handleFailure(note, error);
-                }
-                this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
-            }
-
+            await this._initializeNoteExecution(note);
+            await this._processNoteSteps(note);
             await this._updateNoteStatusPostExecution(note);
             await this._runNoteTests(note);
             await this._pruneMemory(note);
@@ -89,6 +38,63 @@ export class NoteRunner {
         } finally {
             logNoteFinalize(this.state, note.id, note.status);
             this.state.queueManager.executionQueue.delete(note.id);
+        }
+    }
+
+    async _initializeNoteExecution(note) {
+        logNoteStart(this.state, note.id);
+        note.status = 'running';
+        await this.state.serverCore.writeNoteToDB(note);
+        this.state.queueManager.updateAnalytics(note, 'start');
+    }
+
+    async _processNoteSteps(note) {
+        const memoryMap = new Map(note.memory.map(m => [m.stepId || m.timestamp, m.content]));
+        const stepsById = new Map(note.logic.map(step => [step.id, step]));
+        const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
+        const readyQueue = note.logic.filter(step => !step.dependencies.length && step.status === 'pending').map(s => s.id);
+
+        logNoteQueueLength(this.state, note.id, readyQueue.length);
+
+        while (readyQueue.length) {
+            const stepId = readyQueue.shift();
+            const step = stepsById.get(stepId);
+            if (!step) {
+                logStepNotFound(this.state, note.id, stepId);
+                continue;
+            }
+
+            if (step.status !== 'pending') {
+                logStepNotPending(this.state, note.id, stepId, step.status);
+                continue;
+            }
+
+            step.status = 'running';
+            this.state.logger.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', {
+                component: 'NoteRunner',
+                noteId: note.id,
+                stepId: step.id,
+                toolName: step.tool
+            });
+            step.input = replacePlaceholders(step.input, memoryMap);
+
+            try {
+                await this.state.noteStepHandler.handleStep(note, step, memoryMap);
+            } catch (error) {
+                step.status = 'failed';
+                logStepError(this.state, note.id, step.id, step.tool, error);
+                note.memory.push({
+                    type: 'stepError',
+                    content: error.message,
+                    timestamp: Date.now(),
+                    stepId: step.id,
+                    errorName: error.name,
+                    errorMessage: error.message
+                });
+                await this.state.serverCore.writeNoteToDB(note);
+                return this._handleFailure(note, error);
+            }
+            this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
         }
     }
 
