@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import { createViteServer } from "vitest/node";
 import * as http from "node:http";
 import { CONFIG, INITIAL_NOTES } from './config.js';
-import { ToolLoader } from './tool_loader.js';
+import { ToolLoader } from './tool_loader_manager.js';
 import { NoteLoader } from './note_loader.js';
 
 export class ServerInitializer {
@@ -10,7 +10,7 @@ export class ServerInitializer {
         this.state = serverState;
         this.queueManager = queueManager;
         this.websocketManager = websocketManager;
-        this.toolLoader = new ToolLoader(serverState);
+        this.toolLoader = new ToolLoader(serverState); // Use ToolLoader from new module
         this.noteLoader = new NoteLoader(serverState);
     }
 
