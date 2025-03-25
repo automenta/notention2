@@ -10,12 +10,13 @@ import {NoteLoader} from './note_loader.js';
 import { NoteRunner } from './note_runner.js';
 import { NoteHandler } from './note_handler.js';
 import { NoteStepHandler } from './note_step_handler.js';
-import { ServerState } from './server_state_manager.js';
-import { ExecutionQueue } from './execution_queue_manager.js';
-import { WebSocketServerManager } from './websocket_handler.js';
+import NetentionServerCore from './netention_server_core.js';
 import { ErrorHandler } from './error_handler.js';
 
 class NetentionServer {
+    serverCore;
+    toolLoader;
+    noteLoader;
     state;
     queueManager;
     websocketManager;
@@ -23,7 +24,7 @@ class NetentionServer {
     noteStepHandler;
     noteRunner;
     noteHandler;
-    batchTimeout;
+
 
     constructor() {
         this.state = new ServerState();
@@ -33,44 +34,30 @@ class NetentionServer {
         this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler);
         this.noteRunner = new NoteRunner(this.state, this.noteStepHandler, this.errorHandler, this);
         this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager);
-        this.batchTimeout = null; // Initialize batchTimeout here
+        this.toolLoader = new ToolLoader(this.state);
+        this.noteLoader = new NoteLoader(this.state);
+        this.serverCore = new NetentionServerCore(
+            this.state,
+            this.queueManager,
+            this.websocketManager,
+            this.errorHandler,
+            this.noteStepHandler,
+            this.noteRunner,
+            this.noteHandler
+        );
     }
 
 
     log(message, level = 'info', context = {}) {
-        if (level === 'debug' && !CONFIG.DEBUG_LOGGING) {
-            return;
-        }
-        const logEntry = {
-            timestamp: new Date().toISOString(),
-            level: level,
-            message: message,
-            ...context
-        };
-        console[level](JSON.stringify(logEntry));
+        this.serverCore.log(message, level, context);
     }
 
     timeoutPromise(promise, ms) {
-        return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
+        return this.serverCore.timeoutPromise(promise, ms);
     }
 
     async dispatchWebSocketMessage(parsedMessage) {
-        switch (parsedMessage.type) {
-            case 'createNote':
-                await this.noteHandler.handleCreateNote(parsedMessage);
-                break;
-            case 'updateNote':
-                await this.noteHandler.handleUpdateNote(parsedMessage);
-                break;
-            case 'deleteNote':
-                await this.noteHandler.handleDeleteNote(parsedMessage);
-                break;
-            default:
-                this.state.log('Unknown message type', 'warn', {
-                    component: 'WebSocket',
-                    messageType: parsedMessage.type
-                });
-        }
+        await this.serverCore.dispatchWebSocketMessage(parsedMessage);
     }
 
     async initialize() {
@@ -103,7 +90,7 @@ class NetentionServer {
     async _loadNotesFromDB() {
         this.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
         try {
-            const loadedNotesCount = await this.noteLoader.loadNotes();
+            const loadedNotesCount = await this.noteLoader.loadNotes(INITIAL_NOTES);
             this.log(`Loaded ${loadedNotesCount} notes from DB.`, 'info', {
                 component: 'NoteLoader',
                 count: loadedNotesCount
@@ -134,44 +121,29 @@ class NetentionServer {
 
 
     async writeNoteToDB(note) {
-        this.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
-        this.state.updateBatch.add(note.id);
-        if (!this.batchTimeout) {
-            this.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
-        }
-        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve));
+        return this.serverCore.writeNoteToDB(note);
     }
 
     async flushBatchedUpdates() {
-        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
-            return this.state.graph.getNote(noteId);
-        });
-        this.state.updateBatch.clear();
-        this.batchTimeout = null;
-        noteUpdates.forEach(note => {
-            this.websocketManager.broadcastNoteUpdate(note);
-            const resolver = this.state.pendingWrites.get(note.id);
-            if (resolver) resolver();
-            this.state.pendingWrites.delete(note.id);
-        });
+        return this.serverCore.flushBatchedUpdates();
     }
 
 
     async runNote(note) {
-        return this.noteRunner.runNote(note);
+        return this.serverCore.runNote(note);
     }
 
     broadcastNoteUpdate(note) {
-        return this.websocketManager.broadcastNoteUpdate(note);
+        return this.serverCore.broadcastNoteUpdate(note);
     }
 
     replacePlaceholders(input, memoryMap) {
-        if (typeof input === 'string') {
-            return input.replace(/\${(\w+)}/g, (_, stepId) => memoryMap.get(stepId) || '');
-        }
-        return input;
+        return this.serverCore.replacePlaceholders(input, memoryMap);
     }
 }
+
+
+import { INITIAL_NOTES } from './initial_notes.js';
 NetentionServer.prototype.dispatchWebSocketMessage = NetentionServer.prototype.dispatchWebSocketMessage;
 
 export default NetentionServer;
