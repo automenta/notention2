@@ -12,10 +12,10 @@ class NetentionServerCore {
     noteStepHandler;
     noteRunner;
     noteHandler;
-    batchTimeout;
     toolLoader;
     messageHandlers;
     noteLoader;
+    batchTimeout;
     batchUpdater;
 
 
