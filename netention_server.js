@@ -155,6 +155,13 @@ class NetentionServer {
     broadcastNoteUpdate(note) {
         return this.websocketManager.broadcastNoteUpdate(note);
     }
+
+    replacePlaceholders(input, memoryMap) {
+        if (typeof input === 'string') {
+            return input.replace(/\${(\w+)}/g, (_, stepId) => memoryMap.get(stepId) || '');
+        }
+        return input;
+    }
 }
 NetentionServer.prototype.dispatchWebSocketMessage = NetentionServer.prototype.dispatchWebSocketMessage;
 

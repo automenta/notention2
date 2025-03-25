@@ -48,7 +48,7 @@ export class NoteRunner {
 
                 step.status = 'running';
                 this.state.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', {component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool});
-                step.input = this.state.replacePlaceholders(step.input, memoryMap);
+                step.input = this.state.server.replacePlaceholders(step.input, memoryMap);
 
 
                 try {
