@@ -26,6 +26,7 @@ class NetentionServerCore {
         this.noteRunner = noteRunner;
         this.noteHandler = noteHandler;
         this.batchTimeout = null;
+        this.fileManager = new File(CONFIG.DB_PATH); // Instantiate File manager
         this.loadNotesFromDB(); // Load notes from DB on initialization
     }
 
