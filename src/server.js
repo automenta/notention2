@@ -101,11 +101,30 @@ class NetentionServer {
                     }
                 } catch (error) {
                     step.status = 'failed'; // Mark step as failed if execution error
-                    this.state.log(`Error executing step ${step.id} of note ${note.id}: ${error}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool, error: error.message });
-                    note.memory.push({type: 'stepError', content: `Step ${step.id} failed: ${error.message}`, timestamp: Date.now(), stepId: step.id, error: error.message });
+                    const errorMsg = `Error executing step ${step.id} of note ${note.id} with tool ${step.tool}: ${error}`;
+                    this.state.log(errorMsg, 'error', {
+                        component: 'NoteRunner',
+                        noteId: note.id,
+                        stepId: step.id,
+                        toolName: step.tool,
+                        errorName: error.name,
+                        errorMessage: error.message,
+                        errorStack: error.stack
+                    });
+                    note.memory.push({
+                        type: 'stepError',
+                        content: errorMsg,
+                        timestamp: Date.now(),
+                        stepId: step.id,
+                        errorName: error.name,
+                        errorMessage: error.message
+                    });
+                    await this.writeNoteToDB(note); // Write note state with failure details immediately
+                    return this.handleFailure(note, {message: errorMsg, errorType: 'StepExecutionError'}); // Handle note-level failure
 
                 } finally {
-                    await this.writeNoteToDB(note); // Write note after each step execution or failure
+                    // Ensure note is written to DB even if step execution fails
+                    // (already done in catch block above, but kept for clarity - can be removed if needed)
                 }
                 this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
             }
