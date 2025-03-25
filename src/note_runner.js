@@ -3,8 +3,6 @@ import { CONFIG } from './config.js';
 import crypto from 'crypto';
 import { z } from 'zod';
 
-const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError']; // Define stepErrorTypes here
-
 export class NoteRunner {
     constructor(serverState) {
         this.state = serverState;
@@ -446,7 +444,5 @@ export class NoteRunner {
     }
 }
 
-const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
-
-export default NetentionServer;
+export default NoteRunner;
