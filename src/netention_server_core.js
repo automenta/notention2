@@ -46,6 +46,7 @@ class NetentionServerCore {
             });
             throw error; // Re-throw to prevent server from starting with no notes
         }
+        await Promise.all(noteUpdates.map(note => this.fileManager.saveNote(note)));
     }
 
 
