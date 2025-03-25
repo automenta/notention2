@@ -4,12 +4,7 @@ export class ErrorHandler {
     }
 
     handleNoteError(note, error) {
-        this.state.log(`Error running note ${note.id}: ${error}`, 'error', {
-            component: 'NoteRunner',
-            noteId: note.id,
-            errorType: 'NoteExecutionError',
-            error: error.message
-        });
+        logNoteExecutionError(this.state, note.id, error);
         note.status = 'failed';
         note.error = error.message;
         this.state.writeNoteToDB(note);
@@ -18,13 +13,7 @@ export class ErrorHandler {
 
     handleToolNotFoundError(note, step) {
         const errorMsg = `Tool ${step.tool} not found`;
-        this.state.log(errorMsg, 'error', {
-            component: 'NoteRunner',
-            noteId: note.id,
-            stepId: step.id,
-            toolName: step.tool,
-            errorType: 'ToolNotFoundError'
-        });
+        logToolNotFoundError(this.state, note.id, step.id, step.tool);
         step.status = 'failed';
         step.error = errorMsg;
         note.status = 'failed';
@@ -33,14 +22,7 @@ export class ErrorHandler {
     }
 
     handleToolStepError(note, step, error) {
-        this.state.log(`Error executing tool ${step.tool} for note ${note.id}: ${error}`, 'error', {
-            component: 'NoteRunner',
-            noteId: note.id,
-            stepId: step.id,
-            toolName: step.tool,
-            errorType: 'ToolExecutionError',
-            error: error.message
-        });
+        logToolExecutionError(this.state, note.id, step.id, step.tool, error);
         step.status = 'failed';
         step.error = error.message;
         note.status = 'failed';
@@ -49,11 +31,7 @@ export class ErrorHandler {
     }
 
     _handleFailure(note, error) {
-        this.state.log(`Note ${note.id} execution failed: ${error}`, 'error', {
-            component: 'NoteRunner',
-            noteId: note.id,
-            errorType: 'NoteExecutionError'
-        });
+        logNoteExecutionError(this.state, note.id, error);
 
         if (this.shouldRetry(error)) {
             this.retryExecution(note);
@@ -74,7 +52,7 @@ export class ErrorHandler {
         note.status = 'pending';
         this.state.writeNoteToDB(note);
         this.state.queueExecution(note);
-        this.state.log(`Note ${note.id} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: note.id});
+        logNoteRetryQueued(this.state, note.id);
     }
 
 
@@ -107,10 +85,7 @@ export class ErrorHandler {
         this.state.graph.addNote(testNote);
         await this.state.writeNoteToDB(testNote);
         this.state.queueExecution(testNote);
-        this.state.log(`Unit test requested for Note ${note.id}, test Note ${testId} created.`, 'info', {
-            component: 'NoteRunner',
-            noteId: note.id,
-            testNoteId: testId
-        });
+        logUnitTestRequestQueued(this.state, note.id, testId);
+        return testId;
     }
 }

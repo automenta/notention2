@@ -33,6 +33,48 @@ export function logNoteFinalize(state, noteId, status) {
     });
 }
 
+export function logNoteExecutionError(state, noteId, error) {
+    state.log(`Error running note ${noteId}: ${error}`, 'error', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        errorType: 'NoteExecutionError',
+        error: error.message
+    });
+}
+
+export function logToolNotFoundError(state, noteId, stepId, toolName) {
+    state.log(`Tool ${toolName} not found`, 'error', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        stepId: stepId,
+        toolName: toolName,
+        errorType: 'ToolNotFoundError'
+    });
+}
+
+export function logToolExecutionError(state, noteId, stepId, toolName, error) {
+    state.log(`Error executing tool ${toolName} for note ${noteId}: ${error}`, 'error', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        stepId: stepId,
+        toolName: toolName,
+        errorType: 'ToolExecutionError',
+        error: error.message
+    });
+}
+
+export function logNoteRetryQueued(state, noteId) {
+    state.log(`Note ${noteId} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: noteId});
+}
+
+export function logUnitTestRequestQueued(state, noteId, testNoteId) {
+    state.log(`Unit test requested for Note ${noteId}, test Note ${testNoteId} created.`, 'info', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        testNoteId: testNoteId
+    });
+}
+
 export function logMemoryPrune(state, noteId, summaryText) {
     state.log(`Note ${noteId} memory pruned. Summary: ${summaryText}`, 'debug', {
         component: 'NoteRunner',
