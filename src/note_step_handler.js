@@ -4,7 +4,7 @@ import {z} from 'zod';
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 export class NoteStepHandler {
-    errorHandler; // Declare ErrorHandler
+    errorHandler;
 
     constructor(serverState, errorHandler) {
         this.state = serverState;
