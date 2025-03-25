@@ -8,7 +8,7 @@ const schema = z.object({
 const invoke = createSimpleInvoke(schema);
 
 async function invoke(input, context) {
-    const { testId } = invoke(input); // Parse input here for consistency
+    const { testId } = schema.parse(input);
     const graph = context.graph;
     const testNote = graph.getNote(testId);
 

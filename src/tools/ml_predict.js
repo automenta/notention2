@@ -9,7 +9,7 @@ const schema = z.object({
 const invoke = createSimpleInvoke(schema);
 
 async function invoke(input, context) {
-    const { modelId, input: predictionInput } = invoke(input); // Parse input here for consistency, even if createSimpleInvoke is used
+    const { modelId, input: predictionInput } = schema.parse(input);
     const graph = context.graph;
     const modelNote = graph.getNote(modelId);
 
