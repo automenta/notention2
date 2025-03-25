@@ -76,7 +76,8 @@ export const INITIAL_NOTES = [
                 "schedule": 'tool-schedule-id',
                 "debug": 'tool-debug-id',
                 "define_concept": 'tool-define-concept-id', // Placeholder for define_concept tool
-                "update_system": 'tool-update-system-id' // Placeholder for update_system tool
+                "update_system": 'tool-update-system-id', // Placeholder for update_system tool
+                "implement_tool": 'tool-implement-tool-id' // Placeholder for implement_tool
             }
         },
         status: 'running',
@@ -143,6 +144,33 @@ export const INITIAL_NOTES = [
                 tool: 'debug',
                 input: { noteId: 'seed-0' },
                 dependencies: ['5', '6', '7', '8'], // Depend on define_concept steps
+                status: 'pending'
+            },
+            {
+                id: '10',
+                tool: 'implement_tool',
+                input: {
+                    tool_definition: {
+                        name: 'hello_world',
+                        description: 'A simple tool that returns "Hello, world!"',
+                        code: 'async function invoke() { return "Hello, world!"; }'
+                    }
+                },
+                dependencies: [],
+                status: 'pending'
+            },
+            {
+                id: '11',
+                tool: 'hello_world', // Use the newly implemented tool
+                input: {},
+                dependencies: ['10'],
+                status: 'pending'
+            },
+            {
+                id: '12',
+                tool: 'debug',
+                input: { noteId: 'seed-0' },
+                dependencies: ['11'], // Depend on hello_world step
                 status: 'pending'
             }
         ]
