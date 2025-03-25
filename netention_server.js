@@ -30,11 +30,30 @@ class NetentionServer {
     }
 
     async writeNoteToDB(note) {
-        return this.core.writeNoteToDB(note);
+        this.state.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
+        this.state.updateBatch.add(note.id);
+        if (!this.state.batchTimeout) {
+            this.state.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
+        }
+        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve));
     }
 
     async flushBatchedUpdates() {
-        return this.core.flushBatchedUpdates();
+        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
+            return this.state.graph.getNote(noteId);
+        });
+        this.state.updateBatch.clear();
+        this.state.batchTimeout = null;
+        noteUpdates.forEach(note => {
+            this.state.wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({type: 'noteUpdate', data: note}));
+                }
+            });
+            const resolver = this.state.pendingWrites.get(note.id);
+            if (resolver) resolver();
+            this.state.pendingWrites.delete(note.id);
+        });
     }
 
     async runNote(note) {
