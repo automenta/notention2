@@ -23,7 +23,7 @@ class NetentionServerCore {
     }
 
     log(message, level = 'info', context = {}) {
-        this.serverCore.log(message, level, context);
+        this.state.log(message, level, context);
     }
 
     timeoutPromise(promise, ms) {
@@ -57,8 +57,10 @@ class NetentionServerCore {
     }
 
     async flushBatchedUpdates() {
-        return this.serverCore.flushBatchedUpdates();
+        return this.flushBatchedUpdates_impl();
     }
+
+    async flushBatchedUpdates_impl() {
 
 
     async runNote(note) {
