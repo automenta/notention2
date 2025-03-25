@@ -23,9 +23,13 @@ export class ToolLoader {
             const module = await import(`file://${process.cwd()}/${path}/${file}`);
             const toolDef = module.default;
             const tool = new Tool(toolDef);
-            this.state.tools.addTool(tool);
+            this.addTool(tool);
         } catch (e) {
             console.error(`Error loading tool ${file} from ${path}: ${e}`);
         }
+    }
+
+    addTool(tool) {
+        this.state.tools.set(tool.name, tool);
     }
 }

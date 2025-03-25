@@ -4,6 +4,15 @@ import path from 'path';
 import {CONFIG} from '../config.js';
 import {Script} from 'node:vm'; // Import Script for code validation
 
+async function validateCode(code) {
+    try {
+        new Script(code); // Will throw an error if code is invalid
+        return {isValid: true};
+    } catch (error) {
+        return {isValid: false, error: error.message};
+    }
+}
+
 const schema = z.object({
     tool_definition: z.object({
         name: z.string(),

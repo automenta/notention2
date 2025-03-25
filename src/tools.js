@@ -9,6 +9,7 @@ export class Tool {
         this.version = version;
         this.dependencies = dependencies;
     }
+    
 
     async execute(input, context) {
         try {
@@ -46,10 +47,6 @@ export class Tools {
         } catch (e) {
             console.error(`Error loading tool ${file} from ${path}: ${e}`);
         }
-    }
-
-    addTool(tool) {
-        this.tools.set(tool.name, tool);
     }
 
     getTool(name) {

@@ -3,6 +3,24 @@ import { z } from 'zod';
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
+async function executeToolStep(state, note, step, toolName, input, memoryMap, errorHandler) {
+    try {
+        const result = await state.tools.executeTool(toolName, input, {
+            graph: state.graph,
+            llm: state.llm
+        });
+        memoryMap.set(step.id, result);
+        note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
+        step.status = 'completed';
+        await state.serverCore.writeNoteToDB(note);
+        return result;
+    } catch (error) {
+        step.status = 'failed';
+        errorHandler.handleToolStepError(note, step, error);
+        return `Tool execution failed: ${error.message}`;
+    }
+}
+
 export class NoteStepHandler {
     errorHandler;
 
@@ -15,48 +33,45 @@ export class NoteStepHandler {
     async handleStep(note, step, memoryMap) {
         switch (step.tool) {
             case 'summarize':
-                await this.handleSummarize(note, step);
+                await this.handleSummarizeStep(note, step, memoryMap);
                 break;
             case 'generateCode':
-                await this.generateCodeHandler(note, step);
+                await this.handleGenerateCodeStep(note, step, memoryMap);
                 break;
             case 'reflect':
-                await this.reflectHandler(note, step);
+                await this.handleReflectStep(note, step, memoryMap);
                 break;
             case 'test_gen':
-                await this.handleTestGeneration(note, step);
+                await this.handleTestGeneration(note, step, memoryMap);
                 break;
             case 'test_run':
-                await this.handleTestExecution(note, step);
+                await this.handleTestExecution(note, step, memoryMap);
                 break;
             case 'knowNote':
-                await this.handleKnowNote(note, step);
+                await this.handleKnowNote(note, step, memoryMap);
                 break;
             case 'analytics':
-                await this.handleAnalytics(note, step);
+                await this.handleAnalytics(note, step, memoryMap);
                 break;
             case 'fetchExternal':
-                await this.handleFetchExternal(note, step);
+                await this.handleFetchExternal(note, step, memoryMap);
                 break;
             case 'collaborate':
-                await this.handleCollaboration(note, step);
+                await this.handleCollaboration(note, step, memoryMap);
                 break;
             case 'generateTool':
-                await this.handleToolGeneration(note, step);
+                await this.handleToolGeneration(note, step, memoryMap);
                 break;
             default:
-                await this._executeStep(note, step, memoryMap);
+                await this.handleDefaultStep(note, step, memoryMap);
         }
     }
 
 
-    async handleTestGeneration(note, step) {
+    async handleTestGeneration(note, step, memoryMap) {
         const {code, targetId} = step.input;
         try {
-            const testCode = await this.state.tools.executeTool('test_gen', {code, targetId}, {
-                graph: this.state.graph,
-                llm: this.state.llm
-            });
+            const testCode = await executeToolStep(this.state, note, step, 'test_gen', {code, targetId}, memoryMap, this.errorHandler);
             const testNoteId = crypto.randomUUID();
             const testNote = {
                 id: testNoteId,
@@ -74,161 +89,130 @@ export class NoteStepHandler {
                 timestamp: Date.now(),
                 stepId: step.id
             });
-            step.status = 'completed';
-            await this.state.writeNoteToDB(note);
             this.state.queueManager.queueExecution(testNote);
             return testNoteId;
         } catch (error) {
             step.status = 'failed';
-            note.memory.push({
-                type: 'testGenError',
-                content: `Test generation failed: ${error.message}`,
-                timestamp: Date.now(),
-                stepId: step.id
-            });
-            await this.state.writeNoteToDB(note);
+            this.errorHandler.handleToolStepError(note, step, error);
             return `Test generation failed: ${error.message}`;
         }
     }
 
-    async handleTestExecution(note, step) {
+    async handleTestExecution(note, step, memoryMap) {
         const {testId} = step.input;
         try {
-            const results = await this.state.tools.executeTool('test_run', {testId}, {
-                graph: this.state.graph,
-                llm: this.state.llm
-            });
+            const results = await executeToolStep(this.state, note, step, 'test_run', {testId}, memoryMap, this.errorHandler);
             note.memory.push({
                 type: 'testRun',
                 content: `Executed test ${testId}: ${results}`,
                 timestamp: Date.now(),
                 stepId: step.id
             });
-            step.status = 'completed';
-            await this.state.writeNoteToDB(note);
             return results;
         } catch (error) {
             step.status = 'failed';
-            note.memory.push({
-                type: 'testRunError',
-                content: `Test execution failed: ${error.message}`,
-                timestamp: Date.now(),
-                stepId: step.id
-            });
-            await this.state.writeNoteToDB(note);
+            this.errorHandler.handleToolStepError(note, step, error);
             return `Test execution failed: ${error.message}`;
         }
     }
 
 
-    async handleCollaboration(note, step) {
+    async handleCollaboration(note, step, memoryMap) {
         const {noteIds} = step.input;
-        const collabResult = await this.state.llm.invoke(
-            [`Collaborate on "${note.title}" with notes: ${noteIds.join(', ')}`],
-            noteIds
-        );
-        note.memory.push({type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id});
-        step.status = 'completed';
-        await this.state.writeNoteToDB(note);
+        try {
+            const collabResult = await this.state.llm.invoke(
+                [`Collaborate on "${note.title}" with notes: ${noteIds.join(', ')}`],
+                noteIds
+            );
+            note.memory.push({type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.state.serverCore.writeNoteToDB(note);
+        } catch (error) {
+            step.status = 'failed';
+            this.errorHandler.handleToolStepError(note, step, error);
+        }
     }
 
-    async handleToolGeneration(note, step) {
+    async handleToolGeneration(note, step, memoryMap) {
         const {name, desc, code} = step.input;
-        const toolDef = {name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code)};
-        this.state.tools.addTool(toolDef);
-        note.memory.push({type: 'toolGen', content: `Generated tool ${name}`, timestamp: Date.now(), stepId: step.id});
-        step.status = 'completed';
-        await this.state.writeNoteToDB(note);
+        try {
+            const toolDef = {name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code)};
+            this.state.tools.addTool(toolDef);
+            note.memory.push({type: 'toolGen', content: `Generated tool ${name}`, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.state.serverCore.writeNoteToDB(note);
+        } catch (error) {
+            step.status = 'failed';
+            this.errorHandler.handleToolStepError(note, step, error);
+        }
     }
 
-    async handleKnowNote(note, step) {
+    async handleKnowNote(note, step, memoryMap) {
         const {title, goal} = step.input;
-        const newNoteId = crypto.randomUUID();
-        const newNote = {
-            id: newNoteId,
-            title,
-            content: goal,
-            status: 'pending',
-            logic: [],
-            memory: [],
-            createdAt: new Date().toISOString(),
-        };
-        this.state.graph.addNote(newNote);
-        note.memory.push({type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id});
-        step.status = 'completed';
-        await this.state.writeNoteToDB(note);
-        this.state.queueManager.queueExecution(newNote);
+        try {
+            const newNoteId = crypto.randomUUID();
+            const newNote = {
+                id: newNoteId,
+                title,
+                content: goal,
+                status: 'pending',
+                logic: [],
+                memory: [],
+                createdAt: new Date().toISOString(),
+            };
+            this.state.graph.addNote(newNote);
+            note.memory.push({type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.state.serverCore.writeNoteToDB(note);
+            this.state.queueManager.queueExecution(newNote);
+        } catch (error) {
+            step.status = 'failed';
+            this.errorHandler.handleToolStepError(note, step, error);
+        }
     }
 
-    async handleAnalytics(note, step) {
+    async handleAnalytics(note, step, memoryMap) {
         const {targetId} = step.input;
-        const target = this.state.graph.getNote(targetId);
-        if (!target) throw new Error(`Note ${targetId} not found`);
-        const analytics = this.state.queueManager.analytics.get(targetId) || {usage: 0, runtime: 0};
-        const result = `Usage: ${analytics.usage}, Avg Runtime: ${analytics.runtime / (analytics.usage || 1)}ms`;
-        note.memory.push({type: 'analytics', content: result, timestamp: Date.now(), stepId: step.id});
-        step.status = 'completed';
-        await this.state.writeNoteToDB(note);
+        try {
+            const target = this.state.graph.getNote(targetId);
+            if (!target) throw new Error(`Note ${targetId} not found`);
+            const analytics = this.state.queueManager.analytics.get(targetId) || {usage: 0, runtime: 0};
+            const result = `Usage: ${analytics.usage}, Avg Runtime: ${analytics.runtime / (analytics.usage || 1)}ms`;
+            note.memory.push({type: 'analytics', content: result, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.state.serverCore.writeNoteToDB(note);
+        } catch (error) {
+            step.status = 'failed';
+            this.errorHandler.handleToolStepError(note, step, error);
+        }
     }
 
-    async handleFetchExternal(note, step) {
+    async handleFetchExternal(note, step, memoryMap) {
         const {apiName, query} = step.input;
-        const data = await this.state.llm.fetchExternalData(apiName, query);
-        note.memory.push({type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id});
-        step.status = 'completed';
-        await this.state.writeNoteToDB(note);
-    }
-
-    async handleSummarize(note, step) {
         try {
-            const result = await this.state.tools.executeTool('summarize', step.input, {
-                graph: this.state.graph,
-                llm: this.state.llm
-            });
-            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
+            const data = await this.state.llm.fetchExternalData(apiName, query);
+            note.memory.push({type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
-            await this.state.writeNoteToDB(note);
+            await this.state.serverCore.writeNoteToDB(note);
         } catch (error) {
-            this.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
+            step.status = 'failed';
+            this.errorHandler.handleToolStepError(note, step, error);
         }
     }
 
-    async generateCodeHandler(note, step) {
-        await generateCodeTool.handleStep(note, step, {
-            graph: this.state.graph,
-            llm: this.state.llm,
-            tools: this.state.tools,
-            errorHandler: this.errorHandler,
-            state: this.state
-        });
+    async handleSummarizeStep(note, step, memoryMap) {
+        await this.handleExecuteToolStep(note, step, memoryMap, 'summarize');
     }
 
-    async reflectHandler(note, step) {
-        await reflectTool.handleStep(note, step, {
-            graph: this.state.graph,
-            llm: this.state.llm,
-            tools: this.state.tools,
-            errorHandler: this.errorHandler,
-            state: this.state
-        });
+    async handleGenerateCodeStep(note, step, memoryMap) {
+        await this.handleExecuteToolStep(note, step, memoryMap, 'generateCode');
     }
 
-    async _executeStep(note, step, memoryMap) {
-        const tool = this.state.tools.getTool(step.tool);
-        if (!tool) return this.errorHandler.handleToolNotFoundError(note, step); // Use ErrorHandler
-        try {
-            const result = await tool.execute(step.input, {graph: this.state.graph, llm: this.state.llm});
-            memoryMap.set(step.id, result);
-            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-        } catch (error) {
-            this.errorHandler.handleToolStepError(note, step, error); // Use ErrorHandler
-        }
-        await this.state.writeNoteToDB(note);
+    async handleReflectStep(note, step, memoryMap) {
+        await this.handleExecuteToolStep(note, step, memoryMap, 'reflect');
     }
 
-
-    async executeToolStep(note, step, memoryMap) {
+    async handleDefaultStep(note, step, memoryMap) {
         const tool = this.state.tools.getTool(step.tool);
         if (!tool) return this.errorHandler.handleToolNotFoundError(note, step);
         try {
@@ -236,9 +220,23 @@ export class NoteStepHandler {
             memoryMap.set(step.id, result);
             note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
+            await this.state.serverCore.writeNoteToDB(note);
         } catch (error) {
             this.errorHandler.handleToolStepError(note, step, error);
         }
-        await this.state.serverCore.writeNoteToDB(note);
+    }
+
+    async handleExecuteToolStep(note, step, memoryMap, toolName) {
+        try {
+            const result = await this.state.tools.executeTool(toolName, step.input, {
+                graph: this.state.graph,
+                llm: this.state.llm
+            });
+            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
+            step.status = 'completed';
+            await this.state.serverCore.writeNoteToDB(note);
+        } catch (error) {
+            this.errorHandler.handleToolStepError(note, step, error);
+        }
     }
 }

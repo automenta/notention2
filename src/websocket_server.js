@@ -11,6 +11,15 @@ export class WebSocketServerManager {
         this.messageQueue = [];
     }
 
+    broadcast(message) {
+        if (!this.wss) return;
+        this.wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(message));
+            }
+        });
+    }
+
     start(httpServer) {
         this.wss = new WebSocketServer({server: httpServer});
         this.wss.on('connection', ws => this._handleConnection(ws));
@@ -60,14 +69,5 @@ export class WebSocketServerManager {
 
     broadcastNoteUpdate(note) {
         this.broadcast({type: 'noteUpdate', data: note});
-    }
-
-    broadcast(message) {
-        if (!this.wss) return;
-        this.wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(message));
-            }
-        });
     }
 }
