@@ -115,7 +115,7 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
             </ul>
             <button onClick={handleAddStep}>Add Step</button>
             <style jsx>{`
-                .dragging {
+                .logic-step-item.dragging {
                     opacity: 0.5;
                     border: 2px dashed #999;
                     background-color: #fafafa;

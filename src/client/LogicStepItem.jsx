@@ -19,6 +19,7 @@ export default function LogicStepItem({
             onDragStart={(e) => step.onDragStart(e, index)}
             onDragOver={(e) => step.onDragOver(e, index)}
             onDragEnd={step.onDragEnd}
+            className={isDragging && draggingIndex === index ? 'logic-step-item dragging' : 'logic-step-item'}
             style={{
                 border: '1px solid #ccc',
                 padding: '10px',
