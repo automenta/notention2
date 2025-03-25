@@ -16,28 +16,34 @@ describe('Compose Tool', () => {
             ['tool2', mockTool2]
         ]);
         const input = {
-            tools: ['tool1', 'tool2'],
-            inputs: {initialInput: 'test'}
+            toolChain: [ // toolChain is an array now
+                {toolName: 'tool1', input: {initialInput: 'test'}}, // Input is per tool
+                {toolName: 'tool2'} // Tool2 uses output of tool1 as input implicitly in chain
+            ]
         };
 
-        vi.mock('../../server.js', () => ({
-            tools: tools,
-        }));
+        const context = {tools: {getTool: (name) => tools.get(name)}}; // Mock context
 
+        const result = await composeTool.invoke(input, context);
 
-        const result = await composeTool.invoke(input);
-
-        expect(mockTool1.invoke).toHaveBeenCalledWith({initialInput: 'test'});
-        expect(mockTool2.invoke).toHaveBeenCalledWith('result1');
-        expect(result).toBe('result2');
+        expect(mockTool1.invoke).toHaveBeenCalledWith({initialInput: 'test'}, context);
+        expect(mockTool2.invoke).toHaveBeenCalledWith({}, context); // Tool2 input is empty object now
+        expect(result).toEqual([ // Result is array of objects now
+            {toolName: 'tool1', result: 'result1'},
+            {toolName: 'tool2', result: 'result2'}
+        ]);
     });
 
     it('should return an error if a tool is not found', async () => {
         const input = {
-            tools: ['tool1', 'nonExistentTool'],
-            inputs: {initialInput: 'test'}
+            toolChain: [
+                {toolName: 'tool1', input: {initialInput: 'test'}},
+                {toolName: 'nonExistentTool'}
+            ]
         };
-        const result = await composeTool.invoke(input);
-        expect(result).toContain('Tool nonExistentTool not found');
+        const context = {tools: {getTool: (name) => new Map([['tool1', {}]]).get(name)}}; // Mock context with only tool1
+
+        const result = await composeTool.invoke(input, context);
+        expect(result).toContain('Tool \'nonExistentTool\' not found');
     });
 });
