@@ -25,5 +25,5 @@ export default defineTool({
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    invoke: invoke, // Use invokeImpl in withToolHandling
+    invoke: invoke,
 });

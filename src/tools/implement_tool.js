@@ -121,7 +121,7 @@ export default defineTool({
     name: 'implement_tool',
     description: 'Implements a new tool with schema, dependencies, and code validation, writing to a file',
     schema,
-    version: '1.3.0', // Version bump for code validation
+    version: '1.3.0',
     dependencies: ['zod', 'fs', 'path', 'vm'],
     invoke: invoke,
 });

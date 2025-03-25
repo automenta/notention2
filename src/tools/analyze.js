@@ -19,5 +19,5 @@ export default defineTool({
     name: 'analyze',
     description: 'Analyze note performance',
     schema,
-    invoke: invoke, // Use invokeImpl in withToolHandling
+    invoke: invoke,
 });

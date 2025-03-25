@@ -40,6 +40,6 @@ export default defineTool({
     description: 'Use a trained ML model to make a prediction',
     schema,
     version: '1.0.0',
-    dependencies: ['zod'], // Add any ML-specific dependencies here
+    dependencies: ['zod'],
     invoke: invoke,
 });

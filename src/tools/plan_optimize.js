@@ -30,6 +30,6 @@ export default defineTool({
     description: 'Optimize a given plan Note using various strategies',
     schema,
     version: '1.0.0',
-    dependencies: ['zod'], // Add dependencies if needed (e.g., for ML tools)
-    invoke: invoke, // Use invokeImpl in withToolHandling
+    dependencies: ['zod'],
+    invoke: invoke,
 });

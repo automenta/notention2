@@ -34,5 +34,5 @@ export default defineTool({
     name: 'graph_search',
     description: 'Search graph by query',
     schema,
-    invoke: invoke, // Use invokeImpl in withToolHandling
+    invoke: invoke,
 });

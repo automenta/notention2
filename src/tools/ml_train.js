@@ -51,6 +51,6 @@ export default defineTool({
     description: 'Train a machine learning model (decision tree, classifier, pca, cluster)',
     schema,
     version: '1.0.0',
-    dependencies: ['zod', 'crypto'], // Add any ML-specific dependencies here
+    dependencies: ['zod', 'crypto'],
     invoke: invoke,
 });
