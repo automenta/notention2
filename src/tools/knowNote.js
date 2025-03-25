@@ -8,22 +8,28 @@ const schema = z.object({
 
 async function invoke(input, context) {
     const { title, goal } = schema.parse(input);
-    const newNoteId = crypto.randomUUID();
-    const newNote = {
-        id: newNoteId,
-        title,
-        content: goal,
-        status: 'pending',
-        logic: [],
-        memory: [],
-        createdAt: new Date().toISOString(),
-    };
-    const graph = context.graph;
-    graph.addNote(newNote);
-    note.memory.push({ type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id });
-    step.status = 'completed';
-    await context.serverCore.writeNoteToDB(note);
-    context.state.queueManager.queueExecution(newNote);
+
+    try {
+        context.logToolStart();
+        const newNoteId = crypto.randomUUID();
+        const newNote = {
+            id: newNoteId,
+            title,
+            content: goal,
+            status: 'pending',
+            logic: [],
+            memory: [],
+            createdAt: new Date().toISOString(),
+        };
+        const graph = context.graph;
+        graph.addNote(newNote);
+        note.memory.push({ type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id });
+        step.status = 'completed';
+        await context.serverCore.writeNoteToDB(note);
+        context.state.queueManager.queueExecution(newNote);
+    } catch (error) {
+        context.handleToolError(error);
+    }
 }
 
 
