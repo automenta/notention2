@@ -31,20 +31,7 @@ export class NoteRunner {
             const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
             const readyQueue = note.logic.filter(step => !step.dependencies.length && step.status === 'pending').map(s => s.id);
 
-            this.state.log(`
-Running
-note
-$
-{
-    note.id
-}
-,
-$
-{
-    readyQueue.length
-}
-steps
-ready`, 'debug', { component: 'NoteRunner', noteId: note.id, readyQueueLength: readyQueue.length });
+            this.state.log(`Running note ${note.id}, ${readyQueue.length} steps ready`, 'debug', { component: 'NoteRunner', noteId: note.id, readyQueueLength: readyQueue.length });
 
 
             while (readyQueue.length) {
