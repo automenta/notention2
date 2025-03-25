@@ -47,53 +47,47 @@ export class WebSocketServerManager {
 
 
     async _handleWebSocketMessage(parsedMessage) {
-        if (parsedMessage.type === 'createNote') {
-            const newNote = {
-                id: crypto.randomUUID(),
-                title: parsedMessage.title || 'New Note',
-                content: '',
-                status: 'pending',
-                logic: [],
-                memory: [],
-                createdAt: new Date().toISOString(),
-            };
-            this.state.graph.addNote(newNote);
-            await this.state.writeNoteToDB(newNote);
-            this.state.queueExecution(newNote);
-            this.wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
-                }
-            });
-        } else if (parsedMessage.type === 'updateNote') {
-            const updatedNote = parsedMessage;
-            const existingNote = this.state.graph.getNote(updatedNote.id);
-            if (existingNote) {
-                Object.assign(existingNote, updatedNote);
-                existingNote.updatedAt = new Date().toISOString();
-                await this.state.writeNoteToDB(existingNote);
-                this.wss.clients.forEach(client => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
-                    }
-                });
+        switch (parsedMessage.type) {
+            case 'createNote': {
+                const newNote = {
+                    id: crypto.randomUUID(),
+                    title: parsedMessage.title || 'New Note',
+                    content: '',
+                    status: 'pending',
+                    logic: [],
+                    memory: [],
+                    createdAt: new Date().toISOString(),
+                };
+                this.state.graph.addNote(newNote);
+                await this.state.writeNoteToDB(newNote);
+                this.state.queueExecution(newNote);
+                this.broadcastNotesUpdate();
+                break;
             }
-        } else if (parsedMessage.type === 'deleteNote') {
-            const noteIdToDelete = parsedMessage.id;
-            this.state.graph.removeNote(noteIdToDelete);
-            await this.state.graph.removeReferences(noteIdToDelete);
-            await this.state.writeNoteToDB({ id: noteIdToDelete }); //still write to trigger update
-            this.wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'notes', data: this.state.graph.getNotes() }));
+            case 'updateNote': {
+                const updatedNote = parsedMessage;
+                const existingNote = this.state.graph.getNote(updatedNote.id);
+                if (existingNote) {
+                    Object.assign(existingNote, updatedNote);
+                    existingNote.updatedAt = new Date().toISOString();
+                    await this.state.writeNoteToDB(existingNote);
+                    this.broadcastNotesUpdate();
                 }
-            });
-
-        } else {
-            this.state.log('Unknown message type', 'warn', {
-                component: 'WebSocketServer',
-                messageType: parsedMessage.type
-            });
+                break;
+            }
+            case 'deleteNote': {
+                const noteIdToDelete = parsedMessage.id;
+                this.state.graph.removeNote(noteIdToDelete);
+                await this.state.graph.removeReferences(noteIdToDelete);
+                await this.state.writeNoteToDB({ id: noteIdToDelete }); //still write to trigger update
+                this.broadcastNotesUpdate();
+                break;
+            }
+            default:
+                this.state.log('Unknown message type', 'warn', {
+                    component: 'WebSocketServer',
+                    messageType: parsedMessage.type
+                });
         }
     }
 }
