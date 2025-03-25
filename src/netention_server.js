@@ -1,5 +1,5 @@
 import {ServerState} from './server_state_manager.js';
-import {ExecutionQueue} from './execution_queue_manager.js';
+import {ExecutionQueue} from './execution_queue_manager.js'; // Import ExecutionQueue
 import {WebSocketServerManager} from './websocket_handler.js';
 import {NetentionServerCore} from './netention_server_core.js'; // Import NetentionServerCore
 import react from '@vitejs/plugin-react';
@@ -29,7 +29,7 @@ class NetentionServer {
 
     constructor() {
         this.state = new ServerState();
-        this.queueManager = new ExecutionQueue(this.state);
+        this.queueManager = new ExecutionQueue(this.state); // Instantiate ExecutionQueue
         this.websocketManager = new WebSocketServerManager(this.state, this.queueManager);
         this.errorHandler = new ErrorHandler(this.state);
         this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler);
