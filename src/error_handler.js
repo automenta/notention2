@@ -7,9 +7,15 @@ export class ErrorHandler {
 
     handleNoteError(note, error) {
         logNoteExecutionError(this.state, note.id, error);
-        note.status = 'failed';
-        note.error = error.message;
-        this.state.writeNoteToDB(note);
+
+        if (this.shouldRetry(error)) {
+            this.retryExecution(note);
+        } else if (this.shouldRequestUnitTest(note, error)) {
+            this.requestUnitTest(note);
+        } else {
+            note.status = 'failed';
+            this.state.writeNoteToDB(note);
+        }
         return note;
     }
 
@@ -32,20 +38,6 @@ export class ErrorHandler {
         return `Tool execution failed: ${error.message}`;
     }
 
-    _handleFailure(note, error) {
-        logNoteExecutionError(this.state, note.id, error);
-
-        if (this.shouldRetry(error)) {
-            this.retryExecution(note);
-        } else if (this.shouldRequestUnitTest(note, error)) {
-            this.requestUnitTest(note);
-        } else {
-            note.status = 'failed';
-            this.state.writeNoteToDB(note);
-        }
-    }
-
-
     shouldRetry(error) {
         return error.message.includes('timeout') || error.message.includes('rate limit');
     }
@@ -61,33 +53,5 @@ export class ErrorHandler {
     shouldRequestUnitTest(note, error) {
         const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError']; // Assuming stepErrorTypes is defined elsewhere or needs to be passed
         return stepErrorTypes.includes(error.errorType) || note.logic.some(step => step.tool === 'code_gen' && step.status === 'failed');
-    }
-
-
-    async requestUnitTest(note) {
-        if (!note.tests) note.tests = [];
-        const testId = crypto.randomUUID();
-        note.tests.push(testId);
-        note.status = 'pendingUnitTesting';
-        await this.state.writeNoteToDB(note);
-
-
-        const testNote = {
-            id: testId,
-            title: `Unit Test for ${note.title}`,
-            content: {
-                type: 'test',
-                targetNoteId: note.id
-            },
-            status: 'pending',
-            priority: 60,
-            createdAt: new Date().toISOString(),
-            references: [note.id]
-        };
-        this.state.graph.addNote(testNote);
-        await this.state.writeNoteToDB(testNote);
-        this.state.queueManager.queueExecution(testNote);
-        logUnitTestRequestQueued(this.state, note.id, testId);
-        return testId;
     }
 }
