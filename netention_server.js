@@ -7,11 +7,11 @@ import * as http from "node:http";
 import {CONFIG} from './config.js';
 import {ToolLoader} from './tool_loader.js';
 import {NoteLoader} from './note_loader.js';
-import { ServerCore } from './server_core.js'; // Keep ServerCore for now, we'll move its methods next
 import { NoteRunner } from './note_runner.js';
 import { NoteHandler } from './note_handler.js';
 import { NoteStepHandler } from './note_step_handler.js';
 import { ErrorHandler } from './error_handler.js';
+import {CONFIG} from "./config.js";
 
 class NetentionServer {
     constructor() {
@@ -22,8 +22,7 @@ class NetentionServer {
         this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler); // Pass ErrorHandler
         this.noteRunner = new NoteRunner(this.state, this.noteStepHandler, this.errorHandler); // Pass ErrorHandler
         this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager);
-        this.core = new ServerCore(this.state, this.queueManager, this.websocketManager, this.noteRunner, this.noteStepHandler, this.errorHandler);
-        // this.initializer = new ServerInitializer(this.state, this.queueManager, this.websocketManager, this.noteRunner); // No longer needed
+        // this.core = new ServerCore(this.state, this.queueManager, this.websocketManager, this.noteRunner, this.noteStepHandler, this.errorHandler); // No longer needed
     }
 
     async initialize() {
@@ -86,18 +85,41 @@ class NetentionServer {
     }
 
 
+    async writeNoteToDB(note) {
+        this.state.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
+        this.state.updateBatch.add(note.id);
+        if (!this.state.batchTimeout) {
+            this.state.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
+        }
+        return new Promise(resolve => this.state.pendingWrites.set(note.id, resolve));
+    }
+
+    async flushBatchedUpdates() {
+        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
+            return this.state.graph.getNote(noteId);
+        });
+        this.state.updateBatch.clear();
+        this.state.batchTimeout = null;
+        noteUpdates.forEach(note => {
+            this.websocketManager.broadcastNoteUpdate(note);
+            const resolver = this.state.pendingWrites.get(note.id);
+            if (resolver) resolver();
+            this.state.pendingWrites.delete(note.id);
+        });
+    }
+
 
     async runNote(note) {
-        return this.core.runNote(note); // Use runNote from ServerCore which uses NoteRunner
+        return this.noteRunner.runNote(note);
     }
 
 
     replacePlaceholders(input, memoryMap) {
-        return this.core.replacePlaceholders(input, memoryMap);
+        return this.state.replacePlaceholders(input, memoryMap);
     }
 
     broadcastNoteUpdate(note) {
-        return this.core.broadcastNoteUpdate(note);
+        return this.websocketManager.broadcastNoteUpdate(note);
     }
 }
 
