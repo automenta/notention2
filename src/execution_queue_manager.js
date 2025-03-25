@@ -57,9 +57,11 @@ export class ExecutionQueueManager {
             await this.state.runNote(note); // Assuming runNote is in serverState or accessible
         } catch (error) {
             this.state.log(`Error processing note ${note.id} from queue: ${error}`, 'error', {
-                component: 'ExecutionQueue',
+                component: 'ExecutionQueueManager',
                 noteId: note.id,
-                error: error.message
+                errorType: 'NoteProcessingError',
+                errorMessage: error.message,
+                errorStack: error.stack
             });
             this.state.executionQueue.delete(noteId);
         } finally {
