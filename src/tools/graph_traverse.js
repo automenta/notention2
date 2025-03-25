@@ -41,3 +41,42 @@ export default {
         return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
     }
 };
+import { withToolHandling } from '../tool_utils.js';
+
+async function traverseGraph(graph, startId, mode) {
+    const visited = new Set();
+    const stackOrQueue = [startId];
+    const results = [];
+
+    while (stackOrQueue.length) {
+        const id = mode === 'dfs' ? stackOrQueue.pop() : stackOrQueue.shift();
+        if (visited.has(id)) continue;
+        visited.add(id);
+
+        const note = graph.getNote(id);
+        if (note) {
+            results.push({id, title: note.title});
+            stackOrQueue.push(...graph.getReferences(id));
+        }
+    }
+
+    return results;
+}
+
+async function invoke(input, context) {
+    const { startId, mode, callback } = schema.parse(input);
+    const graph = context.graph;
+
+    const results = await traverseGraph(graph, startId, mode);
+
+    return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
+}
+
+export default {
+    name: 'graph_traverse',
+    description: 'Traverse graph (DFS/BFS)',
+    schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
+    invoke: withToolHandling({ name: 'graph_traverse', schema, invoke }),
+};
