@@ -9,10 +9,12 @@ import { ErrorHandler } from './error_handler.js'; // Import ErrorHandler
 
 export class NoteRunner {
     noteStepHandler;
+    server;
     errorHandler; // Declare ErrorHandler
 
-    constructor(serverState) {
+    constructor(serverState, server) {
         this.state = serverState;
+        this.server = server;
         this.errorHandler = new ErrorHandler(serverState); // Instantiate ErrorHandler
     }
 

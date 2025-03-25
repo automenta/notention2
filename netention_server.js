@@ -19,7 +19,7 @@ class NetentionServer {
         this.websocketManager = new WebSocketServerManager(this.state, this.queueManager);
         this.errorHandler = new ErrorHandler(this.state); // Instantiate ErrorHandler
         this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler); // Pass ErrorHandler
-        this.noteRunner = new NoteRunner(this.state, this.noteStepHandler, this.errorHandler); // Pass ErrorHandler
+        this.noteRunner = new NoteRunner(this.state, this.noteStepHandler, this.errorHandler, this); // Pass NetentionServer instance
         this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager);
     }
 
