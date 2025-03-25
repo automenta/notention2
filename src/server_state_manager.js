@@ -5,6 +5,12 @@ import { LLM } from './llm.js';
 import { Logger } from './logger.js';
 import { CONFIG } from './config.js';
 
+export async function markStepAsCompleted(note, step, stepResult) {
+    step.status = 'completed';
+    step.result = stepResult;
+    await this.serverCore.writeNoteToDB(note);
+}
+
 export class ServerState {
     constructor() {
         this.config = CONFIG;
@@ -17,6 +23,7 @@ export class ServerState {
         this.updateBatch = new Set();
         this.batchTimeout = null;
         this.scheduler = null;
+        this.markStepAsCompleted = markStepAsCompleted.bind(this);
     }
 
     getConfig() {

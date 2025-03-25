@@ -53,12 +53,14 @@ export class NoteStepHandler {
         };
         const graph = this.state.getGraph();
         graph.addNote(testNote);
+        const stepResult = `Generated test ${testNoteId} for ${targetId}`;
         note.memory.push({
             type: 'testGen',
-            content: `Generated test ${testNoteId} for ${targetId}`,
+            content: stepResult,
             timestamp: Date.now(),
             stepId: step.id
         });
+        await this.state.markStepAsCompleted(note, step, stepResult);
         this.state.queueManager.queueExecution(testNote);
     }
 
@@ -86,7 +88,7 @@ export class NoteStepHandler {
         const { apiName, query } = step.input;
         const data = await this.state.getLLM().fetchExternalData(apiName, query);
         const stepResult = `Fetched data from ${apiName}`;
-        note.memory.push({ type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id });
+        note.memory.push({ type: 'external', content: stepResult, timestamp: Date.now(), stepId: step.id });
         await this.state.markStepAsCompleted(note, step, stepResult);
     }
 
@@ -98,7 +100,7 @@ export class NoteStepHandler {
             noteIds
         );
         const stepResult = `Collaborated with notes ${noteIds.join(', ')}`;
-        note.memory.push({ type: 'collab', content: collabResult.text, timestamp: Date.now(), stepId: step.id });
+        note.memory.push({ type: 'collab', content: stepResult, timestamp: Date.now(), stepId: step.id });
         await this.state.markStepAsCompleted(note, step, stepResult);
     }
 }
