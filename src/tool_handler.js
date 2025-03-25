@@ -17,19 +17,30 @@ export async function executeToolStep(state, note, step, toolName, memoryMap, er
             errorHandler.handleToolNotFoundError(note, step);
             throw new Error(`Tool ${toolName} not found`);
         }
-        const result = await tool.invoke(step.input, { // Directly call tool.invoke
-            graph: state.getGraph(),
-            llm: state.getLLM(),
-            state: state, // Pass the server state
-            note: note, // Pass the current note
-            step: step,  // Pass the current step
-            errorHandler: errorHandler // Pass the error handler
-        });
+
+        // Augment the context with standard tool handling functions
+        const augmentedContext = withStandardToolHandling({
+                graph: state.getGraph(),
+                llm: state.getLLM(),
+                state: state,
+                note: note,
+                step: step,
+                errorHandler: errorHandler
+            },
+            toolName,
+            note,
+            step
+        );
+
+        // Call the tool's invoke method with the augmented context
+        const result = await tool.invoke(step.input, augmentedContext);
+
         memoryMap.set(step.id, result);
         note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';
         await state.serverCore.writeNoteToDB(note);
         return result;
+
     } catch (error) {
         step.status = 'failed';
         errorHandler.handleToolStepError(note, step, error);

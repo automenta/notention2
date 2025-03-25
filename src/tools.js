@@ -1,10 +1,40 @@
-import {loadToolsFromDirectory} from './tool_utils.js';
-import { Tool } from './tool_utils.js';
+import { logToolStart, logToolExecutionError } from './utils.js';
 
-export class Tools {
-    constructor() {
-        this.tools = new Map();
-    }
+export function withStandardToolHandling(context, toolName, note, step) {
+    const augmentedContext = { ...context };
+
+    augmentedContext.logToolStart = () => {
+        logToolStart(context.state, note.id, step.id, toolName);
+    };
+
+    augmentedContext.handleToolError = (error) => {
+        logToolExecutionError(context.state, note.id, step.id, toolName, error);
+        throw error; // Re-throw for handling in NoteRunner
+    };
+
+    return augmentedContext;
+}
+
+export function defineTool({
+    name,
+    description,
+    schema,
+    invoke,
+    version = '1.0.0',
+    dependencies = [],
+    logging = true // New option to control default logging
+}) {
+    return () => {
+        return {
+            name,
+            description,
+            schema,
+            version,
+            dependencies,
+            invoke
+        };
+    };
+}
 
     addTool(toolDefinition) {
         const toolFactory = toolDefinition; // No need to instantiate here

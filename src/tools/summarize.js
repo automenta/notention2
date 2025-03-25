@@ -18,11 +18,16 @@ const promptTemplate = PromptTemplate.fromTemplate(
 
 const chain = new LLMChain({llm: llm, prompt: promptTemplate});
 
-
-async function invoke(input) {
+async function invoke(input, context) {
     const { text, length = 'medium', style = 'paragraph' } = schema.parse(input);
-    const result = await chain.call({ text, length, style });
-    return result.text || 'No summary generated';
+
+    try {
+        context.logToolStart(); // Use the augmented context to log
+        const result = await chain.call({ text, length, style });
+        return result.text || 'No summary generated';
+    } catch (error) {
+        context.handleToolError(error); // Use the augmented context to handle errors
+    }
 }
 
 export default defineTool({
