@@ -2,7 +2,6 @@
 import { CONFIG } from './config.js';
 import crypto from 'crypto';
 import { z } from 'zod';
-import { NoteStepHandler } from './note_step_handler.js'; // Import NoteStepHandler
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
@@ -12,10 +11,10 @@ export class NoteRunner {
     noteStepHandler;
     errorHandler; // Declare ErrorHandler
 
-    constructor(serverState, noteStepHandler) {
+    constructor(serverState) {
         this.state = serverState;
-        this.noteStepHandler = noteStepHandler;
         this.errorHandler = new ErrorHandler(serverState); // Instantiate ErrorHandler
+        this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler); // Instantiate NoteStepHandler
     }
 
     async runNote(note) {
