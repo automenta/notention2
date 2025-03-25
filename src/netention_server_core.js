@@ -76,4 +76,19 @@ class NetentionServerCore {
     }
 
     async flushBatchedUpdates() {
+        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
+            return this.state.graph.getNote(noteId);
+        });
+        this.state.updateBatch.clear();
+        this.batchTimeout = null;
+        noteUpdates.forEach(note => {
+            this.websocketManager.wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({type: 'noteUpdate', data: note}));
+                }
+            });
+        });
+        await Promise.all(Array.from(this.state.pendingWrites.values()).map(resolve => resolve()));
+        this.state.pendingWrites.clear();
+        await this.fileManager.saveNotesToDB(); // Ensure notes are saved to DB after batch update
     }
