@@ -30,7 +30,7 @@ export class WebSocketServerManager {
         ws.on('message', async msg => {
             try {
                 const parsedMessage = JSON.parse(msg);
-                await this._dispatchMessage(parsedMessage, ws); // Use dispatchMessage
+                await this.state.dispatchWebSocketMessage(parsedMessage); // Call dispatchWebSocketMessage on server state
             } catch (e) {
                 this.state.log(`WebSocket message processing error: ${e}`, 'error', {
                     component: 'WebSocket',
@@ -53,25 +53,6 @@ export class WebSocketServerManager {
         ws.send(JSON.stringify({type: 'tools', data: availableToolsData}));
     }
 
-
-    async _dispatchMessage(parsedMessage, ws) {
-        switch (parsedMessage.type) {
-            case 'createNote':
-                await this.state.noteHandler.handleCreateNote(parsedMessage);
-                break;
-            case 'updateNote':
-                await this.state.noteHandler.handleUpdateNote(parsedMessage);
-                break;
-            case 'deleteNote':
-                await this.state.noteHandler.handleDeleteNote(parsedMessage);
-                break;
-            default:
-                this.state.log('Unknown message type', 'warn', {
-                    component: 'WebSocket',
-                    messageType: parsedMessage.type
-                });
-        }
-    }
 
     broadcastNotesUpdate() {
         this.broadcast({type: 'notes', data: this.state.graph.getNotes()});

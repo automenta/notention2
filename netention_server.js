@@ -23,6 +23,25 @@ class NetentionServer {
         this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager);
     }
 
+    async dispatchWebSocketMessage(parsedMessage) {
+        switch (parsedMessage.type) {
+            case 'createNote':
+                await this.noteHandler.handleCreateNote(parsedMessage);
+                break;
+            case 'updateNote':
+                await this.noteHandler.handleUpdateNote(parsedMessage);
+                break;
+            case 'deleteNote':
+                await this.noteHandler.handleDeleteNote(parsedMessage);
+                break;
+            default:
+                this.state.log('Unknown message type', 'warn', {
+                    component: 'WebSocket',
+                    messageType: parsedMessage.type
+                });
+        }
+    }
+
     async initialize() {
         this.state.log("Starting initialization...", 'info', {component: 'Server'});
         await this._loadTools();
@@ -120,5 +139,6 @@ class NetentionServer {
         return this.websocketManager.broadcastNoteUpdate(note);
     }
 }
+NetentionServer.prototype.dispatchWebSocketMessage = NetentionServer.prototype.dispatchWebSocketMessage;
 
 export default NetentionServer;
