@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import {z} from 'zod';
-import { executeToolStep } from './tool_handler.js';
+import {executeToolStep} from './tool_handler.js';
+import {handleToolStepError} from './utils.js';
 
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
@@ -56,8 +57,7 @@ export class NoteStepHandler {
             step.status = 'completed';
             await this.state.serverCore.writeNoteToDB(note);
         } catch (error) {
-            step.status = 'failed';
-            this.errorHandler.handleToolStepError(note, step, error);
+            await handleToolStepError(this.state, note, step, error);
         }
     }
 
@@ -80,8 +80,7 @@ export class NoteStepHandler {
             step.status = 'completed';
             await this.state.serverCore.writeNoteToDB(note);
         } catch (error) {
-            step.status = 'failed';
-            this.errorHandler.handleToolStepError(note, step, error);
+            await handleToolStepError(this.state, note, step, error);
         }
     }
 
@@ -104,8 +103,7 @@ export class NoteStepHandler {
             await this.state.serverCore.writeNoteToDB(note);
             this.state.queueManager.queueExecution(newNote);
         } catch (error) {
-            step.status = 'failed';
-            this.errorHandler.handleToolStepError(note, step, error);
+            await handleToolStepError(this.state, note, step, error);
         }
     }
 
