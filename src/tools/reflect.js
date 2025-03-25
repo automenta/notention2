@@ -7,25 +7,31 @@ const schema = z.object({
 
 async function invoke(input, context) {
     const { noteId } = schema.parse(input);
-    const graph = context.graph;
-    const note = graph.getNote(noteId);
 
-    if (!note) {
-        return `Note with ID '${noteId}' not found.`;
-    }
+    try {
+        context.logToolStart();
+        const graph = context.graph;
+        const note = graph.getNote(noteId);
 
-    const llm = context.llm;
-    const noteSummary = await llm.invoke([
-        {
-            role: 'user',
-            content: `Summarize the following note for reflection:
-                Title: ${note.title}
-                Content: ${JSON.stringify(note.content, null, 2)}
-                Logic: ${JSON.stringify(note.logic, null, 2)}`
+        if (!note) {
+            return `Note with ID '${noteId}' not found.`;
         }
-    ]);
 
-    return `Reflection on Note '${note.title}' (ID: ${noteId}):\n${noteSummary.text}`;
+        const llm = context.llm;
+        const noteSummary = await llm.invoke([
+            {
+                role: 'user',
+                content: `Summarize the following note for reflection:
+                    Title: ${note.title}
+                    Content: ${JSON.stringify(note.content, null, 2)}
+                    Logic: ${JSON.stringify(note.logic, null, 2)}`
+            }
+        ]);
+
+        return `Reflection on Note '${note.title}' (ID: ${noteId}):\n${noteSummary.text}`;
+    } catch (error) {
+        context.handleToolError(error);
+    }
 }
 
 export default defineTool({
