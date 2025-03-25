@@ -377,3 +377,24 @@ export class NoteRunner {
     }
 
 export default NoteRunner;
+
+    _handleFailure(note, error) {
+        this.errorHandler._handleFailure(note, error); // Delegate to ErrorHandler
+    }
+
+    shouldRetry(error) {
+        return this.errorHandler.shouldRetry(error); // Delegate to ErrorHandler
+    }
+
+    retryExecution(note) {
+        this.errorHandler.retryExecution(note); // Delegate to ErrorHandler
+    }
+
+    shouldRequestUnitTest(note, error) {
+        return this.errorHandler.shouldRequestUnitTest(note, error); // Delegate to ErrorHandler
+    }
+
+    async requestUnitTest(note) {
+        await this.errorHandler.requestUnitTest(note); // Delegate to ErrorHandler
+    }
+}
