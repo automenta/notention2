@@ -95,7 +95,7 @@ export class NoteRunner {
         } catch (error) {
             this.errorHandler.handleToolStepError(note, step, error);
         }
-        await this.state.writeNoteToDB(note);
+        await this.state.serverCore.writeNoteToDB(note);
     }
 
 
@@ -111,7 +111,7 @@ $
                 {type: 'summary', content: summary.text, timestamp: Date.now()},
                 ...note.memory.slice(-50)
             ];
-            await this.state.writeNoteToDB(note);
+            await this.state.serverCore.writeNoteToDB(note);
             logMemoryPrune(this.state, note.id, summary.text);
         }
     }
@@ -214,7 +214,7 @@ export class NoteRunner {
         try {
             logNoteStart(this.state, note.id);
             note.status = 'running';
-            await this.state.writeNoteToDB(note);
+            await this.state.serverCore.writeNoteToDB(note);
             this.state.queueManager.updateAnalytics(note, 'start');
 
             const memoryMap = new Map(note.memory.map(m => [m.stepId || m.timestamp, m.content]));
