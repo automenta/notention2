@@ -10,12 +10,7 @@ class NetentionServerCore {
     noteRunner;
     noteHandler;
     batchTimeout;
-    NetentionServerCore
-    prototype
-    dispatchWebSocketMessage = NetentionServerCore.prototype.dispatchWebSocketMessage;
-    export
-    default
-    NetentionServerCore;
+
 
     constructor(state, queueManager, websocketManager, errorHandler, noteStepHandler, noteRunner, noteHandler) {
         this.state = state;
