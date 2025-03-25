@@ -34,7 +34,7 @@ export default {
                 invoke: invokeFunction
             };
             const newTool = new Tool(newToolDef);
-            context.tools.addTool(newTool);
+            context.state.tools.addTool(newTool); // Use context.state.tools to add the tool
 
             const successMsg = `Tool '${name}' implemented and added to the tool registry.`;
             context.log(successMsg, 'info', { component: 'implement_tool', toolName: name });
