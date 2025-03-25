@@ -125,7 +125,7 @@ export class NoteStepHandler {
         const {targetId} = step.input;
         const target = this.state.graph.getNote(targetId);
         if (!target) throw new Error(`Note ${targetId} not found`);
-        const analytics = this.state.analytics.get(targetId) || {usage: 0, runtime: 0};
+        const analytics = this.state.queueManager.analytics.get(targetId) || {usage: 0, runtime: 0};
         const result = `Usage: ${analytics.usage}, Avg Runtime: ${analytics.runtime / (analytics.usage || 1)}ms`;
         note.memory.push({type: 'analytics', content: result, timestamp: Date.now(), stepId: step.id});
         step.status = 'completed';

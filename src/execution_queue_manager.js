@@ -1,10 +1,16 @@
 export class ExecutionQueue {
+    executionQueue;
+    analytics;
+    scheduler;
+
     constructor(serverState) {
         this.state = serverState;
+        this.executionQueue = new Set(); // Initialize executionQueue here
+        this.analytics = new Map(); // Initialize analytics here
     }
 
     initScheduler() {
-        this.state.scheduler = setInterval(() => this.optimizeSchedule(), 5000);
+        this.scheduler = setInterval(() => this.optimizeSchedule(), 5000);
     }
 
     async optimizeSchedule() {
@@ -18,13 +24,13 @@ export class ExecutionQueue {
         });
 
         for (const note of notes.slice(0, 10)) {
-            if (!this.state.executionQueue.has(note.id)) this.queueExecution(note);
+            if (!this.executionQueue.has(note.id)) this.queueExecution(note);
         }
     }
 
     calculatePriority(note) {
         const deadlineFactor = note.deadline ? (new Date(note.deadline) - Date.now()) / (1000 * 60 * 60) : 0;
-        const usage = this.state.analytics.get(note.id)?.usage || 0;
+        const usage = this.analytics.get(note.id)?.usage || 0;
         return (note.priority || 50) - (deadlineFactor < 0 ? 100 : deadlineFactor) + usage;
     }
 
@@ -33,21 +39,21 @@ export class ExecutionQueue {
             component: 'ExecutionQueue',
             noteId: note.id
         });
-        this.state.executionQueue.add(note.id);
+        this.executionQueue.add(note.id);
     }
 
     async processQueue() {
-        if (this.state.executionQueue.size === 0) return;
-        const noteId = this.state.executionQueue.values().next().value;
+        if (this.executionQueue.size === 0) return;
+        const noteId = this.executionQueue.values().next().value;
         const note = this.state.graph.getNote(noteId);
 
         if (!note) {
-            this.state.executionQueue.delete(noteId);
+            this.executionQueue.delete(noteId);
             return;
         }
 
         if (note.status !== 'pending' && note.status !== 'running' && note.status !== 'pendingUnitTesting') {
-            this.state.executionQueue.delete(noteId);
+            this.executionQueue.delete(noteId);
             return;
         }
 
@@ -61,19 +67,19 @@ export class ExecutionQueue {
                 errorMessage: error.message,
                 errorStack: error.stack
             });
-            this.state.executionQueue.delete(noteId);
+            this.executionQueue.delete(noteId);
         } finally {
-            this.state.executionQueue.delete(noteId);
+            this.executionQueue.delete(noteId);
         }
     }
 
     updateAnalytics(note, event) {
-        const stats = this.state.analytics.get(note.id) || {usage: 0, runtime: 0, lastStart: 0};
+        const stats = this.analytics.get(note.id) || {usage: 0, runtime: 0, lastStart: 0};
         if (event === 'start') stats.lastStart = Date.now();
         if (event === 'complete') {
             stats.usage++;
             stats.runtime += Date.now() - stats.lastStart;
         }
-        this.state.analytics.set(note.id, stats);
+        this.analytics.set(note.id, stats);
     }
 }

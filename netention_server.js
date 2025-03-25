@@ -16,7 +16,7 @@ import {CONFIG} from "./config.js";
 class NetentionServer {
     constructor() {
         this.state = new ServerState();
-        this.queueManager = new ExecutionQueue(this.state);
+        this.queueManager = new ExecutionQueue(this.state); // Instantiate ExecutionQueue
         this.websocketManager = new WebSocketServerManager(this.state, this.queueManager);
         this.errorHandler = new ErrorHandler(this.state); // Instantiate ErrorHandler
         this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler); // Pass ErrorHandler

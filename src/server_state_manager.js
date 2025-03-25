@@ -14,8 +14,6 @@ export class ServerState {
     pendingWrites;
     updateBatch;
     batchTimeout;
-    executionQueue;
-    analytics;
     scheduler;
 
     constructor() {
@@ -28,8 +26,6 @@ export class ServerState {
         this.pendingWrites = new Map();
         this.updateBatch = new Set();
         this.batchTimeout = null;
-        this.executionQueue = new Set();
-        this.analytics = new Map();
         this.scheduler = null;
     }
 

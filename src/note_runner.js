@@ -17,12 +17,12 @@ export class NoteRunner {
     }
 
     async runNote(note) {
-        if (this.state.executionQueue.has(note.id)) return note;
-        this.state.executionQueue.add(note.id);
+        if (this.state.queueManager.executionQueue.has(note.id)) return note;
+        this.state.queueManager.executionQueue.add(note.id);
         try {
             note.status = 'running';
             await this.state.writeNoteToDB(note);
-            this.state.updateAnalytics(note, 'start');
+            this.state.queueManager.updateAnalytics(note, 'start');
 
             const memoryMap = new Map(note.memory.map(m => [m.stepId || m.timestamp, m.content]));
             const stepsById = new Map(note.logic.map(step => [step.id, step]));
