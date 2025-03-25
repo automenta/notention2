@@ -1,4 +1,14 @@
-import {logNoteExecutionError, logNoteRetryQueued, logToolExecutionError, logToolNotFoundError} from './utils.js';
+import {
+    logNoteExecutionError,
+    logNoteRetryQueued,
+    logToolExecutionError,
+    logToolNotFoundError
+} from './utils.js';
+import {
+    ToolNotFoundError,
+    ToolExecutionError,
+    NoteExecutionError
+} from './errors.js';
 
 export class ErrorHandler {
     constructor(serverState) {
@@ -20,17 +30,18 @@ export class ErrorHandler {
     }
 
     handleToolNotFoundError(note, step) {
-        const errorMsg = `Tool ${step.tool} not found`;
+        const error = new ToolNotFoundError(`Tool ${step.tool} not found`);
         logToolNotFoundError(this.state, note.id, step.id, step.tool);
         step.status = 'failed';
-        step.error = errorMsg;
+        step.error = error.message;
         this.state.serverCore.writeNoteToDB(note);
     }
 
     handleToolStepError(note, step, error) {
-        logToolExecutionError(this.state, note.id, step.id, step.tool, error);
+        const toolError = new ToolExecutionError(error.message);
+        logToolExecutionError(this.state, note.id, step.id, step.tool, toolError);
         step.status = 'failed';
-        step.error = error.message;
+        step.error = toolError.message;
         this.state.serverCore.writeNoteToDB(note);
     }
 
@@ -44,7 +55,6 @@ export class ErrorHandler {
         this.state.queueManager.queueExecution(note);
         logNoteRetryQueued(this.state, note.id);
     }
-
 
     shouldRequestUnitTest(note, error) {
         return note.logic.some(step => step.tool === 'code_gen' && step.status === 'failed');
