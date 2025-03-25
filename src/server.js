@@ -42,36 +42,77 @@ class NetentionServer {
             const dependencies = new Map(note.logic.map(step => [step.id, new Set(step.dependencies)]));
             const readyQueue = note.logic.filter(step => !step.dependencies.length && step.status === 'pending').map(s => s.id);
 
+            this.state.log(`Running note ${note.id}, ${readyQueue.length} steps ready`, 'debug', { component: 'NoteRunner', noteId: note.id, readyQueueLength: readyQueue.length });
+
+
             while (readyQueue.length) {
                 const stepId = readyQueue.shift();
                 const step = stepsById.get(stepId);
+                if (!step) {
+                    this.state.log(`Step ${stepId} not found in note ${note.id}`, 'warn', { component: 'NoteRunner', noteId: note.id, stepId: stepId });
+                    continue; // Skip to next step if this one is not found
+                }
+
+                if (step.status !== 'pending') {
+                    this.state.log(`Step ${stepId} in note ${note.id} is not pending, skipping. Status: ${step.status}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: stepId, stepStatus: step.status });
+                    continue; // Skip if step is not pending
+                }
+
+
+                step.status = 'running'; // Mark step as running *before* execution
+                this.state.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool });
                 step.input = this.replacePlaceholders(step.input, memoryMap);
 
-                switch (step.tool) {
-                    case 'summarize':
-                        await this.handleSummarize(note, step);
-                        break;
-                    case 'generateCode':
-                        await this.handleGenerateCode(note, step);
-                        break;
-                    case 'reflect': // New Tool - Reflect
-                        await this.handleReflect(note, step);
-                        break;
-                    case 'test_gen': // New Tool - Test Generation
-                        await this.handleTestGeneration(note, step);
-                        break;
-                    case 'test_run': // New Tool - Test Execution
-                        await this.handleTestExecution(note, step);
-                        break;
-                    default:
-                        await this.executeStep(note, step, memoryMap);
+
+                try {
+                    switch (step.tool) {
+                        case 'summarize':
+                            await this.handleSummarize(note, step);
+                            break;
+                        case 'generateCode':
+                            await this.handleGenerateCode(note, step);
+                            break;
+                        case 'reflect': // New Tool - Reflect
+                            await this.handleReflect(note, step);
+                            break;
+                        case 'test_gen': // New Tool - Test Generation
+                            await this.handleTestGeneration(note, step);
+                            break;
+                        case 'test_run': // New Tool - Test Execution
+                            await this.handleTestExecution(note, step);
+                            break;
+                        case 'knowNote':
+                            await this.handleKnowNote(note, step);
+                            break;
+                        case 'analytics':
+                            await this.handleAnalytics(note, step);
+                            break;
+                        case 'fetchExternal':
+                            await this.handleFetchExternal(note, step);
+                            break;
+                        case 'collaborate':
+                            await this.handleCollaboration(note, step);
+                            break;
+                        case 'generateTool':
+                            await this.handleToolGeneration(note, step);
+                            break;
+                        default:
+                            await this.executeStep(note, step, memoryMap);
+                    }
+                } catch (error) {
+                    step.status = 'failed'; // Mark step as failed if execution error
+                    this.state.log(`Error executing step ${step.id} of note ${note.id}: ${error}`, 'error', { component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool, error: error.message });
+                    note.memory.push({type: 'stepError', content: `Step ${step.id} failed: ${error.message}`, timestamp: Date.now(), stepId: step.id, error: error.message });
+
+                } finally {
+                    await this.writeNoteToDB(note); // Write note after each step execution or failure
                 }
                 this._processStepDependencies(dependencies, stepsById, readyQueue, stepId, note);
             }
 
             await this._updateNoteStatusPostExecution(note);
             await this._runNoteTests(note);
-            await self.pruneMemory(note);
+            await this.pruneMemory(note);
             this.updateAnalytics(note, 'complete');
             return await this._finalizeNoteRun(note);
         } catch (error) {
