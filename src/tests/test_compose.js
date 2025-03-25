@@ -1,4 +1,4 @@
-import {describe, expect, it, vi} from 'vitest';
+import {describe, expect, it, vi} from '../test_utils';
 import composeTool from '../tools/compose.js';
 
 describe('Compose Tool', () => {
