@@ -33,6 +33,51 @@ export function logNoteFinalize(state, noteId, status) {
     });
 }
 
+export function logMemoryPrune(state, noteId, summaryText) {
+    state.log(`Note ${noteId} memory pruned. Summary: ${summaryText}`, 'debug', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        summary: summaryText.substring(0, 50) + '...' // Show snippet of summary
+    });
+}
+
+export function logTestRunnerStart(state, noteId, testFile) {
+    state.log(`Running tests for note ${noteId} using ${testFile}...`, 'info', {
+        component: 'TestRunner',
+        noteId: noteId,
+        testFile: testFile
+    });
+}
+
+export function logNoteRunFinalized(state, noteId, status) {
+    state.log(`Note ${noteId} execution finalized with status: ${status}`, 'debug', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        status: status
+    });
+}
+
+export function logNoteFailure(state, noteId, error) {
+    state.log(`Note ${noteId} execution failed: ${error}`, 'error', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        errorType: 'NoteExecutionError',
+        error: error.message
+    });
+}
+
+export function logRetryExecutionQueued(state, noteId) {
+    state.log(`Note ${noteId} queued for retry.`, 'debug', {component: 'NoteRunner', noteId: noteId});
+}
+
+export function logUnitTestRequested(state, noteId, testNoteId) {
+    state.log(`Unit test requested for Note ${noteId}, test Note ${testNoteId} created.`, 'info', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        testNoteId: testNoteId
+    });
+}
+
 export function logNoteQueueLength(state, noteId, readyQueueLength) {
     state.log(`Running note ${noteId}, ${readyQueueLength} steps ready`, 'debug', {
         component: 'NoteRunner',
