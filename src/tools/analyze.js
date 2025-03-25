@@ -7,10 +7,6 @@ const schema = z.object({
 
 async function invoke(input, context) { // Rename original invoke to invokeImpl
     const {targetId} = schema.parse(input); // Parse input here for consistency
-    const note = context.graph.getNote(targetId);
-    if (!note) return `Note ${targetId} not found`;
-async function invoke(input, context) { // Rename original invoke to invokeImpl
-    const {targetId} = schema.parse(input); // Parse input here for consistency
     try {
         context.logToolStart();
         return `Analyzing ${targetId}`;
