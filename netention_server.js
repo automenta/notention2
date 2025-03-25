@@ -23,6 +23,19 @@ class NetentionServer {
         this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager);
     }
 
+    log(message, level = 'info', context = {}) {
+        if (level === 'debug' && !CONFIG.DEBUG_LOGGING) {
+            return;
+        }
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            level: level,
+            message: message,
+            ...context
+        };
+        console[level](JSON.stringify(logEntry));
+    }
+
     async dispatchWebSocketMessage(parsedMessage) {
         switch (parsedMessage.type) {
             case 'createNote':
@@ -43,25 +56,25 @@ class NetentionServer {
     }
 
     async initialize() {
-        this.state.log("Starting initialization...", 'info', {component: 'Server'});
+        this.log("Starting initialization...", 'info', {component: 'Server'});
         await this._loadTools();
         await this._loadNotesFromDB();
         this.state.llm.setApiKey('exampleApi', 'your-key-here');
-        this.state.log("Server started successfully.", 'info', {component: 'Server'});
+        this.log("Server started successfully.", 'info', {component: 'Server'});
         this._startServer();
         this.queueManager.initScheduler();
     }
 
     async _loadTools() {
-        this.state.log("Loading tools...", 'info', {component: 'ToolLoader'});
+        this.log("Loading tools...", 'info', {component: 'ToolLoader'});
         try {
             const loadedTools = await this.toolLoader.loadTools(CONFIG.TOOLS_BUILTIN_DIR); // Pass tools directory
-            this.state.log(`Loaded ${loadedTools.length} tools.`, 'info', {
+            this.log(`Loaded ${loadedTools.length} tools.`, 'info', {
                 component: 'ToolLoader',
                 count: loadedTools.length
             });
         } catch (error) {
-            this.state.log(`Tool loading failed during server initialization: ${error}`, 'error', {
+            this.log(`Tool loading failed during server initialization: ${error}`, 'error', {
                 component: 'ToolLoader',
                 error: error.message
             });
@@ -70,15 +83,15 @@ class NetentionServer {
     }
 
     async _loadNotesFromDB() {
-        this.state.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
+        this.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
         try {
             const loadedNotesCount = await this.noteLoader.loadNotes();
-            this.state.log(`Loaded ${loadedNotesCount} notes from DB.`, 'info', {
+            this.log(`Loaded ${loadedNotesCount} notes from DB.`, 'info', {
                 component: 'NoteLoader',
                 count: loadedNotesCount
             });
         } catch (error) {
-            this.state.log(`Note loading failed during server initialization: ${error}`, 'error', {
+            this.log(`Note loading failed during server initialization: ${error}`, 'error', {
                 component: 'NoteLoader',
                 error: error.message
             });
@@ -97,13 +110,13 @@ class NetentionServer {
         const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
         this.websocketManager.start(httpServer);
 
-        httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', { component: 'Server', port: CONFIG.PORT }));
+        httpServer.listen(CONFIG.PORT, () => this.log(`Server running on localhost:${CONFIG.PORT}`, 'info', { component: 'Server', port: CONFIG.PORT }));
         setInterval(() => this.queueManager.processQueue(), CONFIG.QUEUE_INTERVAL);
     }
 
 
     async writeNoteToDB(note) {
-        this.state.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
+        this.log(`Writing note ${note.id} to DB.`, 'debug', {component: 'NoteWriter', noteId: note.id});
         this.state.updateBatch.add(note.id);
         if (!this.state.batchTimeout) {
             this.state.batchTimeout = setTimeout(this.flushBatchedUpdates.bind(this), CONFIG.BATCH_INTERVAL);
