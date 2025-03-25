@@ -44,5 +44,25 @@ export default defineTool({
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
+    try {
+        context.logToolStart();
+        const { startId, mode, callback } = schema.parse(input); // Parse input here for consistency
+        const graph = context.graph;
+
+        const results = await traverseGraph(graph, startId, mode);
+
+        return `Traversed ${mode} from ${startId}, callback ${callback} applied: ${JSON.stringify(results)}`;
+    } catch (error) {
+        context.handleToolError(error);
+    }
+}
+
+
+export default defineTool({
+    name: 'graph_traverse',
+    description: 'Traverse graph (DFS/BFS)',
+    schema,
+    version: '1.0.0',
+    dependencies: ['zod'],
     invoke: invoke,
 });

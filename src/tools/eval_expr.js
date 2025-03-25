@@ -14,6 +14,14 @@ async function invoke(input) {
         return result;
     } catch (error) {
         return `Error evaluating ${expr}: ${error.message}`;
+    try {
+        context.logToolStart();
+        const {expr, context: toolContext} = schema.parse(input);
+        const fn = new Function('context', `return ${expr}`);
+        const result = fn(toolContext || {});
+        return result;
+    } catch (error) {
+        context.handleToolError(error);
     }
 }
 

@@ -9,7 +9,12 @@ async function invoke(input, context) { // Rename original invoke to invokeImpl
     const {targetId} = schema.parse(input); // Parse input here for consistency
     const note = context.graph.getNote(targetId);
     if (!note) return `Note ${targetId} not found`;
-    return `Analyzing ${targetId}`;
+    try {
+        context.logToolStart();
+        return `Analyzing ${targetId}`;
+    } catch (error) {
+        context.handleToolError(error);
+    }
 }
 
 

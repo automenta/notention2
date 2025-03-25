@@ -19,5 +19,20 @@ export default defineTool({
     name: 'generateTool',
     description: 'Generate a new tool at runtime',
     schema,
+    try {
+        context.logToolStart();
+        const { name, desc, code } = schema.parse(input);
+        const toolDef = {name, description: desc, schema: z.object({}), invoke: new Function('input', 'context', code)};
+        context.state.tools.addTool(toolDef);
+        return `Tool ${name} generated`;
+    } catch (error) {
+        context.handleToolError(error);
+    }
+}
+
+export default defineTool({
+    name: 'generateTool',
+    description: 'Generate a new tool at runtime',
+    schema,
     invoke: invoke,
 });

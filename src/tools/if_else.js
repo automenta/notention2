@@ -34,5 +34,28 @@ export default defineTool({
     schema,
     version: '1.0.0',
     dependencies: ['zod', './eval_expr.js', './compose.js'],
+    try {
+        context.logToolStart();
+        const {condition_expr, then_branch, else_branch} = schema.parse(input);
+
+        const conditionResult = await evalExprTool.invoke({expr: condition_expr}, context);
+        const isConditionTrue = Boolean(conditionResult); // Cast to boolean
+
+        if (isConditionTrue) {
+            return await composeTool.invoke({toolChain: then_branch}, context);
+        } else {
+            return await composeTool.invoke({toolChain: else_branch}, context);
+        }
+    } catch (error) {
+        context.handleToolError(error);
+    }
+}
+
+export default defineTool({
+    name: 'if_else',
+    description: 'Conditional execution of tool branches based on an expression',
+    schema,
+    version: '1.0.0',
+    dependencies: ['zod', './eval_expr.js', './compose.js'],
     invoke: invoke,
 });

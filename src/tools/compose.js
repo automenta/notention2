@@ -28,7 +28,31 @@ async function invoke(input, context) {
         }
     }
 
-    return executionResults; // Return results as an array of {toolName, result}
+    try {
+        context.logToolStart();
+        const {toolChain} = schema.parse(input);
+        const executionResults = [];
+
+        for (const toolConfig of toolChain) {
+            const {toolName, input: stepInput} = toolConfig;
+            const tool = context.tools.getTool(toolName);
+
+            if (!tool) {
+                return `Error: Tool '${toolName}' not found: ${toolName}`;
+            }
+
+            try {
+                const result = await tool.execute(stepInput || {}, context); // Use stepInput if provided, otherwise empty object
+                executionResults.push({ toolName, result });
+            } catch (error) {
+                return `Error executing tool '${toolName}': ${error.message}`;
+            }
+        }
+
+        return executionResults; // Return results as an array of {toolName, result}
+    } catch (error) {
+        context.handleToolError(error);
+    }
 }
 
 export default defineTool({
