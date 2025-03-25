@@ -27,7 +27,7 @@ export default {
 
             try {
                 const result = await tool.execute(stepInput || {}, context); // Use stepInput if provided, otherwise empty object
-                executionResults.push({toolName, result});
+                executionResults.push({ toolName, result });
             } catch (error) {
                 return `Error executing tool '${toolName}': ${error.message}`;
             }

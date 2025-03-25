@@ -12,8 +12,9 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const {noteId, time} = schema.parse(input);
-        const note = context.graph.getNote(noteId);
+        const { noteId, time } = schema.parse(input);
+        const graph = context.graph;
+        const note = graph.getNote(noteId);
 
         if (!note) {
             return `Error: Note with ID '${noteId}' not found.`;
@@ -38,7 +39,7 @@ export default {
 
         setTimeout(async () => {
             note.status = 'pending';
-            await context.graph.writeNoteToDB(note);
+            await graph.writeNoteToDB(note);
             context.state.queueManager.queueExecution(note);
             context.logger.log(`Note '${noteId}' executed as scheduled at '${time}'.`, 'info', {
                 component: 'schedule',

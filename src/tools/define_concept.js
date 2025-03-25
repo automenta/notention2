@@ -13,13 +13,14 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const {concept_name, definition, metaNoteId: inputMetaNoteId} = schema.parse(input);
+        const { concept_name, definition, metaNoteId: inputMetaNoteId } = schema.parse(input);
         const metaNoteId = inputMetaNoteId || 'seed-0'; // Default to 'seed-0' if not provided
-        const metaNote = context.graph.getNote(metaNoteId);
+        const graph = context.graph;
+        const metaNote = graph.getNote(metaNoteId);
 
         if (!metaNote) {
             const errorMsg = `Error: Meta-Note with ID '${metaNoteId}' not found.`;
-            context.logger.log(errorMsg, 'error', {component: 'define_concept', metaNoteId: metaNoteId});
+            context.logger.log(errorMsg, 'error', { component: 'define_concept', metaNoteId: metaNoteId });
             return errorMsg;
         }
 
@@ -43,7 +44,7 @@ export default {
         await context.graph.writeNoteToDB(metaNote);
 
         const successMsg = `Concept '${concept_name}' defined and stored in Meta-Note.`;
-        context.logger.log(successMsg, 'info', {component: 'define_concept', conceptName: concept_name});
-        return {status: 'success', message: successMsg, conceptName: concept_name};
+        context.logger.log(successMsg, 'info', { component: 'define_concept', conceptName: concept_name });
+        return { status: 'success', message: successMsg, conceptName: concept_name };
     }
 };

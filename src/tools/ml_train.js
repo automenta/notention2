@@ -14,7 +14,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod', 'crypto'], // Add any ML-specific dependencies here
     async invoke(input, context) {
-        const {modelType, data, targetId} = schema.parse(input);
+        const { modelType, data, targetId } = schema.parse(input);
         const modelId = crypto.randomUUID();
         const graph = context.graph;
 

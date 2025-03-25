@@ -11,7 +11,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const {testId} = schema.parse(input);
+        const { testId } = schema.parse(input);
         const graph = context.graph;
         const testNote = graph.getNote(testId);
 

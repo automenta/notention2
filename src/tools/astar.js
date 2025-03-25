@@ -66,7 +66,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod', 'priority-queue-js'],
     async invoke(input, context) {
-        const {startId, goalId} = schema.parse(input);
+        const { startId, goalId } = schema.parse(input);
         const graph = context.graph;
 
         if (!graph.getNote(startId)) {

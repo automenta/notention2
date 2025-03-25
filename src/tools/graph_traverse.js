@@ -33,7 +33,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const {startId, mode, callback} = schema.parse(input);
+        const { startId, mode, callback } = schema.parse(input);
         const graph = context.graph;
 
         const results = await traverseGraph(graph, startId, mode);

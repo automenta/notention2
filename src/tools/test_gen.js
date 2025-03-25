@@ -12,7 +12,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod', '@langchain/google-genai'],
     async invoke(input, context) {
-        const {code, targetId} = schema.parse(input);
+        const { code, targetId } = schema.parse(input);
         const llm = context.llm;
         const graph = context.graph;
         const targetNote = graph.getNote(targetId);
@@ -56,7 +56,7 @@ export default {
         `;
 
         try {
-            const llmResult = await llm.invoke([{role: 'user', content: prompt}]);
+            const llmResult = await llm.invoke([{ role: 'user', content: prompt }]);
             const testCode = llmResult.text;
 
             if (!testCode) {

@@ -52,7 +52,8 @@ export class NoteStepHandler {
             references: [targetId],
             createdAt: new Date().toISOString()
         };
-        this.state.getGraph().addNote(testNote);
+        const graph = this.state.getGraph();
+        graph.addNote(testNote);
         note.memory.push({
             type: 'testGen',
             content: `Generated test ${testNoteId} for ${targetId}`,
@@ -74,7 +75,8 @@ export class NoteStepHandler {
             memory: [],
             createdAt: new Date().toISOString(),
         };
-        this.state.getGraph().addNote(newNote);
+        const graph = this.state.getGraph();
+        graph.addNote(newNote);
         note.memory.push({ type: 'know', content: `Knew ${newNoteId}`, timestamp: Date.now(), stepId: step.id });
         step.status = 'completed';
         await this.state.serverCore.writeNoteToDB(note);
@@ -90,7 +92,8 @@ export class NoteStepHandler {
 
     async handleCollaboration(note, step) {
         const { noteIds } = step.input;
-        const collabResult = await this.state.getLLM().invoke(
+        const llm = this.state.getLLM();
+        const collabResult = await llm.invoke(
             [`Collaborate on "${note.title}" with notes: ${noteIds.join(', ')}`],
             noteIds
         );

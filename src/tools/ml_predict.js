@@ -12,7 +12,7 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'], // Add any ML-specific dependencies here
     async invoke(input, context) {
-        const {modelId, input: predictionInput} = schema.parse(input);
+        const { modelId, input: predictionInput } = schema.parse(input);
         const graph = context.graph;
         const modelNote = graph.getNote(modelId);
 

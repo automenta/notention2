@@ -11,14 +11,16 @@ export default {
     version: '1.0.0',
     dependencies: ['zod'],
     async invoke(input, context) {
-        const {noteId} = schema.parse(input);
-        const note = context.graph.getNote(noteId);
+        const { noteId } = schema.parse(input);
+        const graph = context.graph;
+        const note = graph.getNote(noteId);
 
         if (!note) {
             return `Note with ID '${noteId}' not found.`;
         }
 
-        const noteSummary = await context.llm.invoke([
+        const llm = context.llm;
+        const noteSummary = await llm.invoke([
             {
                 role: 'user',
                 content: `Summarize the following note for reflection:
