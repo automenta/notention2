@@ -9,12 +9,16 @@ export default function LogicStepItem({
                                           onStepChange,
                                           onDeleteStep,
                                           isDragging,
-                                          draggingIndex
-                                      }) {
+                                          draggingIndex,
+                                           depth
+                                       }) {
+
+    const indentation = depth * 20; // Adjust the indentation level as needed
 
     return (
         <li
             key={step.id}
+            style={{ paddingLeft: `${indentation}px` }}
             draggable="true"
             onDragStart={(e) => step.onDragStart(e, index)}
             onDragOver={(e) => step.onDragOver(e, index)}
