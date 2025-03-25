@@ -136,6 +136,13 @@ export const INITIAL_NOTES = [
                 input: { concept_name: 'Tool', definition: 'External functions or modules that Agents use to interact with the world.' },
                 dependencies: [],
                 status: 'pending'
+            },
+            {
+                id: '9',
+                tool: 'debug',
+                input: { noteId: 'seed-0' },
+                dependencies: ['5', '6', '7', '8'], // Depend on define_concept steps
+                status: 'pending'
             }
         ]
     },
