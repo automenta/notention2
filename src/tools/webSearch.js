@@ -1,5 +1,7 @@
 import z from 'zod';
 
+import z from 'zod';
+
 const schema = z.object({
     query: z.string(),
     apiKey: z.string().optional(),
@@ -13,7 +15,8 @@ export default {
     dependencies: ['zod'],
     async invoke(input, context) {
         const {query, apiKey} = schema.parse(input);
-        const apiUrl = `https://api.example.com/search?q=${encodeURIComponent(query)}${apiKey ? `&key=${apiKey}` : ''}`; // Placeholder API URL
+        const apiKeyToUse = apiKey || context?.apiKey || ''; // Use input apiKey, or context apiKey, or empty string
+        const apiUrl = `https://api.example.com/search?q=${encodeURIComponent(query)}${apiKeyToUse ? `&key=${apiKeyToUse}` : ''}`; // Placeholder API URL
 
         try {
             const response = await fetch(apiUrl);
