@@ -96,8 +96,7 @@ export class NoteStepHandler {
         this.state.queueManager.queueExecution(newNote);
     }
 
-    async handleAnalytics(note, step, memoryMap) {
-        const {targetId} = step.input;
+   async handleAnalytics(note, step, memoryMap) {
         return await this.handleToolExecution(note, step, memoryMap, 'analyze');
     }
 
