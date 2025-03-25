@@ -1,14 +1,5 @@
+import { logToolStart, logToolExecutionError } from './utils.js';
 import {readdir} from 'node:fs/promises';
-import {Tool} from './tools.js';
-
-export async function loadToolsFromDirectory(path, addTool) {
-    const files = await readdir(path);
-    for (const file of files) {
-        if (file.endsWith('.js')) {
-            await loadToolFromFile(path, file, addTool);
-        }
-    }
-}
 
 export function withToolHandling(tool) {
     return async (input, context) => {
@@ -39,21 +30,41 @@ export function getToolSchema(availableTools, toolName) {
     return tool?.schema;
 }
 
-export function defineTool({name, description, schema, invoke, version = '1.0.0', dependencies = []}) {
-    return {
-        name,
-        description,
-        schema,
-        version,
-        dependencies,
-        async invoke(input, context) {
+export function defineTool({
+    name,
+    description,
+    schema,
+    invoke,
+    version = '1.0.0',
+    dependencies = [],
+    logging = true // New option to control default logging
+}) {
+    return () => {
+        const safeInvoke = async (input, context) => {
             try {
                 const validatedInput = schema.parse(input);
+
+                if (logging) {
+                    logToolStart(context.state, context.note.id, context.step.id, name); // Log tool start
+                }
+
                 return await invoke(validatedInput, context);
             } catch (error) {
                 console.error(`Input validation error for tool '${name}': ${error.errors}`);
+                if (logging) {
+                    logToolExecutionError(context.state, context.note.id, context.step.id, name, error); // Log tool error
+                }
                 throw new Error(`Tool input validation failed: ${error.errors.map(e => e.message).join(', ')}`);
             }
-        }
+        };
+
+        return {
+            name,
+            description,
+            schema,
+            version,
+            dependencies,
+            invoke: safeInvoke
+        };
     };
 }

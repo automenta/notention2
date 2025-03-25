@@ -1,13 +1,3 @@
-async function executeTool(tool, input, context) {
-    try {
-        const validatedInput = tool.schema.parse(input);
-        return await tool.invoke(validatedInput, context);
-    } catch (error) {
-        console.error(`Input validation error for tool '${tool.name}': ${error.errors}`);
-        throw new Error(`Tool input validation failed: ${error.errors.map(e => e.message).join(', ')}`);
-    }
-}
-
 /**
  * Executes a tool and handles potential errors.
  * @param {object} state - The server state.
@@ -27,9 +17,13 @@ export async function executeToolStep(state, note, step, toolName, memoryMap, er
             errorHandler.handleToolNotFoundError(note, step);
             throw new Error(`Tool ${toolName} not found`);
         }
-        const result = await executeTool(tool, step.input, {
+        const result = await tool.invoke(step.input, { // Directly call tool.invoke
             graph: state.getGraph(),
-            llm: state.getLLM()
+            llm: state.getLLM(),
+            state: state, // Pass the server state
+            note: note, // Pass the current note
+            step: step,  // Pass the current step
+            errorHandler: errorHandler // Pass the error handler
         });
         memoryMap.set(step.id, result);
         note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
