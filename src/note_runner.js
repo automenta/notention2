@@ -4,8 +4,6 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import path from 'path'; // ADDED
 
-const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
-
 import { ErrorHandler } from './error_handler.js';
 import { logToolStart, replacePlaceholders, logNoteStart, logNoteFinalize, logNoteQueueLength, logStepError, logStepNotFound, logStepNotPending, logTestFail, logTestPass, logMemoryPrune, logNoteRunFinalized, logNoteFailure, logRetryExecutionQueued, logTestRunnerStart, logUnitTestRequested } from './utils.js';
 
@@ -83,6 +81,9 @@ export class NoteRunner {
         } finally {
             logNoteFinalize(this.state, note.id, note.status);
             this.state.queueManager.executionQueue.delete(note.id);
+        } finally {
+            logNoteFinalize(this.state, note.id, note.status);
+            this.state.queueManager.executionQueue.delete(note.id);
         }
     }
 
@@ -96,7 +97,7 @@ export class NoteRunner {
             note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
         } catch (error) {
-            this.errorHandler.handleToolStepError(note, step, error);
+            return this.errorHandler.handleToolStepError(note, step, error);
         }
         await this.state.serverCore.writeNoteToDB(note); // Corrected line
     }
