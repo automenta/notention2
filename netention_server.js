@@ -13,10 +13,6 @@ import { NoteStepHandler } from './note_step_handler.js';
 import NetentionServerCore from './netention_server_core.js';
 import { ErrorHandler } from './error_handler.js';
 import { timeoutPromise } from './utils.js'; // Import timeoutPromise
-
-class NetentionServer {
-    serverCore;
-    toolLoader;
     noteLoader;
     state;
     queueManager;
