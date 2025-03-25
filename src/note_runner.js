@@ -201,7 +201,13 @@ export class NoteRunner {
             testNoteId: testId
         });
 
-        const testNote = {
+        const testNote = this._createTestNote(note, testId);
+        this.state.graph.addNote(testNote);
+        this.state.queueManager.queueExecution(testNote);
+    }
+
+    _createTestNote(note, testId) {
+        return {
             id: testId,
             title: `Test for ${note.title}`,
             content: {type: 'test', code: ''},
@@ -210,7 +216,5 @@ export class NoteRunner {
             references: [note.id],
             createdAt: new Date().toISOString()
         };
-        this.state.graph.addNote(testNote);
-        this.state.queueManager.queueExecution(testNote);
     }
 }
