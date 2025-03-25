@@ -18,6 +18,29 @@ export class Tool {
         } catch (error) {
             console.error(`Input validation error for tool '${this.name}': ${error.errors}`);
             throw new Error(`Tool input validation failed: ${error.errors.map(e => e.message).join(', ')}`);
+    addTool(tool) {
+        this.tools.set(tool.name, tool);
+    }
+
+    async loadTools() {
+        this.tools = new Map(); // Clear existing tools before reloading
+        const files = await readdir('./tools');
+        for (const file of files) {
+            if (file.endsWith('.js')) { // Only load .js files
+                await this._loadToolFromFile('./tools', file);
+            }
+        }
+        return this.getTools();
+    }
+
+    async _loadToolFromFile(path, file) {
+        try {
+            const module = await import(`file://${process.cwd()}/${path}/${file}`);
+            const toolDef = module.default;
+            const tool = new Tool(toolDef);
+            this.addTool(tool);
+        } catch (e) {
+            console.error(`Error loading tool ${file} from ${path}: ${e}`);
         }
     }
 }

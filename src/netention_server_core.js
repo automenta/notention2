@@ -8,7 +8,6 @@ import react from '@vitejs/plugin-react';
 import {createViteServer} from "vitest/node";
 import * as http from "node:http";
 import {CONFIG} from './config.js';
-import {ToolLoader} from './tool_loader.js';
 import {NoteLoader} from './note_loader.js';
 import {NoteStepHandler} from './note_step_handler.js';
 import {INITIAL_NOTES} from './initial_notes.js';
@@ -36,6 +35,7 @@ class NetentionServerCore {
         this.noteHandler = noteHandler;
         this.batchTimeout = null;
         this.fileManager = new File(CONFIG.DB_PATH); // Instantiate File manager
+        this.tools.loadTools();
         this.loadNotesFromDB(); // Load notes from DB on initialization
     }
 
