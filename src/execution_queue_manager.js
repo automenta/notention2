@@ -64,6 +64,14 @@ export class ExecutionQueue {
         } catch (error) {
             logQueueProcessingError(this.state, note.id, error);
             this.executionQueue.delete(noteId);
+            // Basic retry for queue processing itself - re-queue the note if processing fails
+            this.state.logger.warn(`Re-queueing note ${note.id} due to queue processing error.`, {
+                component: 'ExecutionQueue',
+                noteId: note.id,
+                errorType: 'QueueProcessingError',
+                errorMessage: error.message
+            });
+            this.queueExecution(note); // Re-queue the note
         } finally {
             this.executionQueue.delete(noteId);
         }
