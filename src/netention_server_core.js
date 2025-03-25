@@ -33,6 +33,24 @@ class NetentionServerCore {
         this.state.log(message, level, context);
     }
 
+    async loadNotesFromDB() {
+        this.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
+        try {
+            const loadedNotes = await this.fileManager.loadNotes();
+            loadedNotes.forEach(note => this.state.graph.addNote(note));
+            this.log(`Loaded ${loadedNotes.length} notes from DB using File storage.`, 'info', {
+                component: 'NoteLoader',
+                count: loadedNotes.length
+            });
+        } catch (error) {
+            this.state.log(`Note loading failed during server initialization: ${error}`, 'error', {
+                component: 'NoteLoader',
+                error: error.message
+            });
+            throw error; // Re-throw to prevent server from starting with no notes
+        }
+    }
+
 
     async dispatchWebSocketMessage(parsedMessage) {
         if (parsedMessage.type === 'createNote') {
