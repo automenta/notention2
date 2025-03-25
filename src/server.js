@@ -1,17 +1,9 @@
-import {WebSocketServer} from 'ws';
-import {InMemoryChatMessageHistory} from '@langchain/core/chat_history';
 import react from '@vitejs/plugin-react';
-import {createViteServer} from "vitest/node";
+import { createViteServer } from "vitest/node";
 import * as http from "node:http";
-import crypto from 'crypto';
 
-import {Graph} from './graph.js';
-import {Tools} from './tools.js';
-import {LLM} from './llm.js';
-import { CONFIG } from './config.js'; // Import CONFIG from config.js
 import { ServerState } from './server_state.js'; // Import ServerState
-import { INITIAL_NOTES } from './initial_notes.js'; // Import INITIAL_NOTES from initial_notes.js
-import { NoteSchema } from './schemas.js'; // Import NoteSchema from schemas.js
+import WebSocketHandler from './websocket_handler.js'; // Import WebSocketHandler
 
 
 class NetentionServer {
@@ -281,39 +273,8 @@ class NetentionServer {
         });
 
         const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
-        this.state.wss = new WebSocketServer({server: httpServer});
-
-        this.state.wss.on('connection', ws => {
-            this.state.log('Client connected', 'info', {component: 'WebSocketHandler'});
-            ws.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
-            // Send available tools on connection
-            const availableToolsData = this.state.tools.getTools().map(tool => ({ name: tool.name, description: tool.description, schema: tool.schema })); // Send tool info
-            ws.send(JSON.stringify({type: 'tools', data: availableToolsData}));
-
-
-            while (this.state.messageQueue.length) {
-                const {client, message} = this.state.messageQueue.shift();
-                if (!client || client.readyState === WebSocket.OPEN) {
-                    (client || ws).send(message);
-                }
-            }
-
-            ws.on('message', async msg => {
-                try {
-                    const parsedMessage = JSON.parse(msg);
-                    await this._handleWebSocketMessage(parsedMessage);
-                } catch (e) {
-                    this.state.log(`WebSocket message processing error: ${e}`, 'error', {
-                        component: 'WebSocketHandler',
-                        errorType: 'MessageParsingError',
-                        error: e.message
-                    });
-                }
-            });
-
-
-            ws.on('close', () => this.state.log('Client disconnected', 'info', {component: 'WebSocketHandler'}));
-        });
+        const wsHandler = new WebSocketHandler(this.state); // Instantiate WebSocketHandler
+        wsHandler.start(httpServer); // Start WebSocket server in handler
 
         httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', {
             component: 'Server',
@@ -322,14 +283,6 @@ class NetentionServer {
         setInterval(() => this.processQueue(), CONFIG.QUEUE_INTERVAL);
     }
 
-    async loadTools() {
-        this.state.log("Loading tools...", 'info', {component: 'ToolLoader'});
-        await this.state.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR);
-        this.state.log(`Loaded ${this.state.tools.getTools().length} tools.`, 'info', {
-            component: 'ToolLoader',
-            count: this.state.tools.getTools().length
-        });
-    }
 
     async loadNotesFromDB() {
         this.state.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
@@ -356,11 +309,13 @@ class NetentionServer {
         this.state.updateBatch.clear();
         this.state.batchTimeout = null;
         noteUpdates.forEach(note => {
-            this.state.wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({type: 'noteUpdate', data: note}));
-                }
-            });
+            if (this.state.wss) { // Check if WebSocket server is initialized
+                this.state.wss.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({ type: 'noteUpdate', data: note }));
+                    }
+                });
+            }
             const resolver = this.state.pendingWrites.get(note.id);
             if (resolver) resolver();
             this.state.pendingWrites.delete(note.id);
@@ -475,56 +430,6 @@ class NetentionServer {
         return `Tool execution failed: ${error.message}`;
     }
 
-    async _handleWebSocketMessage(parsedMessage) {
-        if (parsedMessage.type === 'createNote') {
-            const newNote = {
-                id: crypto.randomUUID(),
-                title: parsedMessage.title || 'New Note',
-                content: '',
-                status: 'pending',
-                logic: [],
-                memory: [],
-                createdAt: new Date().toISOString(),
-            };
-            this.state.graph.addNote(newNote);
-            await this.writeNoteToDB(newNote);
-            this.queueExecution(newNote);
-            this.state.wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
-                }
-            });
-        } else if (parsedMessage.type === 'updateNote') {
-            const updatedNote = parsedMessage;
-            const existingNote = this.state.graph.getNote(updatedNote.id);
-            if (existingNote) {
-                Object.assign(existingNote, updatedNote);
-                existingNote.updatedAt = new Date().toISOString();
-                await this.writeNoteToDB(existingNote);
-                this.state.wss.clients.forEach(client => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
-                    }
-                });
-            }
-        } else if (parsedMessage.type === 'deleteNote') {
-            const noteIdToDelete = parsedMessage.id;
-            this.state.graph.removeNote(noteIdToDelete);
-            await this.state.graph.removeReferences(noteIdToDelete);
-            await this.writeNoteToDB({id: noteIdToDelete}); //still write to trigger update
-            this.state.wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({type: 'notes', data: this.state.graph.getNotes()}));
-                }
-            });
-
-        } else {
-            this.state.log('Unknown message type', 'warn', {
-                component: 'WebSocketHandler',
-                messageType: parsedMessage.type
-            });
-        }
-    }
 
     async processQueue() {
         if (this.state.executionQueue.size === 0) return;
