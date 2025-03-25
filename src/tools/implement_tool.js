@@ -53,6 +53,7 @@ export default {
 
         try {
             // --- Code Validation ---
+            context.log(`Validating tool code for '${name}'...`, 'debug', { component: 'implement_tool', toolName: name });
             new Script(toolCode); // Will throw an error if code is invalid
             context.log(`Tool code validated successfully for '${name}'.`, 'debug', { component: 'implement_tool', toolName: name });
 
@@ -63,18 +64,28 @@ export default {
             context.log(successMsg, 'info', { component: 'implement_tool', toolName: name, filepath: filepath });
             return successMsg;
 
-
         } catch (validationError) { // Catch code validation errors
             const errorMsg = `Tool code validation error for '${name}': ${validationError.message}`;
             console.error(errorMsg, validationError);
-            context.log(errorMsg, 'error', { component: 'implement_tool', toolName: name, error: validationError.message, toolCodeSnippet: toolCode.substring(0, 200) + '...' }); // Log code snippet
+            context.log(errorMsg, 'error', {
+                component: 'implement_tool',
+                toolName: name,
+                errorType: 'CodeValidationError', // More specific error type
+                errorMessage: validationError.message,
+                toolCodeSnippet: toolCode.substring(0, 200) + '...'
+            });
             return errorMsg;
-
 
         } catch (error) { // Catch other errors (e.g., file write errors)
             const errorMsg = `Error implementing tool '${name}': ${error.message}`;
             console.error(errorMsg, error);
-            context.log(errorMsg, 'error', { component: 'implement_tool', toolName: name, error: error.message, filepath: filepath });
+            context.log(errorMsg, 'error', {
+                component: 'implement_tool',
+                toolName: name,
+                errorType: 'ToolImplementationError', // More specific error type
+                errorMessage: error.message,
+                filepath: filepath
+            });
             return errorMsg;
         }
     }
