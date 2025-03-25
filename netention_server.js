@@ -11,7 +11,6 @@ import { NoteRunner } from './note_runner.js';
 import { NoteHandler } from './note_handler.js';
 import { NoteStepHandler } from './note_step_handler.js';
 import { ErrorHandler } from './error_handler.js';
-import {CONFIG} from "./config.js";
 
 class NetentionServer {
     constructor() {
@@ -22,7 +21,6 @@ class NetentionServer {
         this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler); // Pass ErrorHandler
         this.noteRunner = new NoteRunner(this.state, this.noteStepHandler, this.errorHandler); // Pass ErrorHandler
         this.noteHandler = new NoteHandler(this.state, this.websocketManager, this.queueManager);
-        // this.core = new ServerCore(this.state, this.queueManager, this.websocketManager, this.noteRunner, this.noteStepHandler, this.errorHandler); // No longer needed
     }
 
     async initialize() {
