@@ -98,6 +98,15 @@ function App() {
                                     return '#666';
                             }
                         },
+                        'shape': (ele) => { // Shape based on status
+                            const status = ele.data('status');
+                            switch (status) {
+                                case 'running':
+                                    return 'diamond';
+                                default:
+                                    return 'ellipse'; // Default shape
+                            }
+                        },
                         'width': 80,
                         'height': 80
                     }
