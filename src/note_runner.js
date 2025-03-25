@@ -206,7 +206,7 @@ export class NoteRunner {
         this.state.queueManager.queueExecution(testNote);
     }
 
-    _createTestNote(note, testId) {
+    static _createTestNote(note, testId) {
         return {
             id: testId,
             title: `Test for ${note.title}`,
