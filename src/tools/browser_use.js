@@ -23,6 +23,30 @@ export default {
             await page.goto(url);
             // Optionally return some information or success message
             return `Browser opened to URL: ${url}.`;
+        } else if (action === 'scrape') {
+            if (!selector) {
+                return "Error: Selector is required for scrape action.";
+            }
+            const puppeteer = await import('puppeteer');
+            const browser = await puppeteer.launch({headless: "new"});
+            const page = await browser.newPage();
+            await page.goto(url);
+
+            try {
+                const scrapedData = await page.evaluate((selector) => {
+                    const elements = Array.from(document.querySelectorAll(selector));
+                    return elements.map(element => element.textContent.trim());
+                }, selector);
+                await browser.close();
+                return JSON.stringify({
+                    url: url,
+                    selector: selector,
+                    data: scrapedData
+                }, null, 2);
+            } catch (scrapeError) {
+                await browser.close();
+                return `Error scraping URL "${url}" with selector "${selector}": ${scrapeError.message}`;
+            }
         }
 
         return `Browser action "${action}" on URL "${url}" is not implemented yet.`;
