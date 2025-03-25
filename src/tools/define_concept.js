@@ -30,12 +30,19 @@ export default {
             metaNote.content.concepts = {}; // Initialize concepts if it doesn't exist
         }
 
-        metaNote.content.concepts[concept_name] = definition;
+        if (!metaNote.content.concepts) {
+            metaNote.content.concepts = {};
+        }
 
-        await context.graph.writeNoteToDB(metaNote); // Persist changes to Meta-Note
+        metaNote.content.concepts[concept_name] = {
+            definition: definition,
+            createdAt: new Date().toISOString()
+        };
+
+        await context.graph.writeNoteToDB(metaNote);
 
         const successMsg = `Concept '${concept_name}' defined and stored in Meta-Note.`;
-        context.log(successMsg, 'info', { component: 'define_concept', conceptName: concept_name });
+        context.log(successMsg, 'info', {component: 'define_concept', conceptName: concept_name});
         return successMsg;
     }
 };
