@@ -10,12 +10,10 @@ import { logToolStart, replacePlaceholders, logNoteStart, logNoteFinalize, logNo
 
 export class NoteRunner {
     noteStepHandler;
-    server;
     errorHandler; // Declare ErrorHandler
 
-    constructor(serverState, server) {
+    constructor(serverState) {
         this.state = serverState;
-        this.server = server;
         this.errorHandler = new ErrorHandler(serverState); // Instantiate ErrorHandler
     }
 
@@ -25,7 +23,7 @@ export class NoteRunner {
         try {
             logNoteStart(this.state, note.id);
             note.status = 'running';
-            await this.state.writeNoteToDB(note);
+            await this.state.serverCore.writeNoteToDB(note);
             this.state.queueManager.updateAnalytics(note, 'start');
 
             const memoryMap = new Map(note.memory.map(m => [m.stepId || m.timestamp, m.content]));
