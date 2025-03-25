@@ -9,5 +9,9 @@ export const CONFIG = {
     MAX_PRIORITY: 100,
     QUEUE_INTERVAL: 100,
     DEBUG_LOGGING: true,
-    AUTO_RUN_TESTS: false
+    AUTO_RUN_TESTS: false,
+    WEBSOCKET_PORT: 8080,
+    LLM_MODEL: "gemini-2.0-flash",
+    LLM_TEMPERATURE: 1,
+    LLM_MAX_RETRIES: 2
 };

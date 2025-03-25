@@ -1,8 +1,10 @@
 import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
 
+import { CONFIG } from './config.js';
+
 export class LLM {
     constructor() {
-        this.llm = new ChatGoogleGenerativeAI({model: "gemini-2.0-flash", temperature: 1, maxRetries: 2});
+        this.llm = new ChatGoogleGenerativeAI({ model: CONFIG.LLM_MODEL, temperature: CONFIG.LLM_TEMPERATURE, maxRetries: CONFIG.LLM_MAX_RETRIES });
         this.promptCache = new Map();
         this.collabHistory = new Map();
         this.apiKeys = new Map();

@@ -78,10 +78,7 @@ export class ServerInitializer {
         const httpServer = http.createServer((req, res) => vite.middlewares.handle(req, res));
         this.websocketManager.start(httpServer);
 
-        httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', {
-            component: 'Server',
-            port: CONFIG.PORT
-        }));
+        httpServer.listen(CONFIG.PORT, () => this.state.log(`Server running on localhost:${CONFIG.PORT}`, 'info', { component: 'Server', port: CONFIG.PORT }));
         setInterval(() => this.queueManager.processQueue(), CONFIG.QUEUE_INTERVAL);
     }
 }
