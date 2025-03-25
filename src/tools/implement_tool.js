@@ -89,7 +89,7 @@ export default {
                 }
             };
 
-        } catch (error) { // Catch other errors (e.g., file write errors)
+        } catch (error) { // Catch other errors during tool implementation (e.g., file write errors)
             const errorMsg = `Error implementing tool '${name}': ${error.message}`;
             console.error(errorMsg, error);
             context.logger.log(errorMsg, 'error', {
