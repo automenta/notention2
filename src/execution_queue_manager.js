@@ -75,6 +75,16 @@ export class ExecutionQueue {
         } finally {
             this.executionQueue.delete(noteId);
         }
+
+        if (note.queueRetryCount >= 3) {
+            this.state.logger.error(`Note ${note.id} failed queue processing after multiple retries.`, {
+                component: 'ExecutionQueue',
+                noteId: note.id,
+                errorType: 'MaxQueueRetriesExceeded',
+                queueRetryCount: note.queueRetryCount
+            });
+            // Optionally add to a dead-letter queue or take other actions for notes that consistently fail queue processing
+        }
     }
 
     updateAnalytics(note, event) {
