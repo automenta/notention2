@@ -1,5 +1,7 @@
 import {CONFIG} from './config.js';
 import {File} from './file.js';
+import {NoteLoader} from './note_loader.js';
+import {BatchUpdater} from './batch_updater.js';
 
 class NetentionServerCore {
 
@@ -13,6 +15,8 @@ class NetentionServerCore {
     batchTimeout;
     toolLoader;
     messageHandlers;
+    noteLoader;
+    batchUpdater;
 
 
     constructor(state, queueManager, websocketManager, errorHandler, noteStepHandler, noteRunner, noteHandler) {
@@ -31,37 +35,14 @@ class NetentionServerCore {
             'updateNote': this.noteHandler.handleUpdateNote.bind(this.noteHandler),
             'deleteNote': this.noteHandler.handleDeleteNote.bind(this.noteHandler),
         };
+        this.noteLoader = new NoteLoader(this.state, this.fileManager);
+        this.batchUpdater = new BatchUpdater(this.state, this.websocketManager, this.fileManager);
     }
 
     async loadNotesFromDB() {
-        this.state.logger.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
-        try {
-            const loadedNotes = await this.fileManager.loadNotes();
-            loadedNotes.forEach(note => this.state.graph.addNote(note));
-            this.state.logger.log(`Loaded ${loadedNotes.length} notes from DB using File storage.`, 'info', {
-                component: 'NoteLoader',
-                count: loadedNotes.length
-            });
-        } catch (error) {
-            this.state.logger.log(`Note loading failed during server initialization: ${error}`, 'error', {
-                component: 'NoteLoader',
-                error: error.message
-            throw error; // Re-throw to prevent server from starting with no notes
-        }
+        await this.noteLoader.loadNotesFromDB();
     }
 
     async flushBatchedUpdates() {
-        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => {
-            return this.state.graph.getNote(noteId);
-        });
-        this.state.updateBatch.clear();
-        this.batchTimeout = null;
-        noteUpdates.forEach(note => {
-            this.websocketManager.broadcastNoteUpdate(note);
-        });
-        await Promise.all(Array.from(this.state.pendingWrites.values()).map(resolve => resolve()));
-        this.state.pendingWrites.clear();
-        for (const note of noteUpdates) {
-            await this.fileManager.saveNote(note); // Ensure notes are saved to DB after batch update
-        }
+        await this.batchUpdater.flushBatchedUpdates();
     }
