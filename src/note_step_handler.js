@@ -104,7 +104,7 @@ export class NoteStepHandler {
     async handleFetchExternal(note, step, memoryMap) {
         const {apiName, query} = step.input;
         try {
-            const data = await this.state.llm.fetchExternalData(apiName, query);
+            const data = await this.handleToolExecution(note, step, memoryMap, 'fetchExternal');
             note.memory.push({type: 'external', content: JSON.stringify(data), timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
             await this.state.serverCore.writeNoteToDB(note);
