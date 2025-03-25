@@ -16,19 +16,8 @@ export default function NoteList({notes, onSelect, onDelete}) {
                         </span>
                         <span
                             title={note.status} // Add tooltip here
-                            style={{
-                                display: 'inline-block',
-                                marginLeft: '8px',
-                                width: '10px',
-                                height: '10px',
-                                borderRadius: '3px',
-                                backgroundColor: note.status === 'pending' ? 'orange' :
-                                    note.status === 'running' ? 'blue' :
-                                        note.status === 'completed' ? 'green' :
-                                            note.status === 'failed' ? 'red' :
-                                                note.status === 'pendingUnitTesting' ? 'purple' :
-                                                    'grey' // default
-                            }}></span>
+                            className={`note-status ${note.status}`}
+                        ></span>
                         <span style={{
                             marginLeft: '4px',
                             fontSize: '0.8em',
