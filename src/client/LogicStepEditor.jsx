@@ -141,6 +141,27 @@ export default function LogicStepEditor({logic, onChange, availableTools}) {
                     border: 2px dashed #999;
                     background-color: #fafafa;
                 }
+                .logic-step-item:not(:last-child)::after {
+                    content: '';
+                    position: absolute;
+                    left: 20px; /* Adjust as needed for indentation */
+                    top: 100%;
+                    width: 2px;
+                    height: 20px; /* Adjust line length as needed */
+                    background: dashed linear-gradient(to bottom, #ccc 50%, transparent 50%);
+                    background-size: 100% 6px;
+                    background-repeat: repeat-y;
+                }
+
+                ul {
+                    position: relative; /* Needed for absolute positioning of pseudo-element */
+                    padding-left: 20px; /* Adjust to align with the connector line */
+                }
+                li {
+                    position: relative; /* To position the pseudo-element connector */
+                }
+
+
             `}</style>
         </div>
     );
