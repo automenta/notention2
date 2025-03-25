@@ -15,6 +15,16 @@ export default {
     dependencies: ['zod', 'puppeteer'],
     async invoke(input) {
         const {url, action} = schema.parse(input);
-        return `Stub: Browser ${action} on ${url}`;
+
+        if (action === 'open') {
+            const puppeteer = await import('puppeteer');
+            const browser = await puppeteer.launch({headless: "new"});
+            const page = await browser.newPage();
+            await page.goto(url);
+            // Optionally return some information or success message
+            return `Browser opened to URL: ${url}.`;
+        }
+
+        return `Browser action "${action}" on URL "${url}" is not implemented yet.`;
     }
 };
