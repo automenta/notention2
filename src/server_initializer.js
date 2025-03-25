@@ -2,10 +2,6 @@ import react from '@vitejs/plugin-react';
 import {createViteServer} from "vitest/node";
 import * as http from "node:http";
 import {CONFIG, INITIAL_NOTES} from './config.js';
-import {ServerState} from './server_state.js';
-import {ExecutionQueue} from './execution_queue_manager.js';
-import {WebSocketServerManager} from './websocket_handler.js';
-import {ServerCore} from './server_core.js';
 import {ToolLoader} from './tool_loader.js';
 import {NoteLoader} from './note_loader.js';
 

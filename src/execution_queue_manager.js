@@ -1,4 +1,3 @@
-
 export class ExecutionQueue {
     constructor(serverState) {
         this.state = serverState;
