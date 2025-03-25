@@ -3,12 +3,6 @@ import {z} from 'zod';
 const schema = z.object({
     name: z.string(),
     desc: z.string(),
-import {z} from 'zod';
-import { withToolHandling } from '../tool_utils.js';
-
-const schema = z.object({
-    name: z.string(),
-    desc: z.string(),
     code: z.string()
 });
 

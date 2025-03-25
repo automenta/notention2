@@ -2,11 +2,6 @@ import {z} from 'zod';
 
 const schema = z.object({
     task: z.string(),
-import {z} from 'zod';
-import { withToolHandling } from '../tool_utils.js';
-
-const schema = z.object({
-    task: z.string(),
     constraints: z.any().optional(),
 });
 
