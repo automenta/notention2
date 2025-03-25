@@ -1,7 +1,10 @@
 import react from '@vitejs/plugin-react';
 import {createViteServer} from "vitest/node";
 import * as http from "node:http";
-import {CONFIG, INITIAL_NOTES} from './config.js';
+import react from '@vitejs/plugin-react';
+import {createViteServer} from "vitest/node";
+import * as http from "node:http";
+import {CONFIG} from './config.js';
 import {ToolLoader} from './tool_loader.js';
 import {NoteLoader} from './note_loader.js';
 
@@ -50,7 +53,7 @@ export class ServerInitializer {
     async _loadNotesFromDB() {
         this.state.log("Loading notes from DB...", 'info', {component: 'NoteLoader'});
         try {
-            const loadedNotesCount = await this.noteLoader.loadNotes(INITIAL_NOTES);
+            const loadedNotesCount = await this.noteLoader.loadNotes();
             this.state.log(`Loaded ${loadedNotesCount} notes from DB.`, 'info', {
                 component: 'NoteLoader',
                 count: loadedNotesCount
