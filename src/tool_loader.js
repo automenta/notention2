@@ -4,10 +4,23 @@ import {Tool} from './tools.js';
 export async function loadToolsFromDirectory(path, addTool) {
     const files = await readdir(path);
     for (const file of files) {
-        if (file.endsWith('.js')) { // Only load .js files
+        if (file.endsWith('.js')) {
             await loadToolFromFile(path, file, addTool);
         }
     }
+}
+
+export function withToolHandling(tool) {
+    return async (input, context) => {
+        try {
+            const validatedInput = tool.schema.parse(input);
+            const result = await tool.invoke(validatedInput, context);
+            return { success: true, data: result };
+        } catch (error) {
+            console.error(`Tool '${tool.name}' failed: ${error}`);
+            return { success: false, error: error.message };
+        }
+    };
 }
 
 async function loadToolFromFile(path, file, addTool) {

@@ -17,15 +17,19 @@ const promptTemplate = PromptTemplate.fromTemplate(
 
 const chain = new LLMChain({llm: llm, prompt: promptTemplate});
 
+import { withToolHandling } from '../tool_utils.js';
+
+async function invoke(input) {
+    const { text, length = 'medium', style = 'paragraph' } = schema.parse(input);
+    const result = await chain.call({ text, length, style });
+    return result.text || 'No summary generated';
+}
+
 export default {
     name: 'summarize',
     description: 'Summarize text',
     schema,
     version: '1.0.0',
     dependencies: ['zod'],
-    async invoke(input) {
-        const {text, length = 'medium', style = 'paragraph'} = schema.parse(input);
-        const result = await chain.call({text, length, style});
-        return result.text || 'No summary generated';
-    }
+    invoke: withToolHandling({ name: 'summarize', schema, invoke }),
 };
