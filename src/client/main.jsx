@@ -172,16 +172,30 @@ function App() {
     return (
         <div>
             <h1>Netention</h1>
-            <p>{connectionStatus}</p>
+            <div style={{
+                padding: '10px',
+                backgroundColor: connectionStatus === 'Connected' ? '#e0f7fa' : connectionStatus === 'Error' ? '#ffebee' : '#fffde7',
+                borderRadius: '5px',
+                marginBottom: '10px',
+                border: '1px solid',
+                borderColor: connectionStatus === 'Connected' ? '#b2ebf2' : connectionStatus === 'Error' ? '#ffcdd2' : '#ffecb3'
+            }}>
+                <strong>Connection Status: {connectionStatus}</strong>
+                {connectionStatus !== 'Connected' && connectionStatus !== 'Connecting...' && (
+                    <p style={{fontSize: '0.9em', color: 'grey'}}>
+                        Please check if the server is running and refresh the page.
+                    </p>
+                )}
+            </div>
 
             <div>
-                <button onClick={handleCreateNote}>+ Note</button>
-                <button onClick={() => setEdgeDrawingMode(!edgeDrawingMode)}>
+                <button onClick={handleCreateNote} disabled={connectionStatus !== 'Connected'}>+ Note</button>
+                <button onClick={() => setEdgeDrawingMode(!edgeDrawingMode)} disabled={connectionStatus !== 'Connected'}>
                     {edgeDrawingMode ? 'Disable Edge Draw' : 'Enable Edge Draw'}
                 </button>
             </div>
             <NoteList
-                notes={notes}
+                notes={connectionStatus === 'Connected' ? notes : []}
                 onSelect={setSelectedNoteId}
                 onDelete={(id) => send({type: 'deleteNote', id})}
             />
