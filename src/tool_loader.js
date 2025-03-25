@@ -46,9 +46,13 @@ export function createSimpleInvoke(schema) {
     };
 }
 
-export function createSimpleInvoke(schema) {
-    return async function invoke(input) {
-        const parsedInput = schema.parse(input);
-        return parsedInput;
+export function defineTool({name, description, schema, invoke, version = '1.0.0', dependencies = []}) {
+    return {
+        name,
+        description,
+        schema,
+        version,
+        dependencies,
+        invoke: withToolHandling({name, schema, invoke})
     };
 }
