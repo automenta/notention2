@@ -34,10 +34,10 @@ export default function LogicStepItem({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                position: 'relative' // For positioning dependency connectors
+                position: 'relative'
             }}
         >
-            <div style={{flexGrow: 1}}>
+            <div style={{flexGrow: 1, position: 'relative'}}> {/* Make inner div relative for absolute positioning of connector */}
                 <div><strong>Step {index + 1}:</strong></div>
                 <StepToolSelect
                     step={step}
@@ -53,10 +53,18 @@ export default function LogicStepItem({
                 />
                 <div>Status: {step.status}</div>
             </div>
+            <div className="step-connector-anchor" style={{
+                position: 'absolute',
+                right: '-10px', // Adjust as needed
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '20px', // Width for visibility and click area if needed
+                height: '20px', // Height for visibility and click area if needed
+                // backgroundColor: 'red', // For debugging, remove later
+                zIndex: 10, // Ensure it's above other elements
+                pointerEvents: 'none' // Make it non-interactive
+            }}></div>
             <button onClick={() => onDeleteStep(index)} style={{marginLeft: '10px'}}>Delete</button>
-            {step.dependencies && step.dependencies.length > 0 && (
-                <div className="dependency-connector"></div>
-            )}
         </li>
     );
 }
