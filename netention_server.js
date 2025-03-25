@@ -6,7 +6,7 @@ import { ServerCore } from './server_core.js';
 import { NoteRunner } from './note_runner.js';
 import { NoteHandler } from './note_handler.js';
 import { NoteStepHandler } from './note_step_handler.js';
-import { ErrorHandler } from './error_handler.js'; // Import ErrorHandler
+import { ErrorHandler } from './error_handler.js';
 
 class NetentionServer {
     constructor() {
