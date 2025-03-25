@@ -6,6 +6,7 @@ import { z } from 'zod';
 const stepErrorTypes = ['ToolExecutionError', 'ToolNotFoundError'];
 
 import { ErrorHandler } from './error_handler.js'; // Import ErrorHandler
+import { logToolStart, replacePlaceholders } from './utils.js';
 
 export class NoteRunner {
     noteStepHandler;
@@ -47,10 +48,9 @@ export class NoteRunner {
                     continue;
                 }
 
-
                 step.status = 'running';
-                this.state.log(`Executing step ${step.id} of note ${note.id} with tool ${step.tool}`, 'debug', {component: 'NoteRunner', noteId: note.id, stepId: step.id, toolName: step.tool});
-                step.input = this.state.server.replacePlaceholders(step.input, memoryMap);
+                logToolStart(this.state, note.id, step.id, step.tool);
+                step.input = replacePlaceholders(step.input, memoryMap);
 
 
                 try {

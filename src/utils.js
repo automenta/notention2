@@ -8,3 +8,12 @@ export function replacePlaceholders(input, memoryMap) {
     }
     return input;
 }
+
+export function logToolStart(state, noteId, stepId, toolName) {
+    state.log(`Executing step ${stepId} of note ${noteId} with tool ${toolName}`, 'debug', {
+        component: 'NoteRunner',
+        noteId: noteId,
+        stepId: stepId,
+        toolName: toolName
+    });
+}
