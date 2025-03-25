@@ -7,9 +7,10 @@ import {Script} from 'node:vm'; // Import Script for code validation
 async function validateCode(code) {
     try {
         new Script(code); // Will throw an error if code is invalid
-        return {isValid: true};
+        return { isValid: true };
     } catch (error) {
-        return {isValid: false, error: error.message};
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { isValid: false, error: errorMessage };
     }
 }
 
