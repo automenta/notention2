@@ -12,13 +12,6 @@ export class ExecutionQueue {
     async optimizeSchedule() {
         const notes = [...this.state.graph.getNotes()].filter(n => n.status === 'pending' || n.status === 'running');
         notes.sort((a, b) => this.calculatePriority(b) - this.calculatePriority(a));
-
-        this.state.log(`Optimizing schedule, considering ${notes.length} notes.`, 'debug', {
-            component: 'ExecutionQueue',
-            notesCount: notes.length,
-            pendingNotes: notes.map(n => ({ id: n.id, title: n.title, priority: this.calculatePriority(n) }))
-        });
-
         for (const note of notes.slice(0, 10)) {
             if (!this.state.executionQueue.has(note.id)) this.queueExecution(note);
         }
@@ -79,6 +72,7 @@ export class ExecutionQueue {
         this.state.analytics.set(note.id, stats);
     }
 }
+
 import { CONFIG } from './config.js';
 
 export class ExecutionQueue {

@@ -19,7 +19,7 @@ export class ServerState {
     scheduler;
 
     constructor() {
-        this.llm = new LLM();
+        this.llm = new LLM(); // Instantiate LLM Class
         this.graph = new Graph();
         this.tools = new Tools();
         this.memory = new InMemoryChatMessageHistory();
