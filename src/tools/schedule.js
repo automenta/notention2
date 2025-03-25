@@ -19,18 +19,32 @@ export default {
             return `Error: Note with ID '${noteId}' not found.`;
         }
 
-        // Basic scheduling logic - in a real system, you'd use a more robust scheduler
         const scheduledTime = new Date(time);
+        if (isNaN(scheduledTime.getTime())) {
+            return `Error: Invalid time format '${time}'. Please use a valid date and time string.`;
+        }
+
         const delay = scheduledTime.getTime() - Date.now();
 
         if (delay <= 0) {
             return `Error: Scheduled time '${time}' is in the past.`;
         }
 
-        setTimeout(() => {
-            note.status = 'pending'; // Set note status to pending to be picked up by scheduler
-            context.graph.writeNoteToDB(note); // Assuming writeNoteToDB is available in context
-            console.log(`Note '${noteId}' executed as scheduled at '${time}'.`);
+        context.log(`Note '${noteId}' scheduling execution for '${time}'.`, 'info', {
+            component: 'schedule',
+            noteId: noteId,
+            scheduledTime: time
+        });
+
+        setTimeout(async () => {
+            note.status = 'pending';
+            await context.graph.writeNoteToDB(note);
+            context.state.queueExecution(note);
+            context.log(`Note '${noteId}' executed as scheduled at '${time}'.`, 'info', {
+                component: 'schedule',
+                noteId: noteId,
+                scheduledTime: time
+            });
         }, delay);
 
         return `Note '${noteId}' scheduled to run at '${time}'.`;
