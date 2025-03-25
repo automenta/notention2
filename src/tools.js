@@ -22,10 +22,12 @@ export class Tools {
     }
 
     async loadTools(path) {
+        this.tools = new Map(); // Clear existing tools before reloading
         const files = await readdir(path);
         for (const file of files) {
             await this._loadToolFromFile(path, file);
         }
+        return this.getTools(); // Return loaded tools for potential use
     }
 
     async _loadToolFromFile(path, file) {

@@ -9,6 +9,17 @@ export class ServerState {
         this.llm = new LLM(); // Instantiate LLM Class
         this.graph = new Graph();
         this.tools = new Tools();
+        this.tools.loadTools(CONFIG.TOOLS_BUILTIN_DIR).then(loadedTools => {
+            this.log(`Loaded ${loadedTools.length} tools during ServerState initialization.`, 'info', {
+                component: 'ToolLoader',
+                count: loadedTools.length
+            });
+        }).catch(error => {
+            this.log(`Tool loading failed during ServerState initialization: ${error}`, 'error', {
+                component: 'ToolLoader',
+                error: error.message
+            });
+        });
         this.memory = new InMemoryChatMessageHistory();
         this.wss = null;
         this.messageQueue = [];
