@@ -77,7 +77,7 @@ export class NoteRunner {
             this.state.queueManager.updateAnalytics(note, 'complete');
             return await this._finalizeNoteRun(note);
         } catch (error) {
-            return this._handleNoteError(note, error);
+            return this.errorHandler.handleNoteError(note, error);
         } finally {
             logNoteFinalize(this.state, note.id, note.status);
             this.state.queueManager.executionQueue.delete(note.id);
