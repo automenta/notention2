@@ -77,7 +77,6 @@ class NetentionServerCore {
         });
         this.state.updateBatch.clear();
         this.batchTimeout = null;
-        const noteUpdates = Array.from(this.state.updateBatch).map(noteId => this.state.graph.getNote(noteId));
         noteUpdates.forEach(note => {
             this.websocketManager.broadcastNoteUpdate(note);
         });
