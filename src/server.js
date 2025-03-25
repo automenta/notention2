@@ -230,10 +230,9 @@ class NetentionServer {
         const tool = this.state.tools.getTool(step.tool);
         if (!tool) return this._handleToolNotFoundError(note, step);
         try {
-            // --- Integrated Exe.executeStep logic here ---
-            const validatedInput = tool.schema.parse(step.input); // Validate input using tool's schema
-            const result = await tool.invoke(validatedInput, {graph: this.state.graph, llm: this.state.llm}); // Execute tool's invoke method, passing context
-            // --- End of integrated logic ---
+            // --- Use Tool.execute method for consistent execution ---
+            const result = await tool.execute(step.input, {graph: this.state.graph, llm: this.state.llm});
+            // --- End of tool execution ---
             memoryMap.set(step.id, result);
             note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
             step.status = 'completed';
