@@ -14,7 +14,6 @@ export class NoteRunner {
     constructor(serverState) {
         this.state = serverState;
         this.errorHandler = new ErrorHandler(serverState); // Instantiate ErrorHandler
-        this.noteStepHandler = new NoteStepHandler(this.state, this.errorHandler); // Instantiate NoteStepHandler
     }
 
     async runNote(note) {
