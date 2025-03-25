@@ -120,6 +120,14 @@ export function logUnitTestRequested(state, noteId, testNoteId) {
     });
 }
 
+export function logWebSocketConnect(state) {
+    state.log('Client connected', 'info', {component: 'WebSocket'});
+}
+
+export function logWebSocketDisconnect(state) {
+    state.log('Client disconnected', 'info', {component: 'WebSocket'});
+}
+
 export function logNoteQueueLength(state, noteId, readyQueueLength) {
     state.log(`Running note ${noteId}, ${readyQueueLength} steps ready`, 'debug', {
         component: 'NoteRunner',

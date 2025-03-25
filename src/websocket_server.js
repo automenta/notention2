@@ -1,5 +1,6 @@
 import {WebSocket, WebSocketServer} from 'ws';
 import crypto from 'crypto';
+import { logWebSocketConnect, logWebSocketDisconnect } from './utils.js';
 
 export class WebSocketServerManager {
     wss;
@@ -17,7 +18,7 @@ export class WebSocketServerManager {
     }
 
     _handleConnection(ws) {
-        this.state.log('Client connected', 'info', {component: 'WebSocket'});
+        logWebSocketConnect(this.state);
         this._sendInitialData(ws);
 
         while (this.messageQueue.length) {
@@ -40,7 +41,7 @@ export class WebSocketServerManager {
             }
         });
 
-        ws.on('close', () => this.state.log('Client disconnected', 'info', {component: 'WebSocket'}));
+        ws.on('close', () => logWebSocketDisconnect(this.state));
     }
 
     _sendInitialData(ws) {
