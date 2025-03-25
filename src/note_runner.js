@@ -52,7 +52,7 @@ export class NoteRunner {
                 step.input = replacePlaceholders(step.input, memoryMap);
 
                 try {
-                    await this.noteStepHandler.handleStep(note, step, memoryMap);
+                    await this.noteStepHandler.handleDefaultStep(note, step, memoryMap);
                 } catch (error) {
                     step.status = 'failed';
                     logStepError(this.state, note.id, step.id, step.tool, error);
@@ -82,22 +82,6 @@ export class NoteRunner {
             this.state.queueManager.executionQueue.delete(note.id);
         }
     }
-
-
-    async _executeStep(note, step, memoryMap) {
-        const tool = this.state.tools.getTool(step.tool);
-        if (!tool) return this.errorHandler.handleToolNotFoundError(note, step);
-        try {
-            const result = await tool.execute(step.input, {graph: this.state.graph, llm: this.state.llm});
-            memoryMap.set(step.id, result);
-            note.memory.push({type: 'tool', content: result, timestamp: Date.now(), stepId: step.id});
-            step.status = 'completed';
-        } catch (error) {
-            return this.errorHandler.handleToolStepError(note, step, error);
-        }
-        await this.state.serverCore.writeNoteToDB(note); // Corrected line
-    }
-
 
     async _pruneMemory(note) {
         if (note.memory.length > 100) {
