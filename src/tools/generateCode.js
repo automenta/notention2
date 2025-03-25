@@ -10,12 +10,17 @@ async function invoke(input, context) {
     const { description, execute = false } = schema.parse(input);
     const llm = context.llm;
     const code = await llm.invoke([`Generate JS code: ${description}`]);
-    if (execute) {
-        const vm = require('vm');
-        const sandbox = { console, require };
-        vm.createContext(sandbox);
+    try {
+        context.logToolStart();
+        if (execute) {
+            const vm = require('vm');
+            const sandbox = { console, require };
+            vm.createContext(sandbox);
+        }
+        return code.content;
+    } catch (error) {
+        context.handleToolError(error);
     }
-    return code.content;
 }
 
 export default defineTool({
