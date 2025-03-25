@@ -97,11 +97,11 @@ function App() {
                             }
                         },
                         'width': ele => ele.data('isStep') ? 60 : 80,
-                        'height': ele => ele.data('isStep') ? 40 : 80, // Smaller height for steps
+                        'height': ele => ele.data('isStep') ? 40 : 80,
                         'font-size': ele => ele.data('isStep') ? '0.8em' : '1em',
                         'text-valign': 'center',
                         'text-halign': 'center',
-                    }
+                    },
                 },
                 {selector: 'edge', style: {'width': 2, 'line-color': '#ccc'}},
                 {
@@ -127,7 +127,43 @@ function App() {
                         'border-width': '4px',
                         'border-color': 'red'
                     }
+                },
+                {
+                    selector: 'node[status = "running"]',
+                    style: {
+                        'transition-property': 'background-color',
+                        'transition-duration': '0.7s',
+                        'transition-timing-function': 'ease-in-out',
+                        'animation-play-state': 'running',
+                        'animation-direction': 'alternate',
+                        'animation-iteration-count': 'infinite',
+                        'animation-name': 'pulse-bg'
+                    }
+                },
+                {
+                    selector: 'node[status = "running"]',
+                    css: {
+                        'animation-play-state': 'running',
+                    }
+                },
+                {
+                    stylesheet: [
+                        {
+                            selector: 'node[status = "running"]',
+                            css: {
+                                'animation-play-state': 'running',
+                            }
+                        },
+                        {
+                            selector: 'node',
+                            css: {
+                                'animation-play-state': 'paused',
+                            }
+                        }
+                    ]
                 }
+
+
             ],
             layout: {name: 'grid'}
         });
